@@ -1681,92 +1681,118 @@ if (document.readyState === 'loading') {
 // ==========================================================================
 // LOGIN & AUTHENTICATION HANDLER (FORCE VIEW SWITCH)
 // ==========================================================================
-function initLogin() {
-  const loginForm = document.getElementById('loginForm');
-  const loginBtn = document.getElementById('loginBtn');
-  const loginEmpId = document.getElementById('loginEmpId');
-  const loginPassword = document.getElementById('loginPassword');
-  const loginError = document.getElementById('loginError');
+// ==========================================================================
+// UNIFIED AUTHENTICATION & SESSION MANAGER
+// ==========================================================================
+function checkExistingSession() {
+  const savedUser = localStorage.getItem('DDC_USER');
+  const loginView = document.getElementById('loginView');
+  const appLayout = document.getElementById('appLayout');
 
-  if (!loginBtn) return;
-
-  async function processLogin(e) {
-    if (e) e.preventDefault();
-
-    const empId = loginEmpId ? loginEmpId.value.trim() : '';
-    const password = loginPassword ? loginPassword.value.trim() : '';
-
-    if (!empId || !password) {
-      if (loginError) {
-        loginError.textContent = 'Please enter both Employee ID and Password.';
-        loginError.style.display = 'block';
-      }
-      return;
-    }
-
-    // Button loading state
-    const originalBtnText = loginBtn.innerHTML;
-    loginBtn.disabled = true;
-    loginBtn.innerHTML = '<span>Signing In...</span>';
-    if (loginError) loginError.style.display = 'none';
-
+  if (savedUser) {
     try {
-      // 1. Set global user session
-      window.CURRENT_USER = {
-        employeeId: empId,
-        fullName: empId,
-        name: empId
-      };
-      localStorage.setItem('DDC_USER', JSON.stringify(window.CURRENT_USER));
-
-      // 2. Force Hide Login View & Force Show App Layout
-      const loginView = document.getElementById('loginView');
-      const appLayout = document.getElementById('appLayout');
-
+      window.CURRENT_USER = JSON.parse(savedUser);
       if (loginView) {
         loginView.classList.remove('active');
         loginView.style.setProperty('display', 'none', 'important');
       }
-
       if (appLayout) {
         appLayout.classList.add('active');
         appLayout.style.setProperty('display', 'flex', 'important');
       }
 
-      // 3. Update profile details in sidebar
       const userNameDisplay = document.getElementById('userNameDisplay');
       const userAvatar = document.getElementById('userAvatar');
       const mobileUserAvatar = document.getElementById('mobileUserAvatar');
 
-      if (userNameDisplay) userNameDisplay.textContent = empId;
-      if (userAvatar) userAvatar.textContent = empId.charAt(0).toUpperCase();
-      if (mobileUserAvatar) mobileUserAvatar.textContent = empId.charAt(0).toUpperCase();
-
-      // 4. Trigger initial geofence check
-      setTimeout(() => {
-        if (typeof checkGeofence === 'function') {
-          checkGeofence();
-        }
-      }, 100);
-
-    } catch (err) {
-      console.error('Login error:', err);
-      if (loginError) {
-        loginError.textContent = 'Login failed. Please try again.';
-        loginError.style.display = 'block';
+      if (userNameDisplay && window.CURRENT_USER.employeeId) {
+        userNameDisplay.textContent = window.CURRENT_USER.employeeId;
       }
-    } finally {
-      loginBtn.disabled = false;
-      loginBtn.innerHTML = originalBtnText;
+      if (userAvatar && window.CURRENT_USER.employeeId) {
+        userAvatar.textContent = window.CURRENT_USER.employeeId.charAt(0).toUpperCase();
+      }
+      if (mobileUserAvatar && window.CURRENT_USER.employeeId) {
+        mobileUserAvatar.textContent = window.CURRENT_USER.employeeId.charAt(0).toUpperCase();
+      }
+      return;
+    } catch (e) {
+      localStorage.removeItem('DDC_USER');
     }
   }
 
-  loginBtn.addEventListener('click', processLogin);
-  if (loginForm) loginForm.addEventListener('submit', processLogin);
+  // If no active session exists, enforce login view
+  if (appLayout) {
+    appLayout.classList.remove('active');
+    appLayout.style.setProperty('display', 'none', 'important');
+  }
+  if (loginView) {
+    loginView.classList.add('active');
+    loginView.style.setProperty('display', 'flex', 'important');
+  }
 }
 
+function setupAuthListeners() {
+  const loginBtn = document.getElementById('loginBtn');
+  const loginForm = document.getElementById('loginForm');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const loginEmpId = document.getElementById('loginEmpId');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginError = document.getElementById('loginError');
+
+  // Handle Login Click & Form Submit
+  if (loginBtn) {
+    async function processLogin(e) {
+      if (e) e.preventDefault();
+      const empId = loginEmpId ? loginEmpId.value.trim() : '';
+      const password = loginPassword ? loginPassword.value.trim() : '';
+
+      if (!empId || !password) {
+        if (loginError) {
+          loginError.textContent = 'Please enter both Employee ID and Password.';
+          loginError.style.display = 'block';
+        }
+        return;
+      }
+
+      window.CURRENT_USER = { employeeId: empId, fullName: empId, name: empId };
+      localStorage.setItem('DDC_USER', JSON.stringify(window.CURRENT_USER));
+
+      if (loginError) loginError.style.display = 'none';
+      checkExistingSession();
+    }
+
+    loginBtn.onclick = processLogin;
+    if (loginForm) loginForm.onsubmit = processLogin;
+  }
+
+  // Handle Logout Click
+  if (logoutBtn) {
+    logoutBtn.onclick = async function (e) {
+      e.preventDefault();
+      localStorage.removeItem('DDC_USER');
+      sessionStorage.clear();
+      window.CURRENT_USER = null;
+
+      if (typeof supabase !== 'undefined' && supabase.auth) {
+        try { await supabase.auth.signOut(); } catch(err) {}
+      }
+
+      if (loginEmpId) loginEmpId.value = '';
+      if (loginPassword) loginPassword.value = '';
+      if (loginError) loginError.style.display = 'none';
+
+      checkExistingSession();
+    };
+  }
+}
+
+// Run session check on page load
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initLogin);
+  document.addEventListener('DOMContentLoaded', () => {
+    checkExistingSession();
+    setupAuthListeners();
+  });
 } else {
-  initLogin();
+  checkExistingSession();
+  setupAuthListeners();
 }
