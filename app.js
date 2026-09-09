@@ -1621,6 +1621,9 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==========================================================================
 // LOGOUT & SESSION RESET
 // ==========================================================================
+// ==========================================================================
+// LOGOUT & SESSION RESET
+// ==========================================================================
 function initLogout() {
   const logoutBtn = document.getElementById('logoutBtn');
   if (!logoutBtn) return;
@@ -1628,7 +1631,7 @@ function initLogout() {
   logoutBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
-    // 1. Sign out from Supabase Auth (if active)
+    // 1. Sign out from Supabase Auth
     try {
       if (typeof supabase !== 'undefined' && supabase.auth) {
         await supabase.auth.signOut();
@@ -1637,7 +1640,7 @@ function initLogout() {
       console.warn('Supabase signout notice:', err);
     }
 
-    // 2. Clear local storage and user session data
+    // 2. Clear local storage and user session
     if (typeof CURRENT_USER !== 'undefined') {
       CURRENT_USER = null;
     }
@@ -1650,11 +1653,11 @@ function initLogout() {
 
     if (appLayout) appLayout.style.display = 'none';
     if (loginView) {
-      loginView.style.display = 'block';
+      loginView.style.display = ''; // Clear inline style so CSS flexbox centering takes effect
       loginView.classList.add('active');
     }
 
-    // 4. Reset login input fields
+    // 4. Reset input fields
     const loginEmpId = document.getElementById('loginEmpId');
     const loginPassword = document.getElementById('loginPassword');
     const loginError = document.getElementById('loginError');
@@ -1667,7 +1670,6 @@ function initLogout() {
   });
 }
 
-// Initialize logout event listener
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initLogout);
 } else {

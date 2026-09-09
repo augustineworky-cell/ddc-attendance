@@ -907,3 +907,20 @@ body {
     padding: 32px 40px;
   }
 }
+/* Ensure login view is centered on desktop screens */
+#loginView {
+  min-height: 100vh;
+  width: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.mobile-login-wrapper {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
