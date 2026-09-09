@@ -256,54 +256,75 @@ async function uploadSelfie(employeeId, base64) {
 // AUTHENTICATION & LOGIN HANDLERS
 // ==========================================================================
 async function handleLogin() {
-  const empInput = document.getElementById('loginNameSearch').value.trim();
-  const empIdHidden = document.getElementById('loginEmpId').value;
-  const password = document.getElementById('loginPass').value;
-  const errorDiv = document.getElementById('login-error');
+  const empIdInput = document.getElementById('loginEmpId');
+  const passwordInput = document.getElementById('loginPassword');
+  const errorDiv = document.getElementById('loginError');
 
-  const finalEmpId = empIdHidden || empInput;
-  if (!finalEmpId || !password) {
-    if (errorDiv) errorDiv.innerText = "Please enter Employee ID/Email and Password";
+  if (errorDiv) errorDiv.style.display = 'none';
+
+  if (!empIdInput || !passwordInput) {
+    console.error("Login input elements not found in DOM.");
+    return;
+  }
+
+  const inputVal = empIdInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!inputVal || !password) {
+    if (errorDiv) {
+      errorDiv.textContent = 'Please enter both Employee ID/Name and Password.';
+      errorDiv.style.display = 'block';
+    }
     return;
   }
 
   try {
-    const res = await callAPI("login", { employeeId: finalEmpId, password: password });
-    if (res && res.length > 0 && res[0].status === 'Active') {
-      CURRENT_USER = {
-        employeeId: res[0].employee_id,
-        name: res[0].name,
-        email: res[0].email,
-        role: res[0].role
-      };
+    const { data, error } = await sbClient.rpc('login', {
+      p_employee_id: inputVal,
+      p_password: password
+    });
 
-      // Populate User Info
-      document.getElementById('sidebarProfileName').innerText = CURRENT_USER.name || CURRENT_USER.email;
-      document.getElementById('sidebarProfileRole').innerText = CURRENT_USER.role;
-
-      // Role-based visibility rules
-      const isPrivileged = ['Admin', 'HR', 'Dev'].includes(CURRENT_USER.role);
-      document.getElementById('menu-dashboard').style.display = isPrivileged ? 'block' : 'none';
-      document.getElementById('menu-directory').style.display = isPrivileged ? 'block' : 'none';
-      document.getElementById('menu-salary').style.display = isPrivileged ? 'block' : 'none';
-      document.getElementById('menu-liveMap').style.display = isPrivileged ? 'block' : 'none';
-      document.getElementById('menu-users').style.display = CURRENT_USER.role === 'Admin' ? 'block' : 'none';
-      document.getElementById('hr-tab-li').style.display = isPrivileged ? 'block' : 'none';
-
-      // Transition to Main Portal
-      document.getElementById('login-screen').style.display = 'none';
-      const appWrapper = document.getElementById('app-wrapper');
-      appWrapper.style.display = 'flex';
-      setTimeout(() => appWrapper.style.opacity = '1', 50);
-
-      checkGeofenceProximity();
-    } else {
-      if (errorDiv) errorDiv.innerText = "Invalid Employee ID/Email or Password";
+    if (error || !data || data.length === 0) {
+      if (errorDiv) {
+        errorDiv.textContent = 'Invalid Employee ID/Email or Password';
+        errorDiv.style.display = 'block';
+      }
+      return;
     }
-  } catch (e) {
-    if (errorDiv) errorDiv.innerText = "Authentication failed. Check network connection.";
+
+    const user = data[0];
+    window.CURRENT_USER = user;
+    localStorage.setItem('currentUser', JSON.stringify(user));
+
+    // Hide Login, Show Main App Layout
+    document.getElementById('loginView').style.display = 'none';
+    document.getElementById('appLayout').style.display = 'flex';
+
+    // Populate Sidebar Details
+    const nameDisplay = document.getElementById('userNameDisplay');
+    const roleBadge = document.getElementById('userRoleBadge');
+    const userAvatar = document.getElementById('userAvatar');
+
+    if (nameDisplay) nameDisplay.textContent = user.name || user.employee_id;
+    if (roleBadge) roleBadge.textContent = user.role || 'Employee';
+    if (userAvatar) userAvatar.textContent = (user.name || user.employee_id).charAt(0).toUpperCase();
+
+  } catch (err) {
+    console.error("Login error:", err);
+    if (errorDiv) {
+      errorDiv.textContent = 'Login failed. Connection error.';
+      errorDiv.style.display = 'block';
+    }
   }
 }
+
+// Attach event listener once DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', handleLogin);
+  }
+});
 
 function handleLogout() {
   CURRENT_USER = null;
