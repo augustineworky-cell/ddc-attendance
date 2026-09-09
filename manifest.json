@@ -1,0 +1,22 @@
+{
+  "name": "DDC Supply Chain - Workforce Attendance",
+  "short_name": "DDC Portal",
+  "description": "Supply Chain & Distribution LLP workforce attendance and payroll app",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#141B18",
+  "theme_color": "#141B18",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

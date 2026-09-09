@@ -355,3 +355,78 @@ body {
   .main-content { margin-left: 0; padding-bottom: 80px; }
   .bottom-nav { display: flex; }
 }
+/* ==========================================================================
+   DDC ATTENDANCE - CUSTOM ANIMATIONS & TOASTS
+   ========================================================================== */
+
+/* Button Loading Spinner */
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.2em;
+  margin-right: 8px;
+  vertical-align: text-bottom;
+}
+
+/* Success Animation Overlay */
+.punch-success-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(11, 25, 44, 0.95);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.punch-success-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.success-checkmark {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--status-present);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(0);
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.punch-success-overlay.show .success-checkmark {
+  transform: scale(1);
+}
+
+.success-checkmark i {
+  color: white;
+  font-size: 3.5rem;
+}
+
+.success-text {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 20px;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 0.4s ease 0.2s;
+}
+
+.punch-success-overlay.show .success-text {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Disable button while loading */
+#homeClockBtn.loading {
+  pointer-events: none;
+  opacity: 0.8;
+}
