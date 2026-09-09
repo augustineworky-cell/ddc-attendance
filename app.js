@@ -641,7 +641,25 @@ async function handleClockIn() {
   }
 }
 
-// Alias entry point matching the requested handlePunchIn() naming — delegates
+// ==========================================================================
+// GOOGLE SHEETS SYNC INTEGRATION
+// ==========================================================================
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4VVm2ODht/exec';
+
+async function syncToGoogleSheets(data) {
+  try {
+    await fetch(GOOGLE_SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    console.log('Google Sheets sync triggered successfully');
+  } catch (error) {
+    console.error('Google Sheets Sync Failed:', error);
+  }
+}
+
 // to the same clock-in flow so both names work from markup.
 async function handlePunchIn() {
   return handleClockIn();
@@ -671,6 +689,16 @@ async function handleClockOut() {
       stopLocationPinging();
       showPunchSuccess(`Clocked Out Successfully! Hours: ${res[0][2]}`);
       updateHomeUI(false);
+
+      // --- GOOGLE SHEETS SYNC (PUNCH OUT) ---
+      syncToGoogleSheets({
+        record_id: id,
+        employee_id: id,
+        employee_name: CURRENT_USER ? (CURRENT_USER.fullName || CURRENT_USER.name || "") : "",
+        punch_out_time: new Date().toISOString(),
+        punch_out_address: `${pos.coords.latitude}, ${pos.coords.longitude}`
+      });
+
     } else {
       alert((res && res[0] && res[0][0]) || "Error clocking out.");
     }
@@ -744,6 +772,16 @@ function renderPunchInSuccessCard() {
     btn.style.border = 'none';
   }
   if (btnLabel) btnLabel.innerText = '✓ CLOCKED IN TODAY';
+
+  // --- GOOGLE SHEETS SYNC (PUNCH IN) ---
+  if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) {
+    syncToGoogleSheets({
+      record_id: CURRENT_USER.employeeId || "",
+      employee_id: CURRENT_USER.employeeId || "",
+      employee_name: CURRENT_USER.fullName || CURRENT_USER.name || "",
+      punch_in_time: new Date().toISOString()
+    });
+  }
 }
 
 // ==========================================================================
@@ -1580,3 +1618,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // Attempt to restore a previously active session
   restoreSessionFromStorage();
 });
+// Google Apps Script Web App Endpoint (Must end in /exec)
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4VVm2ODht/exec';
+
+async function syncToGoogleSheets(data) {
+  try {
+    await fetch(GOOGLE_SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Bypasses browser CORS restrictions
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    console.log('Google Sheets sync triggered successfully');
+  } catch (error) {
+    console.error('Google Sheets Sync Failed:', error);
+  }
+}
