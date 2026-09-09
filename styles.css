@@ -1,0 +1,363 @@
+/* ==========================================================================
+   DDC SUPPLY CHAIN & DISTRIBUTION LLP - UI THEME (styles.css)
+   ========================================================================== */
+
+:root {
+  /* DDC Supply Chain Corporate Color Palette */
+  --primary: #0B192C;
+  --primary-light: #1E3A5F;
+  --accent: #FF6B00;
+  --accent-hover: #E05D00;
+  
+  /* Backgrounds & Glassmorphism Surfaces */
+  --bg-dark: #0F172A;
+  --card-bg-dark: rgba(30, 41, 59, 0.75);
+  --card-border: rgba(255, 107, 0, 0.2);
+  
+  /* Typography Colors */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  
+  /* Status Indicators */
+  --status-present: #10B981;
+  --status-halfday: #F59E0B;
+  --status-absent: #EF4444;
+  
+  /* Border Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+}
+
+/* Light Mode Overrides */
+body.light-mode {
+  --bg-dark: #F8FAFC;
+  --card-bg-dark: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(11, 25, 44, 0.15);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* LOGIN SCREEN STYLES */
+#login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: radial-gradient(circle at top right, var(--primary-light), var(--bg-dark));
+}
+
+.login-panel {
+  width: 100%;
+  max-width: 420px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.login-hero {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  border-bottom: 3px solid var(--accent);
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.login-title {
+  color: #FFFFFF;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.login-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.login-card {
+  background: var(--card-bg-dark);
+  backdrop-filter: blur(12px);
+  padding: 24px;
+  border: 1px solid var(--card-border);
+}
+
+.btn-staffly-signin, .btn-accent {
+  background-color: var(--accent) !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none !important;
+  padding: 10px 18px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-staffly-signin:hover, .btn-accent:hover {
+  background-color: var(--accent-hover) !important;
+  transform: translateY(-1px);
+}
+
+/* GLASSMORPHISM CARDS */
+.glass-card {
+  background: var(--card-bg-dark);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* FORM CONTROLS */
+.form-control-glass, .form-select.form-control-glass {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-md);
+}
+
+.form-control-glass:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.25) !important;
+}
+
+/* SIDEBAR LAYOUT */
+.sidebar {
+  width: 260px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: var(--primary);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.sidebar-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.user-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #FFFFFF;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+
+.sidebar-menu li a {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.sidebar-menu li a:hover, .sidebar-menu li a.active {
+  background: rgba(255, 107, 0, 0.15);
+  color: var(--accent);
+}
+
+/* MAIN CONTENT */
+.main-content {
+  margin-left: 260px;
+  padding: 24px;
+  min-height: 100vh;
+}
+
+.spa-section {
+  display: none;
+}
+
+.spa-section.active {
+  display: block;
+}
+
+/* GEOFENCE RADAR UX */
+.zone-radar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.15);
+  border: 2px solid var(--status-present);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  position: relative;
+}
+
+.radar-icon {
+  font-size: 1.8rem;
+  color: var(--status-present);
+}
+
+.zone-radar.out-of-range {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--status-absent);
+}
+
+.zone-radar.out-of-range .radar-icon {
+  color: var(--status-absent);
+}
+
+/* CHIPS & BADGES */
+.chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.chip.on {
+  background: var(--accent);
+  color: #FFFFFF;
+  border-color: var(--accent);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cal-green { background: rgba(16, 185, 129, 0.25); color: #10B981; }
+.cal-yellow { background: rgba(245, 158, 11, 0.25); color: #F59E0B; }
+.cal-red { background: rgba(239, 68, 68, 0.25); color: #EF4444; }
+.cal-blue { background: rgba(59, 130, 246, 0.25); color: #3B82F6; }
+.cal-gray { background: rgba(148, 163, 184, 0.15); color: #94A3B8; }
+
+/* BOTTOM MOBILE NAVIGATION */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 0;
+  z-index: 1050;
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.7rem;
+}
+
+.bottom-nav-item.active {
+  color: var(--accent);
+}
+
+/* SHERL CHATBOX */
+.sherl-chat-container {
+  position: fixed;
+  bottom: 70px;
+  right: 20px;
+  width: 320px;
+  height: 420px;
+  background: var(--primary);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  z-index: 1100;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.sherl-header {
+  background: var(--primary-light);
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.sherl-messages {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sherl-input-area {
+  padding: 10px;
+  display: flex;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* RESPONSIVE BREAKPOINTS */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main-content { margin-left: 0; padding-bottom: 80px; }
+  .bottom-nav { display: flex; }
+}
