@@ -11,6 +11,11 @@ const OFFICE_LAT = 28.5633;
 const OFFICE_LNG = 77.1912;
 const OFFICE_RADIUS_M = 150; // 150-meter coverage radius
 
+// Aliases used by geofence-checking helpers
+const HQ_LAT = OFFICE_LAT;
+const HQ_LNG = OFFICE_LNG;
+const MAX_GEOFENCE_RADIUS_METERS = OFFICE_RADIUS_M;
+
 // Global Application State
 let CURRENT_USER = null;
 let ATTENDANCE_SELFIE_BASE64 = null;
@@ -18,8 +23,13 @@ let locationPingTimer = null;
 let liveMapInstance = null;
 let liveMapMarkers = {};
 let liveMapInterval = null;
+let liveMapGeofenceCircle = null;
 let dirFilterState = "all";
 let weeklyChartObj = null, statusChartObj = null, monthlyChartObj = null;
+let currentLatitude = null;
+let currentLongitude = null;
+let EMPLOYEE_LIST = [];
+let webcamStream = null;
 
 // Utility: Date String Formatter (YYYY-MM-DD)
 function getLocalDateString(d = new Date()) {
@@ -27,6 +37,22 @@ function getLocalDateString(d = new Date()) {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// ==========================================================================
+// HAVERSINE DISTANCE FORMULA (METERS)
+// ==========================================================================
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const R = 6371000; // Earth radius in meters
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 // ==========================================================================
@@ -170,6 +196,16 @@ async function callAPI(action, payload = {}) {
         if (error) throw error;
         return data;
       }
+      case "updateUser": {
+        const { data, error } = await sbClient.rpc('update_user', {
+          p_employee_id: payload.employeeId,
+          p_email: payload.email,
+          p_role: payload.role,
+          p_status: payload.status
+        });
+        if (error) throw error;
+        return data;
+      }
       case "getUsers": {
         const { data, error } = await sbClient.rpc('get_users');
         if (error) throw error;
@@ -253,7 +289,7 @@ async function uploadSelfie(employeeId, base64) {
 }
 
 // ==========================================================================
-// AUTHENTICATION & LOGIN HANDLERS
+// AUTHENTICATION & SESSION MANAGEMENT
 // ==========================================================================
 async function handleLogin() {
   const empIdInput = document.getElementById('loginEmpId');
@@ -293,21 +329,7 @@ async function handleLogin() {
     }
 
     const user = data[0];
-    window.CURRENT_USER = user;
-    localStorage.setItem('currentUser', JSON.stringify(user));
-
-    // Hide Login, Show Main App Layout
-    document.getElementById('loginView').style.display = 'none';
-    document.getElementById('appLayout').style.display = 'flex';
-
-    // Populate Sidebar Details
-    const nameDisplay = document.getElementById('userNameDisplay');
-    const roleBadge = document.getElementById('userRoleBadge');
-    const userAvatar = document.getElementById('userAvatar');
-
-    if (nameDisplay) nameDisplay.textContent = user.name || user.employee_id;
-    if (roleBadge) roleBadge.textContent = user.role || 'Employee';
-    if (userAvatar) userAvatar.textContent = (user.name || user.employee_id).charAt(0).toUpperCase();
+    applySessionAndRenderApp(user, true);
 
   } catch (err) {
     console.error("Login error:", err);
@@ -318,17 +340,62 @@ async function handleLogin() {
   }
 }
 
-// Attach event listener once DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  const loginBtn = document.getElementById('loginBtn');
-  if (loginBtn) {
-    loginBtn.addEventListener('click', handleLogin);
+// Shared helper used both by fresh logins and by session restoration
+function applySessionAndRenderApp(user, persist) {
+  window.CURRENT_USER = user;
+  CURRENT_USER = user;
+
+  if (persist) {
+    localStorage.setItem('currentUser', JSON.stringify(user));
   }
-});
+
+  // Hide Login, Show Main App Layout
+  const loginView = document.getElementById('loginView');
+  const appLayout = document.getElementById('appLayout');
+  if (loginView) loginView.style.display = 'none';
+  if (appLayout) appLayout.style.display = 'flex';
+
+  // Populate Sidebar Details
+  const nameDisplay = document.getElementById('userNameDisplay');
+  const roleBadge = document.getElementById('userRoleBadge');
+  const userAvatar = document.getElementById('userAvatar');
+
+  if (nameDisplay) nameDisplay.textContent = user.name || user.employee_id;
+  if (roleBadge) roleBadge.textContent = user.role || 'Employee';
+  if (userAvatar) userAvatar.textContent = (user.name || user.employee_id).charAt(0).toUpperCase();
+
+  applyRoleBasedUIRestrictions(user.role);
+}
+
+// Restrict .admin-only UI elements based on the current user's role
+function applyRoleBasedUIRestrictions(role) {
+  const isAdmin = ['Admin', 'HR', 'Dev'].includes(role);
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+}
+
+// Attempt to restore an existing session from localStorage on page load
+function restoreSessionFromStorage() {
+  try {
+    const stored = localStorage.getItem('currentUser');
+    if (!stored) return;
+    const user = JSON.parse(stored);
+    if (user && user.employeeId) {
+      applySessionAndRenderApp(user, false);
+    }
+  } catch (e) {
+    console.warn("Could not restore session:", e);
+    localStorage.removeItem('currentUser');
+  }
+}
 
 function handleLogout() {
   CURRENT_USER = null;
+  window.CURRENT_USER = null;
+  localStorage.removeItem('currentUser');
   stopLocationPinging();
+  stopLiveMapRefresh();
   location.reload();
 }
 
@@ -376,6 +443,7 @@ async function handleClockIn() {
       // Show Full-Screen Overlay Animation
       showPunchSuccess(`Distance from HQ: ${Math.round(res[0][1])} meters`);
       updateHomeUI(true);
+      renderPunchInSuccessCard();
     } else {
       alert((res && res[0] && res[0][0]) || "Error clocking in.");
     }
@@ -385,6 +453,12 @@ async function handleClockIn() {
     btn.classList.remove('loading');
     btnLabel.innerHTML = 'Punch In Now';
   }
+}
+
+// Alias entry point matching the requested handlePunchIn() naming — delegates
+// to the same clock-in flow so both names work from markup.
+async function handlePunchIn() {
+  return handleClockIn();
 }
 
 async function handleClockOut() {
@@ -445,6 +519,45 @@ function showPunchSuccess(distanceText) {
   setTimeout(() => overlay.classList.remove('show'), 2500);
 }
 
+// Green "Punch In Successful" card + metric + button treatment described in spec
+function renderPunchInSuccessCard() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // Increment present-count metric
+  const presentCountEl = document.getElementById('presentCount');
+  if (presentCountEl) {
+    const current = parseInt(presentCountEl.innerText, 10) || 0;
+    presentCountEl.innerText = current + 1;
+  }
+
+  // Update top status card styling
+  const statusCard = document.getElementById('homeStatusCard');
+  const statusIcon = document.getElementById('homeStatusIcon');
+  const statusTitle = document.getElementById('homeStatusTitle');
+  const statusSubtitle = document.getElementById('homeStatusSubtitle');
+
+  if (statusCard) {
+    statusCard.style.background = '#f0fdf4';
+    statusCard.style.borderColor = '#bbf7d0';
+  }
+  if (statusIcon) statusIcon.textContent = '🎉';
+  if (statusTitle) {
+    statusTitle.textContent = 'PUNCH IN SUCCESSFUL!';
+    statusTitle.style.color = '#15803d';
+  }
+  if (statusSubtitle) statusSubtitle.textContent = `Clocked in at ${timeStr} today`;
+
+  // Transform the main clock button
+  const btn = document.getElementById('homeClockBtn');
+  const btnLabel = document.getElementById('homeClockBtnLabel');
+  if (btn) {
+    btn.style.background = 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)';
+    btn.style.border = 'none';
+  }
+  if (btnLabel) btnLabel.innerText = '✓ CLOCKED IN TODAY';
+}
+
 // ==========================================================================
 // LOCATION TRACKING & GEOFENCING
 // ==========================================================================
@@ -472,44 +585,46 @@ function stopLocationPinging() {
   }
 }
 
-function checkGeofenceProximity() {
-  const zoneRadar = document.getElementById('zoneRadar');
-  const zoneStatusText = document.getElementById('zoneStatusText');
-  const zoneDistanceText = document.getElementById('zoneDistanceText');
+// ==================== GEOLOCATION & GEOFENCE WITH TIMEOUT ====================
+function checkGeofence() {
+  const title = document.getElementById('geofenceTitle');
+  const subtitle = document.getElementById('geofenceSubtitle');
+  const icon = document.getElementById('geofenceIcon');
 
   if (!navigator.geolocation) {
-    if (zoneStatusText) zoneStatusText.innerText = "GPS Not Supported";
+    if (title) title.textContent = "GPS Unavailable";
+    if (subtitle) subtitle.textContent = "Geolocation is not supported by your browser.";
     return;
   }
 
-  navigator.geolocation.watchPosition((pos) => {
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
+  // 5-second maximum timeout to prevent hanging indefinitely on "Checking Location..."
+  const options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
 
-    const R = 6371e3; // meters
-    const φ1 = lat * Math.PI / 180;
-    const φ2 = OFFICE_LAT * Math.PI / 180;
-    const Δφ = (OFFICE_LAT - lat) * Math.PI / 180;
-    const Δλ = (OFFICE_LNG - lng) * Math.PI / 180;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      currentLatitude = pos.coords.latitude;
+      currentLongitude = pos.coords.longitude;
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) *
-      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const dist = Math.round(R * c);
+      const dist = calculateDistance(currentLatitude, currentLongitude, HQ_LAT, HQ_LNG);
 
-    if (zoneDistanceText) zoneDistanceText.innerText = `${dist}m from DDC Safdarjung HQ`;
-
-    if (dist <= OFFICE_RADIUS_M) {
-      if (zoneRadar) zoneRadar.className = 'zone-radar inside';
-      if (zoneStatusText) zoneStatusText.innerText = "Inside Safdarjung Hub";
-    } else {
-      if (zoneRadar) zoneRadar.className = 'zone-radar outside';
-      if (zoneStatusText) zoneStatusText.innerText = "Outside Geofence";
-    }
-  }, () => {
-    if (zoneStatusText) zoneStatusText.innerText = "Location Access Denied";
-  }, { enableHighAccuracy: true });
+      if (dist <= MAX_GEOFENCE_RADIUS_METERS) {
+        if (icon) icon.textContent = "✅";
+        if (title) title.textContent = "Inside Geofence";
+        if (subtitle) subtitle.textContent = `${Math.round(dist)}m from DDC Safdarjung HQ`;
+      } else {
+        if (icon) icon.textContent = "📍";
+        if (title) title.textContent = "Outside Geofence";
+        if (subtitle) subtitle.textContent = `${Math.round(dist)}m from DDC Safdarjung HQ`;
+      }
+    },
+    (err) => {
+      console.warn("Location prompt or signal timeout:", err);
+      if (icon) icon.textContent = "📍";
+      if (title) title.textContent = "GPS Location Pending";
+      if (subtitle) subtitle.textContent = "Please allow location access in your browser bar";
+    },
+    options
+  );
 }
 
 function previewFakePhoto(input) {
@@ -527,7 +642,7 @@ function previewFakePhoto(input) {
 }
 
 // ==========================================================================
-// NAVIGATION & MODULE SWITCHER
+// NAVIGATION & MODULE SWITCHER (LEGACY SPA SECTIONS)
 // ==========================================================================
 function switchSection(sectionId, el) {
   document.querySelectorAll('.spa-section').forEach(s => s.classList.remove('active'));
@@ -544,6 +659,62 @@ function switchSection(sectionId, el) {
   if (sectionId === 'training') loadTrainingData();
   if (sectionId === 'liveMap') initLiveMap();
   if (sectionId === 'users') loadUserManagement();
+}
+
+// ==========================================================================
+// SAAS SIDEBAR & MOBILE DRAWER NAVIGATION
+// ==========================================================================
+function initNavigation() {
+  const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-view]');
+  const appViews = document.querySelectorAll('.app-view');
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  const menuToggleBtn = document.getElementById('menuToggleBtn');
+
+  navItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetViewId = item.getAttribute('data-view');
+      if (!targetViewId) return;
+
+      navItems.forEach(nav => nav.classList.remove('active'));
+      item.classList.add('active');
+
+      appViews.forEach(view => {
+        if (view.id === targetViewId) {
+          view.classList.add('active');
+        } else {
+          view.classList.remove('active');
+        }
+      });
+
+      // Lazy-load data for the view being entered
+      if (targetViewId === 'dashboardView') loadDashboardData();
+      if (targetViewId === 'directoryView') loadDirectory();
+      if (targetViewId === 'leaveView') loadLeaveData();
+      if (targetViewId === 'salaryView') loadSalaryData();
+      if (targetViewId === 'trainingView') loadTrainingData();
+      if (targetViewId === 'fieldMapView') initLiveMap();
+      if (targetViewId === 'userMgmtView') loadUserManagement();
+
+      if (sidebar) sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('active');
+    });
+  });
+
+  if (menuToggleBtn) {
+    menuToggleBtn.addEventListener('click', () => {
+      if (sidebar) sidebar.classList.toggle('open');
+      if (backdrop) backdrop.classList.toggle('active');
+    });
+  }
+
+  if (backdrop) {
+    backdrop.addEventListener('click', () => {
+      if (sidebar) sidebar.classList.remove('open');
+      backdrop.classList.remove('active');
+    });
+  }
 }
 
 function updateHomeUI(isClockedIn) {
@@ -565,6 +736,65 @@ function updateHomeUI(isClockedIn) {
 }
 
 // ==========================================================================
+// DASHBOARD MODULE
+// ==========================================================================
+async function loadDashboardData() {
+  if (!CURRENT_USER) return;
+  const dateStr = getLocalDateString();
+
+  try {
+    const isAdmin = ['Admin', 'HR', 'Dev'].includes(CURRENT_USER.role);
+    const metrics = isAdmin
+      ? await callAPI("getOverallMetrics", { date: dateStr })
+      : await callAPI("getDashboardMetrics", { employeeId: CURRENT_USER.employeeId, date: dateStr });
+
+    if (metrics) {
+      const presentCountEl = document.getElementById('presentCount');
+      if (presentCountEl && metrics.present_count !== undefined) {
+        presentCountEl.innerText = metrics.present_count;
+      }
+    }
+
+    const charts = isAdmin
+      ? await callAPI("getOverallCharts", { date: dateStr })
+      : await callAPI("getDashboardCharts", { employeeId: CURRENT_USER.employeeId, date: dateStr });
+
+    renderDashboardCharts(charts);
+  } catch (e) { console.error("Dashboard load error:", e); }
+}
+
+function renderDashboardCharts(charts) {
+  if (!charts || typeof Chart === 'undefined') return;
+
+  const weeklyCanvas = document.getElementById('weeklyChart');
+  if (weeklyCanvas && charts.weekly) {
+    if (weeklyChartObj) weeklyChartObj.destroy();
+    weeklyChartObj = new Chart(weeklyCanvas, {
+      type: 'bar',
+      data: charts.weekly
+    });
+  }
+
+  const statusCanvas = document.getElementById('statusChart');
+  if (statusCanvas && charts.status) {
+    if (statusChartObj) statusChartObj.destroy();
+    statusChartObj = new Chart(statusCanvas, {
+      type: 'doughnut',
+      data: charts.status
+    });
+  }
+
+  const monthlyCanvas = document.getElementById('monthlyChart');
+  if (monthlyCanvas && charts.monthly) {
+    if (monthlyChartObj) monthlyChartObj.destroy();
+    monthlyChartObj = new Chart(monthlyCanvas, {
+      type: 'line',
+      data: charts.monthly
+    });
+  }
+}
+
+// ==========================================================================
 // DIRECTORY MODULE
 // ==========================================================================
 async function loadDirectory() {
@@ -573,6 +803,7 @@ async function loadDirectory() {
 
   try {
     const list = await callAPI("getEmployeesDirectory");
+    EMPLOYEE_LIST = list || [];
     container.innerHTML = "";
     if (!list || list.length === 0) {
       container.innerHTML = `<div class="text-secondary small p-3 text-center">No active employees found.</div>`;
@@ -784,10 +1015,24 @@ async function loadTrainingData() {
           <span class="badge bg-accent mb-2">${item.department}</span>
           <h6 class="text-white mb-1">${item.system_title}</h6>
           <p class="small text-secondary mb-3">${item.purpose}</p>
-          <a href="${item.resource_link}" target="_blank" class="btn btn-sm btn-outline-light"><i class="fas fa-external-link-alt me-1"></i>Open Resource</a>
+          <div class="d-flex align-items-center justify-content-between">
+            <a href="${item.resource_link}" target="_blank" class="btn btn-sm btn-outline-light"><i class="fas fa-external-link-alt me-1"></i>Open Resource</a>
+            <div class="form-check">
+              <input class="form-check-input training-progress-check" type="checkbox" data-id="${item.id}" ${item.completed ? 'checked' : ''}>
+              <label class="form-check-label small text-secondary">Completed</label>
+            </div>
+          </div>
         </div>
       `;
       container.appendChild(col);
+    });
+
+    document.querySelectorAll('.training-progress-check').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        // Progress state tracked client-side; persisted server-side once a
+        // dedicated RPC for training completion is exposed.
+        console.log(`Training ${e.target.dataset.id} marked completed: ${e.target.checked}`);
+      });
     });
   } catch (e) { console.error(e); }
 }
@@ -810,13 +1055,26 @@ async function initLiveMap() {
   const mapContainer = document.getElementById('liveMapContainer');
   if (!mapContainer) return;
 
-  document.getElementById('liveMapViewer').style.display = 'block';
+  const viewer = document.getElementById('liveMapViewer');
+  if (viewer) viewer.style.display = 'block';
 
   if (!liveMapInstance) {
-    liveMapInstance = L.map('liveMapContainer').setView([OFFICE_LAT, OFFICE_LNG], 13);
+    liveMapInstance = L.map('liveMapContainer').setView([OFFICE_LAT, OFFICE_LNG], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap'
     }).addTo(liveMapInstance);
+
+    // Geofence radius overlay around HQ
+    liveMapGeofenceCircle = L.circle([OFFICE_LAT, OFFICE_LNG], {
+      radius: OFFICE_RADIUS_M,
+      color: '#2563eb',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.15
+    }).addTo(liveMapInstance);
+
+    L.marker([OFFICE_LAT, OFFICE_LNG], {
+      icon: L.divIcon({ className: 'hq-marker', html: '🏢', iconSize: [24, 24] })
+    }).addTo(liveMapInstance).bindPopup('DDC Safdarjung HQ');
   }
 
   refreshLiveMapLocations();
@@ -845,11 +1103,12 @@ function stopLiveMapRefresh() {
     clearInterval(liveMapInterval);
     liveMapInterval = null;
   }
-  document.getElementById('liveMapViewer').style.display = 'none';
+  const viewer = document.getElementById('liveMapViewer');
+  if (viewer) viewer.style.display = 'none';
 }
 
 // ==========================================================================
-// USER MANAGEMENT MODULE
+// USER MANAGEMENT MODULE (ADMIN CRUD)
 // ==========================================================================
 async function loadUserManagement() {
   const tbody = document.getElementById('usersTableBody');
@@ -866,7 +1125,15 @@ async function loadUserManagement() {
         <td>${u.employee_id}</td>
         <td>${u.email}</td>
         <td><span class="badge bg-secondary">${u.role}</span></td>
-        <td><span class="badge bg-success">${u.status}</span></td>
+        <td><span class="badge bg-${u.status === 'Active' ? 'success' : 'danger'}">${u.status}</span></td>
+        <td>
+          <button class="btn btn-sm btn-outline-light me-1" onclick='openEditUserModal(${JSON.stringify(u)})'>
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-warning" onclick="toggleUserStatus('${u.employee_id}', '${u.status}')">
+            <i class="fas fa-power-off"></i>
+          </button>
+        </td>
       `;
       tbody.appendChild(tr);
     });
@@ -884,6 +1151,49 @@ async function handleAddUser() {
     alert("User account created.");
     loadUserManagement();
   } catch (e) { alert("Failed to create user."); }
+}
+
+function openEditUserModal(user) {
+  const idField = document.getElementById('editUserId');
+  const emailField = document.getElementById('editUserEmail');
+  const roleField = document.getElementById('editUserRole');
+  const statusField = document.getElementById('editUserStatus');
+
+  if (idField) idField.value = user.employee_id;
+  if (emailField) emailField.value = user.email;
+  if (roleField) roleField.value = user.role;
+  if (statusField) statusField.value = user.status;
+
+  const modalEl = document.getElementById('editUserModal');
+  if (modalEl && window.bootstrap) {
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  }
+}
+
+async function handleUpdateUser() {
+  const id = document.getElementById('editUserId').value;
+  const email = document.getElementById('editUserEmail').value;
+  const role = document.getElementById('editUserRole').value;
+  const status = document.getElementById('editUserStatus').value;
+
+  try {
+    await callAPI("updateUser", { employeeId: id, email: email, role: role, status: status });
+    alert("User updated successfully.");
+    const modalEl = document.getElementById('editUserModal');
+    if (modalEl && window.bootstrap) {
+      bootstrap.Modal.getInstance(modalEl).hide();
+    }
+    loadUserManagement();
+  } catch (e) { alert("Failed to update user."); }
+}
+
+async function toggleUserStatus(employeeId, currentStatus) {
+  const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+  try {
+    await callAPI("updateUser", { employeeId: employeeId, status: newStatus });
+    loadUserManagement();
+  } catch (e) { alert("Failed to change user status."); }
 }
 
 // ==========================================================================
@@ -931,52 +1241,52 @@ function toggleTheme() {
 }
 
 // ==========================================================================
-// INITIALIZATION ON DOM LOAD
+// EMPLOYEE AUTOCOMPLETE (LOGIN SCREEN)
 // ==========================================================================
-document.addEventListener("DOMContentLoaded", () => {
-  // Login Button Listener
-  const loginBtn = document.getElementById('loginBtn');
-  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
-
-  // Auto-fill Employee ID suggestions
+function initSuggestions() {
   const nameSearch = document.getElementById('loginNameSearch');
-  if (nameSearch) {
-    nameSearch.addEventListener('input', async (e) => {
-      const val = e.target.value.trim();
-      const container = document.getElementById('nameSuggestions');
-      if (val.length < 2) { container.style.display = 'none'; return; }
+  if (!nameSearch) return;
 
-      try {
-        const names = await callAPI("getEmployeeNames");
-        if (names) {
-          const filtered = names.filter(n =>
-            (n.name && n.name.toLowerCase().includes(val.toLowerCase())) ||
-            (n.employee_id && n.employee_id.toLowerCase().includes(val.toLowerCase()))
-          );
+  nameSearch.addEventListener('input', async (e) => {
+    const val = e.target.value.trim();
+    const container = document.getElementById('nameSuggestions');
+    if (!container) return;
+    if (val.length < 2) { container.style.display = 'none'; return; }
 
-          if (filtered.length > 0) {
-            container.innerHTML = "";
-            filtered.forEach(f => {
-              const item = document.createElement('div');
-              item.className = 'suggestion-item p-2';
-              item.innerText = `${f.name || f.employee_id} (${f.employee_id})`;
-              item.onclick = () => {
-                nameSearch.value = f.name || f.employee_id;
-                document.getElementById('loginEmpId').value = f.employee_id;
-                container.style.display = 'none';
-              };
-              container.appendChild(item);
-            });
-            container.style.display = 'block';
-          }
+    try {
+      const names = await callAPI("getEmployeeNames");
+      EMPLOYEE_LIST = names || EMPLOYEE_LIST;
+      if (names) {
+        const filtered = names.filter(n =>
+          (n.name && n.name.toLowerCase().includes(val.toLowerCase())) ||
+          (n.employee_id && n.employee_id.toLowerCase().includes(val.toLowerCase()))
+        );
+
+        if (filtered.length > 0) {
+          container.innerHTML = "";
+          filtered.forEach(f => {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item p-2';
+            item.innerText = `${f.name || f.employee_id} (${f.employee_id})`;
+            item.onclick = () => {
+              nameSearch.value = f.name || f.employee_id;
+              document.getElementById('loginEmpId').value = f.employee_id;
+              container.style.display = 'none';
+            };
+            container.appendChild(item);
+          });
+          container.style.display = 'block';
+        } else {
+          container.style.display = 'none';
         }
-      } catch (err) { console.error(err); }
-    });
-  }
-});
-// ==================== WEBCAM & SELFIE CAPTURE LOGIC ====================
-let webcamStream = null;
+      }
+    } catch (err) { console.error(err); }
+  });
+}
 
+// ==========================================================================
+// WEBCAM & SELFIE CAPTURE LOGIC
+// ==========================================================================
 async function handleCaptureSelfie() {
   const video = document.getElementById('webcam');
   const preview = document.getElementById('selfiePreview');
@@ -995,6 +1305,7 @@ async function handleCaptureSelfie() {
     const imageDataUrl = canvas.toDataURL('image/jpeg');
     preview.src = imageDataUrl;
     window.CAPTURED_SELFIE_DATA = imageDataUrl; // Saved for Supabase upload
+    ATTENDANCE_SELFIE_BASE64 = imageDataUrl;
 
     // Turn off camera tracks
     webcamStream.getTracks().forEach(track => track.stop());
@@ -1023,39 +1334,24 @@ async function handleCaptureSelfie() {
   }
 }
 
-// Bind button listener on page load
-document.addEventListener('DOMContentLoaded', () => {
+// ==========================================================================
+// INITIALIZATION ON DOM LOAD
+// ==========================================================================
+document.addEventListener("DOMContentLoaded", () => {
+  // Login Button Listener
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+
+  // Webcam capture button
   const captureBtn = document.getElementById('captureBtn');
-  if (captureBtn) {
-    captureBtn.addEventListener('click', handleCaptureSelfie);
-  }
-});
-// Append to the bottom of your existing app.js
-document.addEventListener('DOMContentLoaded', () => {
-  const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-view]');
-  const appViews = document.querySelectorAll('.app-view');
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('sidebarBackdrop');
+  if (captureBtn) captureBtn.addEventListener('click', handleCaptureSelfie);
 
-  navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const targetViewId = item.getAttribute('data-view');
-      if (!targetViewId) return;
+  // Employee autocomplete on login screen
+  initSuggestions();
 
-      navItems.forEach(nav => nav.classList.remove('active'));
-      item.classList.add('active');
+  // Sidebar / mobile drawer navigation
+  initNavigation();
 
-      appViews.forEach(view => {
-        if (view.id === targetViewId) {
-          view.classList.add('active');
-        } else {
-          view.classList.remove('active');
-        }
-      });
-
-      if (sidebar) sidebar.classList.remove('open');
-      if (backdrop) backdrop.classList.remove('active');
-    });
-  });
+  // Attempt to restore a previously active session
+  restoreSessionFromStorage();
 });
