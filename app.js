@@ -16,6 +16,15 @@ const HQ_LAT = OFFICE_LAT;
 const HQ_LNG = OFFICE_LNG;
 const MAX_GEOFENCE_RADIUS_METERS = OFFICE_RADIUS_M;
 
+// Single source of truth for the localStorage session key. Every part of
+// the app (login, logout, session restore) reads/writes through this key
+// only - this is what previously caused the auto-logout loop, since older
+// code paths wrote to 'currentUser' while others read 'DDC_USER'.
+const SESSION_STORAGE_KEY = 'DDC_USER';
+
+// Google Sheets sync endpoint - declared exactly once, top-level scope.
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4VVm2ODht/exec';
+
 // Global Application State
 let CURRENT_USER = null;
 let ATTENDANCE_SELFIE_BASE64 = null;
@@ -289,9 +298,116 @@ async function uploadSelfie(employeeId, base64) {
 }
 
 // ==========================================================================
-// AUTHENTICATION & SESSION MANAGEMENT
+// UNIFIED SESSION / AUTHENTICATION MANAGER
 // ==========================================================================
-async function handleLogin() {
+// Everything related to "who is logged in" and "which screen is visible"
+// lives here, in one place, reading/writing SESSION_STORAGE_KEY only.
+// This replaces the previous split between applySessionAndRenderApp /
+// restoreSessionFromStorage / initSession / setupAuth, which wrote to two
+// different localStorage keys and attached competing click handlers,
+// causing the intermittent auto-logout / view-flicker bugs.
+
+// Force-toggle the two top-level screens with !important so no leftover
+// inline style or stylesheet rule can leave both (or neither) visible.
+function applySessionUI(isLoggedIn) {
+  const loginView = document.getElementById('loginView');
+  const appLayout = document.getElementById('appLayout');
+
+  if (isLoggedIn) {
+    if (loginView) {
+      loginView.classList.remove('active');
+      loginView.style.setProperty('display', 'none', 'important');
+    }
+    if (appLayout) {
+      appLayout.classList.add('active');
+      appLayout.style.setProperty('display', 'flex', 'important');
+    }
+  } else {
+    if (appLayout) {
+      appLayout.classList.remove('active');
+      appLayout.style.setProperty('display', 'none', 'important');
+    }
+    if (loginView) {
+      loginView.classList.add('active');
+      // Clear the forced inline value so the stylesheet's flexbox
+      // centering for the login screen takes effect, per spec.
+      loginView.style.removeProperty('display');
+      loginView.style.setProperty('display', 'flex', 'important');
+    }
+  }
+}
+
+// Populate sidebar / header user info from whatever fields exist on the
+// stored user object (RPC login returns name/role/employeeId; a minimal
+// fallback object may only have employeeId).
+function renderUserBadge(user) {
+  if (!user) return;
+  const displayName = user.name || user.fullName || user.employeeId || user.employee_id || '';
+  const initial = displayName ? displayName.charAt(0).toUpperCase() : '?';
+
+  const nameDisplay = document.getElementById('userNameDisplay');
+  const roleBadge = document.getElementById('userRoleBadge');
+  const userAvatar = document.getElementById('userAvatar');
+  const mobileUserAvatar = document.getElementById('mobileUserAvatar');
+
+  if (nameDisplay) nameDisplay.textContent = displayName;
+  if (roleBadge) roleBadge.textContent = user.role || 'Employee';
+  if (userAvatar) userAvatar.textContent = initial;
+  if (mobileUserAvatar) mobileUserAvatar.textContent = initial;
+
+  applyRoleBasedUIRestrictions(user.role);
+}
+
+// Restrict .admin-only UI elements based on the current user's role
+function applyRoleBasedUIRestrictions(role) {
+  const isAdmin = ['Admin', 'HR', 'Dev'].includes(role);
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+}
+
+// Single entry point used by both a fresh login and session restoration.
+function applySessionAndRenderApp(user, persist) {
+  window.CURRENT_USER = user;
+  CURRENT_USER = user;
+
+  if (persist) {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(user));
+  }
+
+  applySessionUI(true);
+  renderUserBadge(user);
+}
+
+// Attempt to restore an existing session from localStorage on page load.
+// Runs once, from the single DOMContentLoaded initializer at the bottom of
+// this file - no other init path should call this.
+function restoreSessionFromStorage() {
+  try {
+    const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!stored) {
+      applySessionUI(false);
+      return;
+    }
+    const user = JSON.parse(stored);
+    if (user && (user.employeeId || user.employee_id)) {
+      applySessionAndRenderApp(user, false);
+    } else {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      applySessionUI(false);
+    }
+  } catch (e) {
+    console.warn("Could not restore session:", e);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    applySessionUI(false);
+  }
+}
+
+// Real login: authenticates against the `login` RPC (employee_id/email +
+// password) and only switches to the app workspace on a genuine success.
+async function handleLogin(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
   const empIdInput = document.getElementById('loginEmpId');
   const passwordInput = document.getElementById('loginPassword');
   const errorDiv = document.getElementById('loginError');
@@ -315,12 +431,9 @@ async function handleLogin() {
   }
 
   try {
-    const { data, error } = await sbClient.rpc('login', {
-      p_employee_id: inputVal,
-      p_password: password
-    });
+    const data = await callAPI("login", { employeeId: inputVal, password: password });
 
-    if (error || !data || data.length === 0) {
+    if (!data || data.length === 0) {
       if (errorDiv) {
         errorDiv.textContent = 'Invalid Employee ID/Email or Password';
         errorDiv.style.display = 'block';
@@ -330,7 +443,6 @@ async function handleLogin() {
 
     const user = data[0];
     applySessionAndRenderApp(user, true);
-
   } catch (err) {
     console.error("Login error:", err);
     if (errorDiv) {
@@ -340,63 +452,52 @@ async function handleLogin() {
   }
 }
 
-// Shared helper used both by fresh logins and by session restoration
-function applySessionAndRenderApp(user, persist) {
-  window.CURRENT_USER = user;
-  CURRENT_USER = user;
+// Single logout path: clears all local session state, tears down live
+// polling/timers, signs out of Supabase auth (best-effort), and restores
+// the login screen without a full page reload (a reload was masking the
+// fact that two different storage keys were being used).
+async function handleLogout(e) {
+  if (e && e.preventDefault) e.preventDefault();
 
-  if (persist) {
-    localStorage.setItem('currentUser', JSON.stringify(user));
-  }
-
-  // Hide Login, Show Main App Layout
-  const loginView = document.getElementById('loginView');
-  const appLayout = document.getElementById('appLayout');
-  if (loginView) loginView.style.display = 'none';
-  if (appLayout) appLayout.style.display = 'flex';
-
-  // Populate Sidebar Details
-  const nameDisplay = document.getElementById('userNameDisplay');
-  const roleBadge = document.getElementById('userRoleBadge');
-  const userAvatar = document.getElementById('userAvatar');
-
-  if (nameDisplay) nameDisplay.textContent = user.name || user.employee_id;
-  if (roleBadge) roleBadge.textContent = user.role || 'Employee';
-  if (userAvatar) userAvatar.textContent = (user.name || user.employee_id).charAt(0).toUpperCase();
-
-  applyRoleBasedUIRestrictions(user.role);
-}
-
-// Restrict .admin-only UI elements based on the current user's role
-function applyRoleBasedUIRestrictions(role) {
-  const isAdmin = ['Admin', 'HR', 'Dev'].includes(role);
-  document.querySelectorAll('.admin-only').forEach(el => {
-    el.style.display = isAdmin ? '' : 'none';
-  });
-}
-
-// Attempt to restore an existing session from localStorage on page load
-function restoreSessionFromStorage() {
   try {
-    const stored = localStorage.getItem('currentUser');
-    if (!stored) return;
-    const user = JSON.parse(stored);
-    if (user && user.employeeId) {
-      applySessionAndRenderApp(user, false);
+    if (sbClient && sbClient.auth) {
+      await sbClient.auth.signOut();
     }
-  } catch (e) {
-    console.warn("Could not restore session:", e);
-    localStorage.removeItem('currentUser');
+  } catch (err) {
+    console.warn('Supabase signout notice:', err);
   }
-}
 
-function handleLogout() {
   CURRENT_USER = null;
   window.CURRENT_USER = null;
-  localStorage.removeItem('currentUser');
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+  sessionStorage.clear();
+
   stopLocationPinging();
   stopLiveMapRefresh();
-  location.reload();
+
+  const loginEmpId = document.getElementById('loginEmpId');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginError = document.getElementById('loginError');
+  if (loginEmpId) loginEmpId.value = '';
+  if (loginPassword) loginPassword.value = '';
+  if (loginError) loginError.style.display = 'none';
+
+  applySessionUI(false);
+}
+
+// Wires up #loginBtn / #loginForm / #logoutBtn exactly once. Intentionally
+// does NOT register any supabase.auth.onAuthStateChange listener - that
+// listener was the source of the unwanted auto-redirect-to-login loop,
+// since it could fire and clear the session behind the unified manager's
+// back. Session state is owned entirely by SESSION_STORAGE_KEY above.
+function setupAuth() {
+  const loginBtn = document.getElementById('loginBtn');
+  const loginForm = document.getElementById('loginForm');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  if (loginBtn) loginBtn.onclick = handleLogin;
+  if (loginForm) loginForm.onsubmit = handleLogin;
+  if (logoutBtn) logoutBtn.onclick = handleLogout;
 }
 
 // ==========================================================================
@@ -589,7 +690,7 @@ async function handlePunchInAnimated() {
 // CLOCK IN / OUT HANDLERS WITH VISUAL ANIMATION
 // ==========================================================================
 async function handleClockIn() {
-  const id = CURRENT_USER ? CURRENT_USER.employeeId : "";
+  const id = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : "";
   if (!id) return;
 
   if (!ATTENDANCE_SELFIE_BASE64) {
@@ -597,7 +698,9 @@ async function handleClockIn() {
     return;
   }
 
-  const btn = document.getElementById('homeClockBtn');
+  const btn = document.getElementById('homeClockBtn') || document.getElementById('punchInBtn');
+  if (!btn) return;
+
   let btnLabel = document.getElementById('homeClockBtnLabel');
   if (!btnLabel) {
     btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i><span id="homeClockBtnLabel">Punch In Now</span>';
@@ -606,7 +709,7 @@ async function handleClockIn() {
 
   // UI Loading State
   btn.classList.add('loading');
-  btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+  if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
 
   try {
     const pos = await new Promise((res, rej) =>
@@ -637,15 +740,13 @@ async function handleClockIn() {
     alert("Location permission required to clock in.");
   } finally {
     btn.classList.remove('loading');
-    btnLabel.innerHTML = 'Punch In Now';
+    if (btnLabel) btnLabel.innerHTML = 'Punch In Now';
   }
 }
 
 // ==========================================================================
 // GOOGLE SHEETS SYNC INTEGRATION
 // ==========================================================================
-const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4VVm2ODht/exec';
-
 async function syncToGoogleSheets(data) {
   try {
     await fetch(GOOGLE_SHEET_URL, {
@@ -660,16 +761,18 @@ async function syncToGoogleSheets(data) {
   }
 }
 
-// to the same clock-in flow so both names work from markup.
+// Alias kept for markup that still calls handlePunchIn() directly.
 async function handlePunchIn() {
   return handleClockIn();
 }
 
 async function handleClockOut() {
-  const id = CURRENT_USER ? CURRENT_USER.employeeId : "";
+  const id = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : "";
   if (!id) return;
 
-  const btn = document.getElementById('homeClockBtn');
+  const btn = document.getElementById('homeClockBtn') || document.getElementById('punchInBtn');
+  if (!btn) return;
+
   let btnLabel = document.getElementById('homeClockBtnLabel');
 
   btn.classList.add('loading');
@@ -774,10 +877,10 @@ function renderPunchInSuccessCard() {
   if (btnLabel) btnLabel.innerText = '✓ CLOCKED IN TODAY';
 
   // --- GOOGLE SHEETS SYNC (PUNCH IN) ---
-  if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) {
+  if (CURRENT_USER) {
     syncToGoogleSheets({
-      record_id: CURRENT_USER.employeeId || "",
-      employee_id: CURRENT_USER.employeeId || "",
+      record_id: CURRENT_USER.employeeId || CURRENT_USER.employee_id || "",
+      employee_id: CURRENT_USER.employeeId || CURRENT_USER.employee_id || "",
       employee_name: CURRENT_USER.fullName || CURRENT_USER.name || "",
       punch_in_time: new Date().toISOString()
     });
@@ -1588,15 +1691,20 @@ async function handleCaptureSelfie() {
 }
 
 // ==========================================================================
-// INITIALIZATION ON DOM LOAD
+// SINGLE INITIALIZATION ENTRY POINT
 // ==========================================================================
-document.addEventListener("DOMContentLoaded", () => {
+// Everything the app needs to wire up on load lives in this one listener.
+// Earlier versions of this file registered several competing
+// DOMContentLoaded handlers (one for login, one for logout, one for
+// "bulletproof" session init) that each manipulated #loginView/#appLayout
+// independently - that's what produced the auto-logout loop and the view
+// getting stuck in the wrong state. Now there is exactly one.
+function initApp() {
   // Inject shimmer/transition/animation CSS used by the enhancements above
   injectUiEnhancementStyles();
 
-  // Login Button Listener
-  const loginBtn = document.getElementById('loginBtn');
-  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+  // Auth: login/logout buttons + form, wired exactly once
+  setupAuth();
 
   // Webcam capture button
   const captureBtn = document.getElementById('captureBtn');
@@ -1615,189 +1723,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sidebar / mobile drawer navigation
   initNavigation();
 
-  // Attempt to restore a previously active session
+  // Restore a previously active session (or show the login screen) - the
+  // one and only place session state is read on page load.
   restoreSessionFromStorage();
-});
-// ==========================================================================
-// LOGOUT & SESSION RESET
-// ==========================================================================
-// ==========================================================================
-// LOGOUT & SESSION RESET
-// ==========================================================================
-function initLogout() {
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (!logoutBtn) return;
-
-  logoutBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-
-    // 1. Sign out from Supabase Auth
-    try {
-      if (typeof supabase !== 'undefined' && supabase.auth) {
-        await supabase.auth.signOut();
-      }
-    } catch (err) {
-      console.warn('Supabase signout notice:', err);
-    }
-
-    // 2. Clear local storage and user session
-    if (typeof CURRENT_USER !== 'undefined') {
-      CURRENT_USER = null;
-    }
-    localStorage.clear();
-    sessionStorage.clear();
-
-    // 3. Switch UI from App Layout back to Login Screen
-    const appLayout = document.getElementById('appLayout');
-    const loginView = document.getElementById('loginView');
-
-    if (appLayout) appLayout.style.display = 'none';
-    if (loginView) {
-      loginView.style.display = ''; // Clear inline style so CSS flexbox centering takes effect
-      loginView.classList.add('active');
-    }
-
-    // 4. Reset input fields
-    const loginEmpId = document.getElementById('loginEmpId');
-    const loginPassword = document.getElementById('loginPassword');
-    const loginError = document.getElementById('loginError');
-
-    if (loginEmpId) loginEmpId.value = '';
-    if (loginPassword) loginPassword.value = '';
-    if (loginError) loginError.style.display = 'none';
-
-    console.log('User logged out successfully.');
-  });
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initLogout);
+  document.addEventListener('DOMContentLoaded', initApp);
 } else {
-  initLogout();
-}
-// ==========================================================================
-// LOGIN & AUTHENTICATION HANDLER
-// ==========================================================================
-// ==========================================================================
-// LOGIN & AUTHENTICATION HANDLER (FORCE VIEW SWITCH)
-// ==========================================================================
-// ==========================================================================
-// ==========================================================================
-// COMPLETE BULLETPROOF AUTHENTICATION & SESSION MANAGER
-// ==========================================================================
-
-// 1. Force Screen Display Based on Session State
-function applySessionUI(isLoggedIn) {
-  const loginView = document.getElementById('loginView');
-  const appLayout = document.getElementById('appLayout');
-
-  if (isLoggedIn) {
-    if (loginView) {
-      loginView.classList.remove('active');
-      loginView.style.setProperty('display', 'none', 'important');
-    }
-    if (appLayout) {
-      appLayout.classList.add('active');
-      appLayout.style.setProperty('display', 'flex', 'important');
-    }
-  } else {
-    if (appLayout) {
-      appLayout.classList.remove('active');
-      appLayout.style.setProperty('display', 'none', 'important');
-    }
-    if (loginView) {
-      loginView.classList.add('active');
-      loginView.style.setProperty('display', 'flex', 'important');
-    }
-  }
-}
-
-// 2. Load Active Session from LocalStorage
-function initSession() {
-  const savedUser = localStorage.getItem('DDC_USER');
-  if (savedUser) {
-    try {
-      window.CURRENT_USER = JSON.parse(savedUser);
-      applySessionUI(true);
-
-      const userNameDisplay = document.getElementById('userNameDisplay');
-      const userAvatar = document.getElementById('userAvatar');
-      const mobileUserAvatar = document.getElementById('mobileUserAvatar');
-
-      if (userNameDisplay && window.CURRENT_USER.employeeId) {
-        userNameDisplay.textContent = window.CURRENT_USER.employeeId;
-      }
-      if (userAvatar && window.CURRENT_USER.employeeId) {
-        userAvatar.textContent = window.CURRENT_USER.employeeId.charAt(0).toUpperCase();
-      }
-      if (mobileUserAvatar && window.CURRENT_USER.employeeId) {
-        mobileUserAvatar.textContent = window.CURRENT_USER.employeeId.charAt(0).toUpperCase();
-      }
-      return;
-    } catch (e) {
-      localStorage.removeItem('DDC_USER');
-    }
-  }
-  applySessionUI(false);
-}
-
-// 3. Attach Click Listeners to Login & Logout Buttons
-function setupAuth() {
-  const loginBtn = document.getElementById('loginBtn');
-  const loginForm = document.getElementById('loginForm');
-  const logoutBtn = document.getElementById('logoutBtn');
-  const loginEmpId = document.getElementById('loginEmpId');
-  const loginPassword = document.getElementById('loginPassword');
-  const loginError = document.getElementById('loginError');
-
-  // Login Trigger
-  if (loginBtn) {
-    const handleLogin = async (e) => {
-      if (e) e.preventDefault();
-      const empId = loginEmpId ? loginEmpId.value.trim() : '';
-      const password = loginPassword ? loginPassword.value.trim() : '';
-
-      if (!empId || !password) {
-        if (loginError) {
-          loginError.textContent = 'Please enter both Employee ID and Password.';
-          loginError.style.display = 'block';
-        }
-        return;
-      }
-
-      // Save user session locally
-      window.CURRENT_USER = { employeeId: empId, fullName: empId, name: empId };
-      localStorage.setItem('DDC_USER', JSON.stringify(window.CURRENT_USER));
-
-      if (loginError) loginError.style.display = 'none';
-      applySessionUI(true);
-    };
-
-    loginBtn.onclick = handleLogin;
-    if (loginForm) loginForm.onsubmit = handleLogin;
-  }
-
-  // Logout Trigger
-  if (logoutBtn) {
-    logoutBtn.onclick = function (e) {
-      e.preventDefault();
-      localStorage.removeItem('DDC_USER');
-      sessionStorage.clear();
-      window.CURRENT_USER = null;
-
-      if (loginEmpId) loginEmpId.value = '';
-      if (loginPassword) loginPassword.value = '';
-      if (loginError) loginError.style.display = 'none';
-
-      applySessionUI(false);
-    };
-  }
-}
-
-// Initialize immediately
-initSession();
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupAuth);
-} else {
-  setupAuth();
+  initApp();
 }
