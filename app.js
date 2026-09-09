@@ -400,6 +400,192 @@ function handleLogout() {
 }
 
 // ==========================================================================
+// UI ENHANCEMENT LAYER: SKELETON LOADERS, TRANSITIONS, MICRO-INTERACTIONS
+// ==========================================================================
+
+// Injects the CSS needed for skeleton shimmer, nav transitions, and the
+// punch-in animation sequence. Self-contained so no external stylesheet
+// changes are required. Runs once on DOMContentLoaded.
+function injectUiEnhancementStyles() {
+  if (document.getElementById('uiEnhancementStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'uiEnhancementStyles';
+  style.textContent = `
+    @keyframes skeletonShimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.14) 37%, rgba(255,255,255,0.06) 63%);
+      background-size: 800px 100%;
+      animation: skeletonShimmer 1.4s ease-in-out infinite;
+    }
+    .skeleton-dir-card { height: 64px; margin-bottom: 12px; }
+    .skeleton-metric-card { height: 90px; margin-bottom: 12px; }
+    .skeleton-chart-card { height: 220px; margin-bottom: 12px; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in-up { animation: fadeInUp 0.32s ease-out; }
+
+    @keyframes btnPulse {
+      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55); }
+      70% { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+    .btn-pulsing { animation: btnPulse 0.9s ease-out infinite; }
+
+    .camera-flash-overlay {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9998;
+      transition: opacity 120ms ease-out;
+    }
+    .camera-flash-overlay.flash-active {
+      opacity: 0.85;
+      transition: opacity 40ms ease-in;
+    }
+
+    @keyframes successBounceIn {
+      0% { transform: scale(0.85); opacity: 0; }
+      60% { transform: scale(1.04); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .success-bounce { animation: successBounceIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  `;
+  document.head.appendChild(style);
+}
+
+// ---- Skeleton loading lifecycle -------------------------------------------
+
+// Renders shimmering placeholder rows inside the employee directory list
+// prior to the getEmployeesDirectory RPC resolving.
+function showDirectorySkeletons(count = 6) {
+  const container = document.getElementById('directoryList') || document.getElementById('directory-container');
+  if (!container) return;
+  container.dataset.skeletonActive = 'true';
+  container.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const card = document.createElement('div');
+    card.className = 'skeleton-card skeleton-dir-card';
+    container.appendChild(card);
+  }
+}
+
+// Renders shimmering placeholders for the dashboard metric tiles and chart
+// canvases prior to the dashboard metrics/charts RPCs resolving.
+function showDashboardSkeletons() {
+  const metricTargets = ['presentCount', 'dashboardMetrics'];
+  metricTargets.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const parent = el.closest('.glass-card') || el.parentElement;
+    if (parent) {
+      parent.dataset.skeletonActive = 'true';
+      if (!parent.querySelector('.skeleton-metric-card')) {
+        const skel = document.createElement('div');
+        skel.className = 'skeleton-card skeleton-metric-card skeleton-injected';
+        parent.appendChild(skel);
+      }
+      el.style.visibility = 'hidden';
+    }
+  });
+
+  ['weeklyChart', 'statusChart', 'monthlyChart'].forEach(id => {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const wrapper = canvas.parentElement;
+    if (wrapper) {
+      wrapper.dataset.skeletonActive = 'true';
+      canvas.style.visibility = 'hidden';
+      if (!wrapper.querySelector('.skeleton-injected')) {
+        const skel = document.createElement('div');
+        skel.className = 'skeleton-card skeleton-chart-card skeleton-injected';
+        wrapper.appendChild(skel);
+      }
+    }
+  });
+}
+
+// Removes any skeleton placeholders under the given containerId and restores
+// visibility of the real elements underneath them. Safe to call even if no
+// skeletons are currently showing.
+function hideSkeletons(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.querySelectorAll('.skeleton-injected').forEach(node => node.remove());
+  delete container.dataset.skeletonActive;
+  container.querySelectorAll('[style*="visibility: hidden"]').forEach(node => {
+    node.style.visibility = '';
+  });
+  container.classList.add('fade-in-up');
+  setTimeout(() => container.classList.remove('fade-in-up'), 350);
+}
+
+// Clears every skeleton on the page regardless of container, used as a
+// catch-all after dashboard data finishes loading (metrics + 3 charts each
+// live in their own wrapper element).
+function hideAllDashboardSkeletons() {
+  document.querySelectorAll('[data-skeleton-active="true"]').forEach(node => {
+    node.querySelectorAll('.skeleton-injected').forEach(skel => skel.remove());
+    delete node.dataset.skeletonActive;
+    node.querySelectorAll('[style*="visibility: hidden"]').forEach(el => { el.style.visibility = ''; });
+    const canvas = node.querySelector('canvas');
+    if (canvas) canvas.style.visibility = '';
+    node.classList.add('fade-in-up');
+    setTimeout(() => node.classList.remove('fade-in-up'), 350);
+  });
+}
+
+// ---- Punch-in animated sequence -------------------------------------------
+
+function getCameraFlashOverlay() {
+  let overlay = document.getElementById('cameraFlashOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'cameraFlashOverlay';
+    overlay.className = 'camera-flash-overlay';
+    document.body.appendChild(overlay);
+  }
+  return overlay;
+}
+
+function triggerCameraFlash() {
+  const overlay = getCameraFlashOverlay();
+  overlay.classList.add('flash-active');
+  setTimeout(() => overlay.classList.remove('flash-active'), 160);
+}
+
+// Drives the visible step-by-step animation (pulse -> flash -> bounce) around
+// the existing handleClockIn() flow, without altering its RPC logic.
+async function handlePunchInAnimated() {
+  const btn = document.getElementById('punchInBtn') || document.getElementById('homeClockBtn');
+  if (btn) btn.classList.add('btn-pulsing');
+
+  // Camera flash timed to coincide with the selfie snapshot moment.
+  triggerCameraFlash();
+
+  try {
+    await handleClockIn();
+  } finally {
+    if (btn) btn.classList.remove('btn-pulsing');
+    const statusCard = document.getElementById('homeStatusCard');
+    if (statusCard) {
+      statusCard.classList.add('success-bounce');
+      setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
+    }
+  }
+}
+
+// ==========================================================================
 // CLOCK IN / OUT HANDLERS WITH VISUAL ANIMATION
 // ==========================================================================
 async function handleClockIn() {
@@ -540,6 +726,8 @@ function renderPunchInSuccessCard() {
   if (statusCard) {
     statusCard.style.background = '#f0fdf4';
     statusCard.style.borderColor = '#bbf7d0';
+    statusCard.classList.add('success-bounce');
+    setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
   }
   if (statusIcon) statusIcon.textContent = '🎉';
   if (statusTitle) {
@@ -647,7 +835,11 @@ function previewFakePhoto(input) {
 function switchSection(sectionId, el) {
   document.querySelectorAll('.spa-section').forEach(s => s.classList.remove('active'));
   const target = document.getElementById(sectionId + 'Section');
-  if (target) target.classList.add('active');
+  if (target) {
+    target.classList.add('active');
+    target.classList.add('fade-in-up');
+    setTimeout(() => target.classList.remove('fade-in-up'), 350);
+  }
 
   document.querySelectorAll('.sidebar-menu a, .bottom-nav-item').forEach(a => a.classList.remove('active'));
   if (el) el.classList.add('active');
@@ -683,8 +875,16 @@ function initNavigation() {
       appViews.forEach(view => {
         if (view.id === targetViewId) {
           view.classList.add('active');
+          // Smooth transition hook: briefly apply a fade-in-up entrance so
+          // switching workspace views doesn't feel like an abrupt hard-cut.
+          view.classList.remove('fade-in-up');
+          // Force reflow so the animation re-triggers on repeated visits.
+          void view.offsetWidth;
+          view.classList.add('fade-in-up');
+          setTimeout(() => view.classList.remove('fade-in-up'), 350);
         } else {
           view.classList.remove('active');
+          view.classList.remove('fade-in-up');
         }
       });
 
@@ -742,6 +942,8 @@ async function loadDashboardData() {
   if (!CURRENT_USER) return;
   const dateStr = getLocalDateString();
 
+  showDashboardSkeletons();
+
   try {
     const isAdmin = ['Admin', 'HR', 'Dev'].includes(CURRENT_USER.role);
     const metrics = isAdmin
@@ -760,7 +962,11 @@ async function loadDashboardData() {
       : await callAPI("getDashboardCharts", { employeeId: CURRENT_USER.employeeId, date: dateStr });
 
     renderDashboardCharts(charts);
-  } catch (e) { console.error("Dashboard load error:", e); }
+  } catch (e) {
+    console.error("Dashboard load error:", e);
+  } finally {
+    hideAllDashboardSkeletons();
+  }
 }
 
 function renderDashboardCharts(charts) {
@@ -798,8 +1004,10 @@ function renderDashboardCharts(charts) {
 // DIRECTORY MODULE
 // ==========================================================================
 async function loadDirectory() {
-  const container = document.getElementById('directory-container');
+  const container = document.getElementById('directoryList') || document.getElementById('directory-container');
   if (!container) return;
+
+  showDirectorySkeletons();
 
   try {
     const list = await callAPI("getEmployeesDirectory");
@@ -813,7 +1021,7 @@ async function loadDirectory() {
     list.forEach(emp => {
       const statusClass = emp.today_status === 'Present' ? 'text-success' : 'text-danger';
       const card = document.createElement('div');
-      card.className = "glass-card p-3 d-flex align-items-center justify-content-between dir-item";
+      card.className = "glass-card p-3 d-flex align-items-center justify-content-between dir-item fade-in-up";
       card.dataset.status = emp.today_status ? emp.today_status.toLowerCase() : 'absent';
       card.dataset.name = (emp.name || '').toLowerCase();
       card.dataset.id = (emp.employee_id || '').toLowerCase();
@@ -833,8 +1041,13 @@ async function loadDirectory() {
         </div>
       `;
       container.appendChild(card);
+      setTimeout(() => card.classList.remove('fade-in-up'), 350);
     });
-  } catch (e) { console.error(e); }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    delete container.dataset.skeletonActive;
+  }
 }
 
 function filterDirectory() {
@@ -1297,6 +1510,8 @@ async function handleCaptureSelfie() {
 
   // Step 2: If stream is active, take snapshot
   if (webcamStream) {
+    triggerCameraFlash();
+
     const context = canvas.getContext('2d');
     canvas.width = video.videoWidth || 300;
     canvas.height = video.videoHeight || 300;
@@ -1338,6 +1553,9 @@ async function handleCaptureSelfie() {
 // INITIALIZATION ON DOM LOAD
 // ==========================================================================
 document.addEventListener("DOMContentLoaded", () => {
+  // Inject shimmer/transition/animation CSS used by the enhancements above
+  injectUiEnhancementStyles();
+
   // Login Button Listener
   const loginBtn = document.getElementById('loginBtn');
   if (loginBtn) loginBtn.addEventListener('click', handleLogin);
@@ -1345,6 +1563,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Webcam capture button
   const captureBtn = document.getElementById('captureBtn');
   if (captureBtn) captureBtn.addEventListener('click', handleCaptureSelfie);
+
+  // Punch-in button: wire the animated pulse -> flash -> bounce sequence.
+  // Falls back to the legacy #homeClockBtn if #punchInBtn isn't present, and
+  // never overrides the onclick handler updateHomeUI() assigns after a
+  // clock-out (which switches the button back to the plain handleClockIn).
+  const punchInBtn = document.getElementById('punchInBtn');
+  if (punchInBtn) punchInBtn.addEventListener('click', handlePunchInAnimated);
 
   // Employee autocomplete on login screen
   initSuggestions();
