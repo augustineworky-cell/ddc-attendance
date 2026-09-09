@@ -16,8 +16,8 @@ const SUPABASE_URL = "https://bpwpxhsdmbkymhpjsfej.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwd3B4aHNkbWJreW1ocGpzZmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NDUzNzIsImV4cCI6MjEwNDUyMTM3Mn0.XnXF9kqp0g6xQwZpjPC6tUhLGNI1T29i02DQGjNYG2M";
 const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 // --- DDC SUPPLY CHAIN HQ GEOFENCE (Safdarjung Enclave, New Delhi) ---
-const OFFICE_LAT = 28.5633;
-const OFFICE_LNG = 77.1912;
+const OFFICE_LAT = 28.566233;
+const OFFICE_LNG = 77.199005;
 const OFFICE_RADIUS_M = 150; // 150-meter radius coverage
 
 const SUPABASE_ACTIONS = new Set([
@@ -576,4 +576,26 @@ function handleAddUser() {
     .catch(err => {
       msgDiv.innerText = "Error: " + err.message;
     });
+}
+function refreshDashboard() {
+  const empId = document.getElementById("dashEmpId").value.trim();
+  const dateParam = document.getElementById("dashDate").value || null;
+
+  if (empId) {
+    callAPI("getDashboardMetrics", { employeeId: empId, dateParam }).then(data => {
+      document.getElementById("kpi-status").innerText = data.status || "-";
+      document.getElementById("kpi-spent").innerText = (data.hoursWorked || 0) + "h";
+      document.getElementById("kpi-overtime").innerText = (data.overtime || 0) + "h";
+      document.getElementById("count-full").innerText = data.fullDays || 0;
+      document.getElementById("count-half").innerText = data.halfDays || 0;
+      document.getElementById("count-leave").innerText = data.leaves || 0;
+    });
+  } else {
+    callAPI("getOverallMetrics", { dateParam }).then(data => {
+      document.getElementById("kpi-status").innerText = "Overall";
+      document.getElementById("count-full").innerText = data.present || 0;
+      document.getElementById("count-half").innerText = data.halfDay || 0;
+      document.getElementById("count-leave").innerText = data.onLeave || 0;
+    });
+  }
 }
