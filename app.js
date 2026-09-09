@@ -23,7 +23,7 @@ const MAX_GEOFENCE_RADIUS_METERS = OFFICE_RADIUS_M;
 const SESSION_STORAGE_KEY = 'DDC_USER';
 
 // Google Sheets sync endpoint - declared exactly once, top-level scope.
-const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4VVm2ODht/exec';
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4VVm2ODhtY_WGtb0WmtrgcJ1g0a2gdGgK7RN-DDvl_SUg2lcq6-IYwQA/exec';
 
 // Global Application State
 let CURRENT_USER = null;
