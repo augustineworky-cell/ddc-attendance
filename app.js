@@ -1678,6 +1678,9 @@ if (document.readyState === 'loading') {
 // ==========================================================================
 // LOGIN & AUTHENTICATION HANDLER
 // ==========================================================================
+// ==========================================================================
+// LOGIN & AUTHENTICATION HANDLER (FORCE VIEW SWITCH)
+// ==========================================================================
 function initLogin() {
   const loginForm = document.getElementById('loginForm');
   const loginBtn = document.getElementById('loginBtn');
@@ -1701,7 +1704,7 @@ function initLogin() {
       return;
     }
 
-    // Show loading state on button
+    // Button loading state
     const originalBtnText = loginBtn.innerHTML;
     loginBtn.disabled = true;
     loginBtn.innerHTML = '<span>Signing In...</span>';
@@ -1716,13 +1719,18 @@ function initLogin() {
       };
       localStorage.setItem('DDC_USER', JSON.stringify(window.CURRENT_USER));
 
-      // 2. Hide Login View & Show App Layout
+      // 2. Force Hide Login View & Force Show App Layout
       const loginView = document.getElementById('loginView');
       const appLayout = document.getElementById('appLayout');
 
-      if (loginView) loginView.style.display = 'none';
+      if (loginView) {
+        loginView.classList.remove('active');
+        loginView.style.setProperty('display', 'none', 'important');
+      }
+
       if (appLayout) {
-        appLayout.style.display = 'flex'; // Restores full-screen SaaS layout
+        appLayout.classList.add('active');
+        appLayout.style.setProperty('display', 'flex', 'important');
       }
 
       // 3. Update profile details in sidebar
@@ -1735,9 +1743,11 @@ function initLogin() {
       if (mobileUserAvatar) mobileUserAvatar.textContent = empId.charAt(0).toUpperCase();
 
       // 4. Trigger initial geofence check
-      if (typeof checkGeofence === 'function') {
-        checkGeofence();
-      }
+      setTimeout(() => {
+        if (typeof checkGeofence === 'function') {
+          checkGeofence();
+        }
+      }, 100);
 
     } catch (err) {
       console.error('Login error:', err);
@@ -1746,7 +1756,6 @@ function initLogin() {
         loginError.style.display = 'block';
       }
     } finally {
-      // Reset button state
       loginBtn.disabled = false;
       loginBtn.innerHTML = originalBtnText;
     }
@@ -1756,7 +1765,6 @@ function initLogin() {
   if (loginForm) loginForm.addEventListener('submit', processLogin);
 }
 
-// Attach listener on DOM load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initLogin);
 } else {
