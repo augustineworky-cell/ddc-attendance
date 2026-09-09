@@ -1675,3 +1675,90 @@ if (document.readyState === 'loading') {
 } else {
   initLogout();
 }
+// ==========================================================================
+// LOGIN & AUTHENTICATION HANDLER
+// ==========================================================================
+function initLogin() {
+  const loginForm = document.getElementById('loginForm');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginEmpId = document.getElementById('loginEmpId');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginError = document.getElementById('loginError');
+
+  if (!loginBtn) return;
+
+  async function processLogin(e) {
+    if (e) e.preventDefault();
+
+    const empId = loginEmpId ? loginEmpId.value.trim() : '';
+    const password = loginPassword ? loginPassword.value.trim() : '';
+
+    if (!empId || !password) {
+      if (loginError) {
+        loginError.textContent = 'Please enter both Employee ID and Password.';
+        loginError.style.display = 'block';
+      }
+      return;
+    }
+
+    // Show loading state on button
+    const originalBtnText = loginBtn.innerHTML;
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span>Signing In...</span>';
+    if (loginError) loginError.style.display = 'none';
+
+    try {
+      // 1. Set global user session
+      window.CURRENT_USER = {
+        employeeId: empId,
+        fullName: empId,
+        name: empId
+      };
+      localStorage.setItem('DDC_USER', JSON.stringify(window.CURRENT_USER));
+
+      // 2. Hide Login View & Show App Layout
+      const loginView = document.getElementById('loginView');
+      const appLayout = document.getElementById('appLayout');
+
+      if (loginView) loginView.style.display = 'none';
+      if (appLayout) {
+        appLayout.style.display = 'flex'; // Restores full-screen SaaS layout
+      }
+
+      // 3. Update profile details in sidebar
+      const userNameDisplay = document.getElementById('userNameDisplay');
+      const userAvatar = document.getElementById('userAvatar');
+      const mobileUserAvatar = document.getElementById('mobileUserAvatar');
+
+      if (userNameDisplay) userNameDisplay.textContent = empId;
+      if (userAvatar) userAvatar.textContent = empId.charAt(0).toUpperCase();
+      if (mobileUserAvatar) mobileUserAvatar.textContent = empId.charAt(0).toUpperCase();
+
+      // 4. Trigger initial geofence check
+      if (typeof checkGeofence === 'function') {
+        checkGeofence();
+      }
+
+    } catch (err) {
+      console.error('Login error:', err);
+      if (loginError) {
+        loginError.textContent = 'Login failed. Please try again.';
+        loginError.style.display = 'block';
+      }
+    } finally {
+      // Reset button state
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = originalBtnText;
+    }
+  }
+
+  loginBtn.addEventListener('click', processLogin);
+  if (loginForm) loginForm.addEventListener('submit', processLogin);
+}
+
+// Attach listener on DOM load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initLogin);
+} else {
+  initLogin();
+}
