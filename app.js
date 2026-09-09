@@ -1618,3 +1618,58 @@ document.addEventListener("DOMContentLoaded", () => {
   // Attempt to restore a previously active session
   restoreSessionFromStorage();
 });
+// ==========================================================================
+// LOGOUT & SESSION RESET
+// ==========================================================================
+function initLogout() {
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (!logoutBtn) return;
+
+  logoutBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    // 1. Sign out from Supabase Auth (if active)
+    try {
+      if (typeof supabase !== 'undefined' && supabase.auth) {
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.warn('Supabase signout notice:', err);
+    }
+
+    // 2. Clear local storage and user session data
+    if (typeof CURRENT_USER !== 'undefined') {
+      CURRENT_USER = null;
+    }
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 3. Switch UI from App Layout back to Login Screen
+    const appLayout = document.getElementById('appLayout');
+    const loginView = document.getElementById('loginView');
+
+    if (appLayout) appLayout.style.display = 'none';
+    if (loginView) {
+      loginView.style.display = 'block';
+      loginView.classList.add('active');
+    }
+
+    // 4. Reset login input fields
+    const loginEmpId = document.getElementById('loginEmpId');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginError = document.getElementById('loginError');
+
+    if (loginEmpId) loginEmpId.value = '';
+    if (loginPassword) loginPassword.value = '';
+    if (loginError) loginError.style.display = 'none';
+
+    console.log('User logged out successfully.');
+  });
+}
+
+// Initialize logout event listener
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initLogout);
+} else {
+  initLogout();
+}
