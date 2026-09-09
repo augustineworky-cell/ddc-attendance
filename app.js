@@ -974,3 +974,88 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+// ==================== WEBCAM & SELFIE CAPTURE LOGIC ====================
+let webcamStream = null;
+
+async function handleCaptureSelfie() {
+  const video = document.getElementById('webcam');
+  const preview = document.getElementById('selfiePreview');
+  const captureBtn = document.getElementById('captureBtn');
+  const canvas = document.getElementById('canvas');
+
+  if (!video || !preview || !captureBtn || !canvas) return;
+
+  // Step 2: If stream is active, take snapshot
+  if (webcamStream) {
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth || 300;
+    canvas.height = video.videoHeight || 300;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageDataUrl = canvas.toDataURL('image/jpeg');
+    preview.src = imageDataUrl;
+    window.CAPTURED_SELFIE_DATA = imageDataUrl; // Saved for Supabase upload
+
+    // Turn off camera tracks
+    webcamStream.getTracks().forEach(track => track.stop());
+    webcamStream = null;
+
+    video.style.display = 'none';
+    preview.style.display = 'block';
+    captureBtn.textContent = '📷 Retake Selfie';
+    return;
+  }
+
+  // Step 1: Request camera permission & display video preview
+  try {
+    webcamStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 400 }, height: { ideal: 400 } },
+      audio: false
+    });
+
+    video.srcObject = webcamStream;
+    video.style.display = 'block';
+    preview.style.display = 'none';
+    captureBtn.textContent = '📸 Snap Photo';
+  } catch (err) {
+    console.error("Camera access error:", err);
+    alert("Camera permission denied or camera not found. Please allow camera access in your browser settings.");
+  }
+}
+
+// Bind button listener on page load
+document.addEventListener('DOMContentLoaded', () => {
+  const captureBtn = document.getElementById('captureBtn');
+  if (captureBtn) {
+    captureBtn.addEventListener('click', handleCaptureSelfie);
+  }
+});
+// Append to the bottom of your existing app.js
+document.addEventListener('DOMContentLoaded', () => {
+  const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-view]');
+  const appViews = document.querySelectorAll('.app-view');
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+
+  navItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetViewId = item.getAttribute('data-view');
+      if (!targetViewId) return;
+
+      navItems.forEach(nav => nav.classList.remove('active'));
+      item.classList.add('active');
+
+      appViews.forEach(view => {
+        if (view.id === targetViewId) {
+          view.classList.add('active');
+        } else {
+          view.classList.remove('active');
+        }
+      });
+
+      if (sidebar) sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('active');
+    });
+  });
+});

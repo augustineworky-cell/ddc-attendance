@@ -2,202 +2,240 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DDC Supply Chain - Workforce Attendance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DDC Supply Chain - Enterprise Workforce Portal</title>
   <link rel="stylesheet" href="styles.css">
-  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-  <!-- ==================== LOGIN VIEW (SPLIT MOBILE UI) ==================== -->
+  <!-- ==================== SPLIT MOBILE LOGIN VIEW ==================== -->
   <div id="loginView" class="view active">
     <div class="mobile-login-wrapper">
-      
-      <!-- Top Half: Golden Brand Banner -->
       <div class="login-header-banner">
         <div class="brand-icon-wrapper">
-          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+          <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
         </div>
         <h1 class="brand-title">DDC Supply Chain</h1>
-        <p class="brand-subtitle">Supply Chain & Distribution LLP</p>
+        <p class="brand-subtitle">Workforce & Logistics Management</p>
       </div>
 
-      <!-- Bottom Half: Floating Action Card -->
       <div class="login-card-container">
         <div class="login-card">
           <form id="loginForm" onsubmit="return false;">
-            
-            <!-- Employee Code / Name Input -->
             <div class="input-group">
               <span class="input-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>
               </span>
               <input type="text" id="loginEmpId" placeholder="Employee ID / Name / Email" autocomplete="off" required>
               <div id="nameSuggestions" class="suggestions-dropdown"></div>
             </div>
 
-            <!-- Password Input -->
             <div class="input-group">
               <span class="input-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8 1a2 2 0 0 0-2 2v4H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zm1 6V3a1 1 0 0 0-2 0v4h2z"/>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
               </span>
               <input type="password" id="loginPassword" placeholder="Password" required>
             </div>
 
-            <!-- Error Message Box -->
             <div id="loginError" class="error-msg" style="display:none;"></div>
 
-            <!-- Sign In Button -->
             <button type="button" id="loginBtn" class="btn-primary-mobile">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
-                <path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 15h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z"/>
-                <path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+              <span>Sign In to Portal</span>
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
               </svg>
-              Sign In
             </button>
           </form>
         </div>
-        
-        <p class="login-footer-text">AB-17, Safdarjung Enclave, New Delhi • Powered by Supabase</p>
+        <p class="login-footer-text">DDC Supply Chain & Distribution LLP • Secured Portal</p>
       </div>
-
     </div>
   </div>
 
-  <!-- ==================== MAIN APPLICATION DASHBOARD ==================== -->
+  <!-- ==================== MAIN SAAS APP LAYOUT ==================== -->
   <div id="appLayout" class="app-layout" style="display:none;">
     
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="user-avatar" id="userAvatar">DDC</div>
-        <div class="user-info">
-          <h4 id="userNameDisplay">Employee Name</h4>
-          <span id="userRoleBadge" class="badge">Role</span>
+    <!-- Mobile Navigation Topbar -->
+    <header class="mobile-top-bar">
+      <button id="menuToggleBtn" class="menu-toggle-btn">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <div class="mobile-brand-title">DDC WORKFORCE</div>
+      <div class="mobile-user-avatar" id="mobileUserAvatar">D</div>
+    </header>
+
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+    <!-- MODERN SAAS SIDEBAR -->
+    <aside id="sidebar" class="sidebar">
+      
+      <!-- Brand Logo Header -->
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">DDC Logistics</span>
+          <span class="brand-tag">Enterprise v2.4</span>
         </div>
       </div>
 
+      <!-- User Profile Card -->
+      <div class="sidebar-user-card">
+        <div class="user-avatar-wrapper">
+          <div class="user-avatar" id="userAvatar">KR</div>
+          <span class="status-indicator"></span>
+        </div>
+        <div class="user-details">
+          <h4 id="userNameDisplay" class="user-name">Khayali Ram</h4>
+          <span id="userRoleBadge" class="role-pill">Employee</span>
+        </div>
+      </div>
+
+      <!-- Navigation Links with Vector Icons -->
       <nav class="sidebar-nav">
-        <a href="#home" class="nav-item active" data-view="homeView">
-          <span>🏠 Home</span>
+        <div class="nav-section-label">CORE MENU</div>
+
+        <a href="javascript:void(0)" class="nav-item active" data-view="homeView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          <span class="nav-label">Home & Punch</span>
         </a>
-        <a href="#dashboard" class="nav-item admin-only" data-view="dashboardView">
-          <span>📊 Dashboard</span>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="dashboardView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <span class="nav-label">Analytics</span>
         </a>
-        <a href="#directory" class="nav-item admin-only" data-view="directoryView">
-          <span>👥 Directory</span>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="directoryView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <span class="nav-label">Staff Directory</span>
         </a>
-        <a href="#leave" class="nav-item" data-view="leaveView">
-          <span>📅 Leave Portal</span>
+
+        <a href="javascript:void(0)" class="nav-item" data-view="leaveView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <span class="nav-label">Leave Portal</span>
         </a>
-        <a href="#salary" class="nav-item admin-only" data-view="salaryView">
-          <span>💳 Salary & Payroll</span>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="salaryView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+          <span class="nav-label">Payroll & Compensation</span>
         </a>
-        <a href="#training" class="nav-item" data-view="trainingView">
-          <span>🎓 Training Modules</span>
+
+        <a href="javascript:void(0)" class="nav-item" data-view="trainingView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+          </svg>
+          <span class="nav-label">Training Modules</span>
         </a>
-        <a href="#fieldmap" class="nav-item admin-only" data-view="fieldMapView">
-          <span>📍 Live Field Map</span>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="fieldMapView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span class="nav-label">Live GPS Map</span>
         </a>
-        <a href="#usermgmt" class="nav-item admin-only" data-view="userMgmtView">
-          <span>⚙️ User Management</span>
+
+        <div class="nav-section-label">ADMINISTRATION</div>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="userMgmtView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span class="nav-label">System Settings</span>
         </a>
-        <a href="#" id="logoutBtn" class="nav-item logout">
-          <span>🚪 Logout</span>
+
+        <a href="javascript:void(0)" id="logoutBtn" class="nav-item logout">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          <span class="nav-label">Sign Out</span>
         </a>
       </nav>
     </aside>
 
-    <!-- Main Content Panel -->
+    <!-- Content Area -->
     <main class="main-content">
-      
-      <!-- Home View (Punch In Interface) -->
-      <section id="homeView" class="app-view active">
+      <section id="homeView" class="app-view active fade-in-up">
         <div class="punch-card-wrapper">
           <div class="geofence-status-card">
-            <div class="geofence-icon" id="geofenceIcon">📍</div>
-            <h3 id="geofenceTitle">Checking Geofence...</h3>
-            <p id="geofenceSubtitle">Calculating distance from DDC Safdarjung HQ</p>
+            <div class="geofence-icon-badge" id="geofenceIcon">📍</div>
+            <h3 id="geofenceTitle" class="status-heading">Checking Location...</h3>
+            <p id="geofenceSubtitle" class="status-subheading">Calculating distance to DDC Safdarjung HQ</p>
           </div>
 
-          <div class="selfie-box">
-            <video id="webcam" autoplay playsinline style="display:none;"></video>
-            <canvas id="canvas" style="display:none;"></canvas>
-            <img id="selfiePreview" src="https://via.placeholder.com/150" alt="Verification Preview">
-            <button type="button" id="captureBtn" class="btn-secondary">📷 Capture Verification Selfie</button>
+          <div class="camera-verification-card">
+            <div class="selfie-frame">
+              <video id="webcam" autoplay playsinline style="display:none;"></video>
+              <canvas id="canvas" style="display:none;"></canvas>
+              <img id="selfiePreview" src="https://via.placeholder.com/150" alt="Selfie Verification">
+            </div>
+            <button type="button" id="captureBtn" class="btn-action-outline">📷 Capture Selfie</button>
           </div>
 
-          <button type="button" id="punchInBtn" class="btn-punch-in">
-            <span>➡️ Punch In Now</span>
+          <button type="button" id="punchInBtn" class="btn-punch-action">
+            <span id="punchBtnText">Punch In Now</span>
           </button>
 
-          <div class="stats-row">
-            <div class="stat-box">
-              <span class="stat-number" id="presentCount">0</span>
-              <span class="stat-label">Present</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-number" id="halfDayCount">0</span>
-              <span class="stat-label">Half Day</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-number" id="leaveCount">0</span>
-              <span class="stat-label">Leaves</span>
-            </div>
+          <div class="stats-counter-grid">
+            <div class="stat-card"><span class="stat-val" id="presentCount">0</span><span class="stat-lbl">Present</span></div>
+            <div class="stat-card"><span class="stat-val" id="halfDayCount">0</span><span class="stat-lbl">Half Day</span></div>
+            <div class="stat-card"><span class="stat-val" id="leaveCount">0</span><span class="stat-lbl">Leaves</span></div>
           </div>
         </div>
       </section>
 
-      <!-- Dashboard View -->
-      <section id="dashboardView" class="app-view">
-        <h2>Executive Dashboard</h2>
-        <p>Live workforce attendance analytics and daily reports.</p>
+      <section id="dashboardView" class="app-view fade-in-up">
+        <div class="view-header"><h2>Executive Analytics</h2><p>Live workforce activity breakdown.</p></div>
       </section>
 
-      <!-- Directory View -->
-      <section id="directoryView" class="app-view">
-        <h2>Employee Directory</h2>
+      <section id="directoryView" class="app-view fade-in-up">
+        <div class="view-header"><h2>Staff Directory</h2><p>Employee directory and status roster.</p></div>
         <div id="directoryList" class="directory-grid"></div>
       </section>
 
-      <!-- Leave Portal View -->
-      <section id="leaveView" class="app-view">
-        <h2>Leave Portal</h2>
-        <p>Submit and view status of leave applications.</p>
+      <section id="leaveView" class="app-view fade-in-up">
+        <div class="view-header"><h2>Leave Portal</h2><p>Submit and review leave applications.</p></div>
       </section>
 
-      <!-- Salary View -->
-      <section id="salaryView" class="app-view">
-        <h2>Salary & Payroll</h2>
-        <p>Monthly payroll calculations and disbursement records.</p>
+      <section id="salaryView" class="app-view fade-in-up">
+        <div class="view-header"><h2>Payroll Management</h2><p>Monthly statements and disbursement.</p></div>
       </section>
 
-      <!-- Training View -->
-      <section id="trainingView" class="app-view">
-        <h2>Training Modules</h2>
-        <p>Onboarding materials and compliance modules.</p>
+      <section id="trainingView" class="app-view fade-in-up">
+        <div class="view-header"><h2>Training Modules</h2><p>Onboarding and compliance guides.</p></div>
       </section>
 
-      <!-- Field Map View -->
-      <section id="fieldMapView" class="app-view">
-        <h2>Live Field Map</h2>
-        <p>Real-time GPS locations of active field staff.</p>
+      <section id="fieldMapView" class="app-view fade-in-up">
+        <div class="view-header"><h2>Live Field Map</h2><p>GPS tracking for field officers.</p></div>
       </section>
 
-      <!-- User Management View -->
-      <section id="userMgmtView" class="app-view">
-        <h2>User Management</h2>
-        <p>Add, edit, or deactivate employee system access.</p>
+      <section id="userMgmtView" class="app-view fade-in-up">
+        <div class="view-header"><h2>System Settings</h2><p>Manage accounts and portal permissions.</p></div>
       </section>
-
     </main>
   </div>
 
