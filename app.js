@@ -12,8 +12,8 @@ function getLocalDateString() {
 
 // --- SUPABASE CLIENT SETUP ---
 // --- SUPABASE CLIENT SETUP ---
-const SUPABASE_URL = "https://jwlvumuawpsvqkmytwlu.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3bHZ1bXVhd3BzdnFrbXl0d2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MzEzOTcsImV4cCI6MjEwNDUwNzM5N30.nthEzaHy8e5KKtdoeROqkhi8uRat8SjdZBUjP-Eule4";
+const SUPABASE_URL = "https://bpwpxhsdmbkymhpjsfej.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwd3B4aHNkbWJreW1ocGpzZmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NDUzNzIsImV4cCI6MjEwNDUyMTM3Mn0.XnXF9kqp0g6xQwZpjPC6tUhLGNI1T29i02DQGjNYG2M";
 const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 // --- DDC SUPPLY CHAIN HQ GEOFENCE (Safdarjung Enclave, New Delhi) ---
 const OFFICE_LAT = 28.5633;
