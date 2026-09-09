@@ -1682,24 +1682,43 @@ if (document.readyState === 'loading') {
 // LOGIN & AUTHENTICATION HANDLER (FORCE VIEW SWITCH)
 // ==========================================================================
 // ==========================================================================
-// UNIFIED AUTHENTICATION & SESSION MANAGER
 // ==========================================================================
-function checkExistingSession() {
-  const savedUser = localStorage.getItem('DDC_USER');
+// COMPLETE BULLETPROOF AUTHENTICATION & SESSION MANAGER
+// ==========================================================================
+
+// 1. Force Screen Display Based on Session State
+function applySessionUI(isLoggedIn) {
   const loginView = document.getElementById('loginView');
   const appLayout = document.getElementById('appLayout');
 
+  if (isLoggedIn) {
+    if (loginView) {
+      loginView.classList.remove('active');
+      loginView.style.setProperty('display', 'none', 'important');
+    }
+    if (appLayout) {
+      appLayout.classList.add('active');
+      appLayout.style.setProperty('display', 'flex', 'important');
+    }
+  } else {
+    if (appLayout) {
+      appLayout.classList.remove('active');
+      appLayout.style.setProperty('display', 'none', 'important');
+    }
+    if (loginView) {
+      loginView.classList.add('active');
+      loginView.style.setProperty('display', 'flex', 'important');
+    }
+  }
+}
+
+// 2. Load Active Session from LocalStorage
+function initSession() {
+  const savedUser = localStorage.getItem('DDC_USER');
   if (savedUser) {
     try {
       window.CURRENT_USER = JSON.parse(savedUser);
-      if (loginView) {
-        loginView.classList.remove('active');
-        loginView.style.setProperty('display', 'none', 'important');
-      }
-      if (appLayout) {
-        appLayout.classList.add('active');
-        appLayout.style.setProperty('display', 'flex', 'important');
-      }
+      applySessionUI(true);
 
       const userNameDisplay = document.getElementById('userNameDisplay');
       const userAvatar = document.getElementById('userAvatar');
@@ -1719,19 +1738,11 @@ function checkExistingSession() {
       localStorage.removeItem('DDC_USER');
     }
   }
-
-  // If no active session exists, enforce login view
-  if (appLayout) {
-    appLayout.classList.remove('active');
-    appLayout.style.setProperty('display', 'none', 'important');
-  }
-  if (loginView) {
-    loginView.classList.add('active');
-    loginView.style.setProperty('display', 'flex', 'important');
-  }
+  applySessionUI(false);
 }
 
-function setupAuthListeners() {
+// 3. Attach Click Listeners to Login & Logout Buttons
+function setupAuth() {
   const loginBtn = document.getElementById('loginBtn');
   const loginForm = document.getElementById('loginForm');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -1739,9 +1750,9 @@ function setupAuthListeners() {
   const loginPassword = document.getElementById('loginPassword');
   const loginError = document.getElementById('loginError');
 
-  // Handle Login Click & Form Submit
+  // Login Trigger
   if (loginBtn) {
-    async function processLogin(e) {
+    const handleLogin = async (e) => {
       if (e) e.preventDefault();
       const empId = loginEmpId ? loginEmpId.value.trim() : '';
       const password = loginPassword ? loginPassword.value.trim() : '';
@@ -1754,45 +1765,39 @@ function setupAuthListeners() {
         return;
       }
 
+      // Save user session locally
       window.CURRENT_USER = { employeeId: empId, fullName: empId, name: empId };
       localStorage.setItem('DDC_USER', JSON.stringify(window.CURRENT_USER));
 
       if (loginError) loginError.style.display = 'none';
-      checkExistingSession();
-    }
+      applySessionUI(true);
+    };
 
-    loginBtn.onclick = processLogin;
-    if (loginForm) loginForm.onsubmit = processLogin;
+    loginBtn.onclick = handleLogin;
+    if (loginForm) loginForm.onsubmit = handleLogin;
   }
 
-  // Handle Logout Click
+  // Logout Trigger
   if (logoutBtn) {
-    logoutBtn.onclick = async function (e) {
+    logoutBtn.onclick = function (e) {
       e.preventDefault();
       localStorage.removeItem('DDC_USER');
       sessionStorage.clear();
       window.CURRENT_USER = null;
 
-      if (typeof supabase !== 'undefined' && supabase.auth) {
-        try { await supabase.auth.signOut(); } catch(err) {}
-      }
-
       if (loginEmpId) loginEmpId.value = '';
       if (loginPassword) loginPassword.value = '';
       if (loginError) loginError.style.display = 'none';
 
-      checkExistingSession();
+      applySessionUI(false);
     };
   }
 }
 
-// Run session check on page load
+// Initialize immediately
+initSession();
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    checkExistingSession();
-    setupAuthListeners();
-  });
+  document.addEventListener('DOMContentLoaded', setupAuth);
 } else {
-  checkExistingSession();
-  setupAuthListeners();
+  setupAuth();
 }
