@@ -1618,19 +1618,3 @@ document.addEventListener("DOMContentLoaded", () => {
   // Attempt to restore a previously active session
   restoreSessionFromStorage();
 });
-// Google Apps Script Web App Endpoint (Must end in /exec)
-const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4VVm2ODht/exec';
-
-async function syncToGoogleSheets(data) {
-  try {
-    await fetch(GOOGLE_SHEET_URL, {
-      method: 'POST',
-      mode: 'no-cors', // Bypasses browser CORS restrictions
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    console.log('Google Sheets sync triggered successfully');
-  } catch (error) {
-    console.error('Google Sheets Sync Failed:', error);
-  }
-}
