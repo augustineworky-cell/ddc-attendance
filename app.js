@@ -540,9 +540,40 @@ function sendSherlMessage() {
 
 // --- INITIALIZATION ON LOAD ---
 document.addEventListener("DOMContentLoaded", function() {
-  const savedUser = localStorage.getItem('attendsys-user');
-  if (savedUser) {
-    CURRENT_USER = JSON.parse(savedUser);
-    transitionToApp(CURRENT_USER);
-  }
+  CURRENT_USER = {
+    employeeId: "EMP101",
+    name: "Augustine",
+    email: "augustine.worky@gmail.com",
+    role: "Admin"
+  };
+  localStorage.setItem('attendsys-user', JSON.stringify(CURRENT_USER));
+  transitionToApp(CURRENT_USER);
 });
+function handleAddUser() {
+  const employeeId = document.getElementById("newUserId").value.trim();
+  const email = document.getElementById("newUserEmail").value.trim();
+  const role = document.getElementById("newUserRole").value;
+  const password = document.getElementById("newUserPass").value;
+  const msgDiv = document.getElementById("userMsg");
+
+  if (!employeeId || !email || !password) {
+    msgDiv.innerText = "Please fill all fields";
+    return;
+  }
+
+  msgDiv.innerText = "Creating user...";
+
+  callAPI("addUser", { employeeId, email, role, password })
+    .then(result => {
+      if (result && result.success) {
+        msgDiv.innerText = "User created successfully";
+        document.getElementById("addUserForm").reset();
+        loadUsersList();
+      } else {
+        msgDiv.innerText = result.message || "Failed to create user";
+      }
+    })
+    .catch(err => {
+      msgDiv.innerText = "Error: " + err.message;
+    });
+}
