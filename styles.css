@@ -3,41 +3,35 @@
    ========================================================================== */
 
 :root {
-  /* DDC Supply Chain Corporate Color Palette */
-  --primary: #0B192C;
-  --primary-light: #1E3A5F;
-  --accent: #FF6B00;
-  --accent-hover: #E05D00;
-  
-  /* Backgrounds & Glassmorphism Surfaces */
-  --bg-dark: #0F172A;
-  --card-bg-dark: rgba(30, 41, 59, 0.75);
-  --card-border: rgba(255, 107, 0, 0.2);
-  
-  /* Typography Colors */
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  
-  /* Status Indicators */
-  --status-present: #10B981;
-  --status-halfday: #F59E0B;
-  --status-absent: #EF4444;
-  
-  /* Border Radii */
+  --primary: #FFFFFF;
+  --primary-light: #F5F5F0;
+  --accent: #C9A227;
+  --accent-hover: #A9870F;
+
+  --bg-dark: #FAFAF7;
+  --card-bg-dark: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(201, 162, 39, 0.25);
+
+  --text-primary: #1A1A18;
+  --text-secondary: #55554C;
+  --text-muted: #8A8A80;
+
+  --status-present: #4A7A4A;
+  --status-halfday: #C9A227;
+  --status-absent: #B33A3A;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
 }
 
-/* Light Mode Overrides */
 body.light-mode {
-  --bg-dark: #F8FAFC;
-  --card-bg-dark: rgba(255, 255, 255, 0.85);
-  --card-border: rgba(11, 25, 44, 0.15);
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
+  --bg-dark: #FFFFFF;
+  --card-bg-dark: rgba(250, 250, 247, 0.9);
+  --card-border: rgba(26, 26, 24, 0.1);
+  --text-primary: #1A1A18;
+  --text-secondary: #55554C;
+  --text-muted: #9C9C92;
 }
 
 body {
