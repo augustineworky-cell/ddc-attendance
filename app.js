@@ -9,7 +9,7 @@ const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
 // DDC Safdarjung HQ Geofence Coordinates
 const OFFICE_LAT = 28.5633;
 const OFFICE_LNG = 77.1912;
-const OFFICE_RADIUS_M = 150; // 150-meter coverage radius
+const OFFICE_RADIUS_M = 1000; // Expanded to 1000 meters for desktop testing
 
 // Aliases used by geofence-checking helpers
 const HQ_LAT = OFFICE_LAT;
