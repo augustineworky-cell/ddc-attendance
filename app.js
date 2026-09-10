@@ -36,6 +36,7 @@ const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4
 let CURRENT_USER = null;
 let ATTENDANCE_SELFIE_BASE64 = null;
 let locationPingTimer = null;
+let autoLogoutTimer = null;
 let liveMapInstance = null;
 let liveMapMarkers = {};
 let liveMapInterval = null;
@@ -588,6 +589,7 @@ async function handleLogout(e) {
 
   stopLocationPinging();
   stopLiveMapRefresh();
+  stopAutoLogoutTimer();
 
   const loginEmpId = document.getElementById('loginEmpId');
   const loginPassword = document.getElementById('loginPassword');
@@ -885,6 +887,7 @@ async function handleClockIn() {
       showPunchSuccess(`Distance from HQ: ${Math.round(data.distance_m)} meters${lateSuffix}`);
       updateHomeUI(true);
       renderPunchInSuccessCard(isLatePunch);
+      startAutoLogoutTimer(10);
     } else if (data.status === 'OUT_OF_RANGE') {
       const distanceInfo = (data.distance_m !== undefined && data.distance_m !== null)
         ? ` You are approximately ${Math.round(data.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
@@ -970,6 +973,7 @@ async function handleClockOut() {
       // renderPunchOutSuccessCard() sets the red PUNCH OUT SUCCESSFUL!
       // card state and calls updateHomeUI(false) itself.
       renderPunchOutSuccessCard(res.hours_worked);
+      startAutoLogoutTimer(10);
 
       // --- GOOGLE SHEETS SYNC (PUNCH OUT) ---
       syncToGoogleSheets({
@@ -1040,6 +1044,66 @@ function setButtonLabel(btn, text) {
   } else if (btn) {
     btn.innerText = text;
   }
+}
+
+// ==========================================================================
+// AUTO-LOGOUT COUNTDOWN (fires after a successful Punch In / Punch Out)
+// ==========================================================================
+function startAutoLogoutTimer(seconds = 10) {
+  stopAutoLogoutTimer();
+
+  let remaining = seconds;
+
+  let banner = document.getElementById('autoLogoutBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'autoLogoutBanner';
+    banner.style.position = 'fixed';
+    banner.style.bottom = '24px';
+    banner.style.left = '50%';
+    banner.style.transform = 'translateX(-50%)';
+    banner.style.background = '#1e293b';
+    banner.style.color = '#ffffff';
+    banner.style.padding = '12px 20px';
+    banner.style.borderRadius = '10px';
+    banner.style.boxShadow = '0 4px 14px rgba(0,0,0,0.35)';
+    banner.style.display = 'flex';
+    banner.style.alignItems = 'center';
+    banner.style.gap = '14px';
+    banner.style.zIndex = '10000';
+    banner.style.fontSize = '0.9rem';
+    banner.innerHTML = `
+      <span id="autoLogoutBannerText"></span>
+      <button id="autoLogoutStayBtn" class="btn btn-sm btn-outline-light">Stay Logged In</button>
+    `;
+    document.body.appendChild(banner);
+    document.getElementById('autoLogoutStayBtn').onclick = stopAutoLogoutTimer;
+  }
+
+  const textEl = document.getElementById('autoLogoutBannerText');
+  banner.style.display = 'flex';
+  if (textEl) textEl.textContent = `Auto logging out in ${remaining} seconds`;
+
+  autoLogoutTimer = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(autoLogoutTimer);
+      autoLogoutTimer = null;
+      if (banner) banner.style.display = 'none';
+      handleLogout();
+      return;
+    }
+    if (textEl) textEl.textContent = `Auto logging out in ${remaining} seconds`;
+  }, 1000);
+}
+
+function stopAutoLogoutTimer() {
+  if (autoLogoutTimer) {
+    clearInterval(autoLogoutTimer);
+    autoLogoutTimer = null;
+  }
+  const banner = document.getElementById('autoLogoutBanner');
+  if (banner) banner.style.display = 'none';
 }
 
 // Green "Punch In Successful" card + metric + button treatment described in spec
