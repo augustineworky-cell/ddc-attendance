@@ -70,6 +70,35 @@ function getISTMinutesNow() {
 }
 
 // ==========================================================================
+// GEOLOCATION HELPER (DESKTOP / INCOGNITO SAFE)
+// ==========================================================================
+// Wraps navigator.geolocation.getCurrentPosition with a two-stage strategy:
+// first attempt a fast, high-accuracy fix (4s timeout), and if that fails
+// or times out (common on desktop browsers and incognito windows where a
+// GPS chip isn't available and the browser falls back to slow Wi-Fi/IP
+// based positioning), retry once with high accuracy disabled and a longer
+// timeout. This prevents the "Checking Location..." / clock-in spinner
+// from hanging indefinitely or failing outright on desktop/incognito.
+function getGpsPosition(timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      return reject(new Error("Geolocation not supported"));
+    }
+    navigator.geolocation.getCurrentPosition(
+      resolve,
+      () => {
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          reject,
+          { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 30000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 4000, maximumAge: 0 }
+    );
+  });
+}
+
+// ==========================================================================
 // SHIFT GUIDANCE BADGE
 // ==========================================================================
 // Shows the official shift window as subtext under the geofence status
@@ -451,6 +480,12 @@ function applySessionAndRenderApp(user, persist) {
 
   applySessionUI(true);
   renderUserBadge(user);
+
+  // Kick off the geofence status check immediately on login/session
+  // restore, rather than waiting for whatever view happens to be active
+  // to trigger it - this is what previously left the status card stuck
+  // on "Checking Location..." until the user manually navigated.
+  checkGeofence();
 }
 
 // Attempt to restore an existing session from localStorage on page load.
@@ -814,9 +849,7 @@ async function handleClockIn() {
   if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
 
   try {
-    const pos = await new Promise((res, rej) =>
-      navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 })
-    );
+    const pos = await getGpsPosition(10000);
 
     // clock_in RPC now returns a single JSON object:
     //   { status: 'SUCCESS', distance_m: 24.89 }
@@ -915,9 +948,7 @@ async function handleClockOut() {
   if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Clocking Out...';
 
   try {
-    const pos = await new Promise((res, rej) =>
-      navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 })
-    );
+    const pos = await getGpsPosition(10000);
 
     const res = await callAPI("clockOut", {
       employeeId: id,
@@ -1081,7 +1112,7 @@ function stopLocationPinging() {
 }
 
 // ==================== GEOLOCATION & GEOFENCE WITH TIMEOUT ====================
-function checkGeofence() {
+async function checkGeofence() {
   const title = document.getElementById('geofenceTitle');
   const subtitle = document.getElementById('geofenceSubtitle');
   const icon = document.getElementById('geofenceIcon');
@@ -1092,34 +1123,33 @@ function checkGeofence() {
     return;
   }
 
-  // 5-second maximum timeout to prevent hanging indefinitely on "Checking Location..."
-  const options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
+  try {
+    // getGpsPosition() gives desktop/incognito browsers (which often lack
+    // a real GPS chip and fall back to slow Wi-Fi/IP based positioning) a
+    // fast high-accuracy attempt followed by a longer low-accuracy retry,
+    // instead of failing outright on a single 5s high-accuracy timeout.
+    const pos = await getGpsPosition(8000);
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      currentLatitude = pos.coords.latitude;
-      currentLongitude = pos.coords.longitude;
+    currentLatitude = pos.coords.latitude;
+    currentLongitude = pos.coords.longitude;
 
-      const dist = calculateDistance(currentLatitude, currentLongitude, HQ_LAT, HQ_LNG);
+    const dist = calculateDistance(currentLatitude, currentLongitude, HQ_LAT, HQ_LNG);
 
-      if (dist <= MAX_GEOFENCE_RADIUS_METERS) {
-        if (icon) icon.textContent = "✅";
-        if (title) title.textContent = "Inside Geofence";
-        if (subtitle) subtitle.textContent = `${Math.round(dist)}m from DDC Safdarjung HQ`;
-      } else {
-        if (icon) icon.textContent = "📍";
-        if (title) title.textContent = "Outside Geofence";
-        if (subtitle) subtitle.textContent = `${Math.round(dist)}m from DDC Safdarjung HQ`;
-      }
-    },
-    (err) => {
-      console.warn("Location prompt or signal timeout:", err);
+    if (dist <= MAX_GEOFENCE_RADIUS_METERS) {
+      if (icon) icon.textContent = "✅";
+      if (title) title.textContent = "Inside Geofence";
+      if (subtitle) subtitle.textContent = `${Math.round(dist)}m from DDC Safdarjung HQ`;
+    } else {
       if (icon) icon.textContent = "📍";
-      if (title) title.textContent = "GPS Location Pending";
-      if (subtitle) subtitle.textContent = "Please allow location access in your browser bar";
-    },
-    options
-  );
+      if (title) title.textContent = "Outside Geofence";
+      if (subtitle) subtitle.textContent = `${Math.round(dist)}m from DDC Safdarjung HQ`;
+    }
+  } catch (err) {
+    console.warn("Location prompt or signal timeout:", err);
+    if (icon) icon.textContent = "📍";
+    if (title) title.textContent = "GPS Location Pending";
+    if (subtitle) subtitle.textContent = "Please allow location access in your browser bar";
+  }
 }
 
 function previewFakePhoto(input) {
