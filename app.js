@@ -175,6 +175,7 @@ async function callAPI(action, payload = {}) {
           p_lng: payload.gps.lng
         });
         if (error) throw error;
+        // Await selfie upload to ensure DB update completes before proceeding
         if (payload.gps && payload.gps.selfieBase64) {
           await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockout');
         }
@@ -382,7 +383,7 @@ async function uploadSelfie(employeeId, base64, eventType = 'clockin') {
 
     if (uploadError) {
       console.error("Selfie upload error:", uploadError);
-      return;
+      return false;
     }
 
     // 2. Resolve the public URL for the uploaded file.
@@ -399,15 +400,23 @@ async function uploadSelfie(employeeId, base64, eventType = 'clockin') {
     // callAPI() above). attach_attendance_photo() must exist server-side
     // as a SECURITY DEFINER function for this call to succeed.
     if (publicUrl) {
-      const { error: attachError } = await sbClient.rpc('attach_attendance_photo', {
+      const { data: isAttached, error: rpcError } = await sbClient.rpc('attach_attendance_photo', {
         p_employee_id: employeeId,
         p_work_date: dateStr,
-        p_photo_url: publicUrl
+        p_photo_url: publicUrl,
+        p_event_type: eventType
       });
-      if (attachError) console.error("Failed to save photo_url:", attachError);
+
+      if (rpcError || !isAttached) {
+        console.warn(`Selfie uploaded to storage, but failed to attach to attendance row (${eventType}):`, rpcError || 'Row not found');
+        return false;
+      }
+      return true;
     }
+    return false;
   } catch (e) {
     console.error("Upload failed:", e);
+    return false;
   }
 }
 
