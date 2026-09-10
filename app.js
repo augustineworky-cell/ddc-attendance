@@ -721,7 +721,9 @@ async function handleClockIn() {
       gps: { lat: pos.coords.latitude, lng: pos.coords.longitude, selfieBase64: ATTENDANCE_SELFIE_BASE64 }
     });
 
-    if (res && res[0] && res[0][0] === 'SUCCESS') {
+    const statusCode = res && res[0] ? res[0][0] : null;
+
+    if (statusCode === 'SUCCESS') {
       ATTENDANCE_SELFIE_BASE64 = null;
       startLocationPinging(id);
 
@@ -733,8 +735,19 @@ async function handleClockIn() {
       showPunchSuccess(`Distance from HQ: ${Math.round(res[0][1])} meters`);
       updateHomeUI(true);
       renderPunchInSuccessCard();
+    } else if (statusCode === 'OUT_OF_RANGE') {
+      const distanceInfo = (res[0][1] !== undefined && res[0][1] !== null)
+        ? ` You are approximately ${Math.round(res[0][1])} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
+        : '';
+      alert(`You're outside the office geofence.${distanceInfo} Please move within range of DDC Safdarjung HQ before punching in.`);
+    } else if (statusCode === 'ALREADY_CLOCKED_OUT') {
+      alert("You have already completed your attendance for today (clocked in and out). You cannot clock in again.");
+    } else if (statusCode) {
+      // Any other status string the RPC returns - surfaced verbatim so
+      // nothing silently fails, but framed clearly as a server message.
+      alert(`Unable to clock in: ${statusCode}`);
     } else {
-      alert((res && res[0] && res[0][0]) || "Error clocking in.");
+      alert("Error clocking in. Please try again.");
     }
   } catch (e) {
     alert("Location permission required to clock in.");
@@ -788,7 +801,9 @@ async function handleClockOut() {
       gps: { lat: pos.coords.latitude, lng: pos.coords.longitude }
     });
 
-    if (res && res[0] && res[0][0] === 'SUCCESS') {
+    const statusCode = res && res[0] ? res[0][0] : null;
+
+    if (statusCode === 'SUCCESS') {
       stopLocationPinging();
       showPunchSuccess(`Clocked Out Successfully! Hours: ${res[0][2]}`);
       updateHomeUI(false);
@@ -802,8 +817,19 @@ async function handleClockOut() {
         punch_out_address: `${pos.coords.latitude}, ${pos.coords.longitude}`
       });
 
+    } else if (statusCode === 'OUT_OF_RANGE') {
+      const distanceInfo = (res[0][1] !== undefined && res[0][1] !== null)
+        ? ` You are approximately ${Math.round(res[0][1])} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
+        : '';
+      alert(`You're outside the office geofence.${distanceInfo} Please move within range of DDC Safdarjung HQ before punching out.`);
+    } else if (statusCode === 'NO_CLOCK_IN') {
+      alert("You haven't clocked in yet today. Please clock in before attempting to clock out.");
+    } else if (statusCode === 'ALREADY_CLOCKED_OUT') {
+      alert("You have already clocked out for today.");
+    } else if (statusCode) {
+      alert(`Unable to clock out: ${statusCode}`);
     } else {
-      alert((res && res[0] && res[0][0]) || "Error clocking out.");
+      alert("Error clocking out. Please try again.");
     }
   } catch (e) {
     alert("Location permission required to clock out.");
