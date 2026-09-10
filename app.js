@@ -290,10 +290,38 @@ async function uploadSelfie(employeeId, base64, eventType = 'clockin') {
     // Unique per punch event: timestamp + event type prevents same-day
     // clock-in/clock-out selfies from colliding on the same storage path.
     const fileName = `selfies/${employeeId}_${dateStr}_${eventType}_${Date.now()}.webp`;
-    const { error } = await sbClient.storage
+
+    // 1. Upload the file to Supabase Storage.
+    const { error: uploadError } = await sbClient.storage
       .from('attendance-media')
       .upload(fileName, blob, { upsert: true, contentType: 'image/webp' });
-    if (error) console.error("Selfie upload error:", error);
+
+    if (uploadError) {
+      console.error("Selfie upload error:", uploadError);
+      return;
+    }
+
+    // 2. Resolve the public URL for the uploaded file.
+    const { data: publicUrlData } = sbClient.storage
+      .from('attendance-media')
+      .getPublicUrl(fileName);
+    const publicUrl = publicUrlData ? publicUrlData.publicUrl : null;
+
+    // 3. Persist the URL via a SECURITY DEFINER RPC, NOT a direct
+    // .from('attendance').update() call. The attendance table has RLS
+    // enabled and direct table writes from the anon/authenticated client
+    // are intentionally blocked - every mutation to this table goes
+    // through a vetted RPC (see clock_in/clock_out/ping_location in
+    // callAPI() above). attach_attendance_photo() must exist server-side
+    // as a SECURITY DEFINER function for this call to succeed.
+    if (publicUrl) {
+      const { error: attachError } = await sbClient.rpc('attach_attendance_photo', {
+        p_employee_id: employeeId,
+        p_work_date: dateStr,
+        p_photo_url: publicUrl
+      });
+      if (attachError) console.error("Failed to save photo_url:", attachError);
+    }
   } catch (e) {
     console.error("Upload failed:", e);
   }
