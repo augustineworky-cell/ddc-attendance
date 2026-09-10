@@ -9,7 +9,7 @@ const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
 // DDC Safdarjung HQ Geofence Coordinates
 const OFFICE_LAT = 28.5633;
 const OFFICE_LNG = 77.1912;
-const OFFICE_RADIUS_M = 1000; // Expanded to 1000 meters for desktop testing
+const OFFICE_RADIUS_M = 150; // 150-meter coverage radius
 
 // Aliases used by geofence-checking helpers
 const HQ_LAT = OFFICE_LAT;
@@ -486,6 +486,11 @@ function applySessionAndRenderApp(user, persist) {
   // to trigger it - this is what previously left the status card stuck
   // on "Checking Location..." until the user manually navigated.
   checkGeofence();
+
+  // Sync the punch button state (Punch In vs Punch Out) against today's
+  // actual attendance row immediately on login/session restore, so a
+  // refreshed page or a re-login mid-shift doesn't show the wrong button.
+  checkTodayAttendanceStatus();
 }
 
 // Attempt to restore an existing session from localStorage on page load.
@@ -1254,20 +1259,64 @@ function initNavigation() {
   }
 }
 
+// ==========================================================================
+// PUNCH STATUS & UI SYNC HELPERS
+// ==========================================================================
+
+// Checks Supabase on login/refresh to see if the employee has already clocked in today
+async function checkTodayAttendanceStatus() {
+  if (!CURRENT_USER || !sbClient) return;
+  const empId = CURRENT_USER.employeeId || CURRENT_USER.employee_id;
+  const dateStr = getLocalDateString();
+
+  try {
+    const { data } = await sbClient
+      .from('attendance')
+      .select('clock_in_time, clock_out_time')
+      .eq('employee_id', empId)
+      .eq('work_date', dateStr)
+      .maybeSingle();
+
+    if (data && data.clock_in_time && !data.clock_out_time) {
+      // User is currently clocked in -> Show RED "Punch Out Now" button
+      updateHomeUI(true);
+    } else {
+      // User has not clocked in yet or already completed clock-out -> Show "Punch In Now"
+      updateHomeUI(false);
+    }
+  } catch (e) {
+    console.warn("Could not fetch today's punch status:", e);
+  }
+}
+
 function updateHomeUI(isClockedIn) {
-  const btn = document.getElementById('homeClockBtn');
+  // Target both possible button IDs present in index.html
+  const btn = document.getElementById('punchInBtn') || document.getElementById('homeClockBtn');
   const btnLabel = document.getElementById('homeClockBtnLabel');
   const timerChip = document.getElementById('timerChip');
 
   if (isClockedIn) {
-    if (btn) btn.onclick = handleClockOut;
-    if (btnLabel) btnLabel.innerText = "Punch Out Now";
-    if (btn) btn.className = "btn btn-danger btn-lg px-5";
+    if (btn) {
+      btn.onclick = handleClockOut;
+      btn.style.background = 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'; // Red button
+      btn.style.border = 'none';
+    }
+    if (btnLabel) {
+      btnLabel.innerText = "Punch Out Now";
+    } else if (btn) {
+      btn.innerText = "Punch Out Now";
+    }
     if (timerChip) timerChip.style.display = 'inline-block';
   } else {
-    if (btn) btn.onclick = handleClockIn;
-    if (btnLabel) btnLabel.innerText = "Punch In Now";
-    if (btn) btn.className = "btn btn-staffly-signin btn-lg px-5";
+    if (btn) {
+      btn.onclick = handlePunchInAnimated;
+      btn.style.background = ''; // Revert to default stylesheet theme
+    }
+    if (btnLabel) {
+      btnLabel.innerText = "Punch In Now";
+    } else if (btn) {
+      btn.innerText = "Punch In Now";
+    }
     if (timerChip) timerChip.style.display = 'none';
   }
 }
