@@ -805,7 +805,7 @@ function triggerCameraFlash() {
 // Drives the visible step-by-step animation (pulse -> flash -> bounce) around
 // the existing handleClockIn() flow, without altering its RPC logic.
 async function handlePunchInAnimated() {
-  const btn = document.getElementById('punchInBtn') || document.getElementById('homeClockBtn');
+  const btn = document.getElementById('punchInBtn');
   if (btn) btn.classList.add('btn-pulsing');
 
   // Camera flash timed to coincide with the selfie snapshot moment.
@@ -815,7 +815,9 @@ async function handlePunchInAnimated() {
     await handleClockIn();
   } finally {
     if (btn) btn.classList.remove('btn-pulsing');
-    const statusCard = document.getElementById('homeStatusCard');
+    // .geofence-status-card is the actual wrapper class in index.html -
+    // there's no separate #homeStatusCard ID to hang this off of.
+    const statusCard = document.querySelector('.geofence-status-card');
     if (statusCard) {
       statusCard.classList.add('success-bounce');
       setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
@@ -835,14 +837,13 @@ async function handleClockIn() {
     return;
   }
 
-  const btn = document.getElementById('homeClockBtn') || document.getElementById('punchInBtn');
+  const btn = document.getElementById('punchInBtn');
   if (!btn) return;
 
-  let btnLabel = document.getElementById('homeClockBtnLabel');
-  if (!btnLabel) {
-    btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i><span id="homeClockBtnLabel">Punch In Now</span>';
-    btnLabel = document.getElementById('homeClockBtnLabel');
-  }
+  // index.html ships the label as #punchBtnText inside #punchInBtn - no
+  // need to synthesize a #homeClockBtnLabel span that never exists in the
+  // markup (that legacy fallback was overwriting the button's real content).
+  const btnLabel = document.getElementById('punchBtnText');
 
   // Late-punch check: flagged purely on IST wall-clock time, independent
   // of whether the RPC call itself succeeds - the employee either was or
@@ -906,7 +907,7 @@ async function handleClockIn() {
     alert("Location permission required to clock in.");
   } finally {
     btn.classList.remove('loading');
-    if (btnLabel) btnLabel.innerHTML = 'Punch In Now';
+    if (btnLabel) btnLabel.textContent = 'Punch In Now';
   }
 }
 
@@ -944,7 +945,7 @@ async function handleClockOut() {
     if (!confirmedEarlyOut) return;
   }
 
-  const btn = document.getElementById('punchInBtn') || document.getElementById('homeClockBtn');
+  const btn = document.getElementById('punchInBtn');
   if (!btn) return;
 
   btn.classList.add('loading');
@@ -966,18 +967,9 @@ async function handleClockOut() {
     if (res.status === 'SUCCESS') {
       stopLocationPinging();
       showPunchSuccess(`Hours worked: ${res.hours_worked} hrs`, "Clocked Out Successfully!");
-
-      const titleEl = document.getElementById('geofenceTitle') || document.getElementById('homeStatusTitle');
-      const subtitleEl = document.getElementById('geofenceSubtitle') || document.getElementById('homeStatusSubtitle');
-      if (titleEl) {
-        titleEl.textContent = 'PUNCH OUT SUCCESSFUL!';
-        titleEl.style.color = '#dc2626';
-      }
-      if (subtitleEl) {
-        subtitleEl.textContent = `Clocked out at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${res.hours_worked} hrs worked)`;
-      }
-
-      updateHomeUI(false);
+      // renderPunchOutSuccessCard() sets the red PUNCH OUT SUCCESSFUL!
+      // card state and calls updateHomeUI(false) itself.
+      renderPunchOutSuccessCard(res.hours_worked);
 
       // --- GOOGLE SHEETS SYNC (PUNCH OUT) ---
       syncToGoogleSheets({
@@ -1039,10 +1031,10 @@ function showPunchSuccess(distanceText, titleText = "Clocked In Successfully!") 
 
 // Small helper used by handleClockIn()/handleClockOut() to update the main
 // punch button's label text without clobbering the button itself - targets
-// #homeClockBtnLabel when present, otherwise falls back to the button's own
-// text content (covers markup where the label isn't a separate span).
+// #punchBtnText (the actual span index.html ships inside #punchInBtn),
+// falling back to the button's own text content if that span is absent.
 function setButtonLabel(btn, text) {
-  const btnLabel = document.getElementById('homeClockBtnLabel');
+  const btnLabel = document.getElementById('punchBtnText');
   if (btnLabel) {
     btnLabel.innerText = text;
   } else if (btn) {
@@ -1062,14 +1054,12 @@ function renderPunchInSuccessCard(isLate = false) {
     presentCountEl.innerText = current + 1;
   }
 
-  // Update card text using both possible element IDs. index.html actually
-  // ships #geofenceIcon/#geofenceTitle/#geofenceSubtitle inside
-  // .geofence-status-card - the #homeStatus* IDs never existed in the
-  // markup, which is why this card was previously stuck on
-  // "Checking Location..." after a successful punch-in.
-  const titleEl = document.getElementById('geofenceTitle') || document.getElementById('homeStatusTitle');
-  const subtitleEl = document.getElementById('geofenceSubtitle') || document.getElementById('homeStatusSubtitle');
-  const iconEl = document.getElementById('geofenceIcon') || document.getElementById('homeStatusIcon');
+  // Canonical IDs only - index.html ships #geofenceIcon/#geofenceTitle/
+  // #geofenceSubtitle inside .geofence-status-card. The old #homeStatus*
+  // fallbacks never matched anything in the markup and are removed.
+  const titleEl = document.getElementById('geofenceTitle');
+  const subtitleEl = document.getElementById('geofenceSubtitle');
+  const iconEl = document.getElementById('geofenceIcon');
 
   if (titleEl) {
     titleEl.textContent = 'PUNCH IN SUCCESSFUL!';
@@ -1085,9 +1075,8 @@ function renderPunchInSuccessCard(isLate = false) {
   }
   if (iconEl) iconEl.textContent = '✅';
 
-  // Bounce the surrounding card if we can find it, since there's no
-  // #homeStatusCard/#geofenceCard ID in the markup to hang the animation
-  // off of directly - .geofence-status-card is the actual wrapper class.
+  // Bounce the surrounding card - .geofence-status-card is the actual
+  // wrapper class, there's no separate #homeStatusCard/#geofenceCard ID.
   const statusCard = titleEl ? titleEl.closest('.geofence-status-card') : null;
   if (statusCard) {
     statusCard.style.background = '#f0fdf4';
@@ -1096,11 +1085,10 @@ function renderPunchInSuccessCard(isLate = false) {
     setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
   }
 
-  // Transform the main clock button. index.html only ships #punchInBtn
-  // (no #homeClockBtn), so fall back the same way the rest of the file
-  // already does in handleClockIn()/updateHomeUI().
-  const btn = document.getElementById('homeClockBtn') || document.getElementById('punchInBtn');
-  const btnLabel = document.getElementById('homeClockBtnLabel');
+  // Transform the main clock button - #punchInBtn is the only button ID
+  // that exists in index.html.
+  const btn = document.getElementById('punchInBtn');
+  const btnLabel = document.getElementById('punchBtnText');
   if (btn) {
     btn.style.background = 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)';
     btn.style.border = 'none';
@@ -1116,6 +1104,44 @@ function renderPunchInSuccessCard(isLate = false) {
       punch_in_time: new Date().toISOString()
     });
   }
+}
+
+// Red "Punch Out Successful" card + button treatment - the clock-out
+// counterpart to renderPunchInSuccessCard(). Clears every green/clocked-in
+// visual state left over from punch-in so the UI can never show
+// "PUNCH IN SUCCESSFUL!" or the green button style after a punch-out.
+function renderPunchOutSuccessCard(hoursWorked) {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const titleEl = document.getElementById('geofenceTitle');
+  const subtitleEl = document.getElementById('geofenceSubtitle');
+  const iconEl = document.getElementById('geofenceIcon');
+
+  if (titleEl) {
+    titleEl.textContent = 'PUNCH OUT SUCCESSFUL!';
+    titleEl.style.color = '#dc2626';
+  }
+  if (subtitleEl) {
+    subtitleEl.textContent = `Clocked out at ${timeStr} today (${hoursWorked} hrs worked)`;
+    subtitleEl.style.color = '';
+  }
+  if (iconEl) iconEl.textContent = '🏁';
+
+  const statusCard = titleEl ? titleEl.closest('.geofence-status-card') : null;
+  if (statusCard) {
+    // Red card treatment, replacing any green background left by
+    // renderPunchInSuccessCard() earlier in the same shift.
+    statusCard.style.background = '#fef2f2';
+    statusCard.style.borderColor = '#fecaca';
+    statusCard.classList.add('success-bounce');
+    setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
+  }
+
+  // Shift is now fully complete for today (clock_in_time AND clock_out_time
+  // both exist) - disable the button rather than reverting to a re-clickable
+  // "Punch In Now" state, so the employee can't punch in again same day.
+  updateHomeUI(false, true);
 }
 
 // ==========================================================================
@@ -1292,7 +1318,11 @@ function initNavigation() {
 // PUNCH STATUS & UI SYNC HELPERS
 // ==========================================================================
 
-// Checks Supabase on login/refresh to see if the employee has already clocked in today
+// Checks Supabase on login/refresh to see if the employee has already clocked
+// in today, and resolves one of three states:
+//   A) Not clocked in yet             -> plain "Punch In Now" button
+//   B) Active shift (in, no out)      -> red "Punch Out Now" button
+//   C) Shift completed (in AND out)   -> red completed card, button disabled
 async function checkTodayAttendanceStatus() {
   if (!CURRENT_USER || !sbClient) return;
   const empId = CURRENT_USER.employeeId || CURRENT_USER.employee_id;
@@ -1304,11 +1334,18 @@ async function checkTodayAttendanceStatus() {
 
     if (error) throw error;
 
-    if (data && data.length > 0 && data[0].clock_in_time && !data[0].clock_out_time) {
-      // User is currently clocked in -> Show RED "Punch Out Now" button
+    const row = data && data.length > 0 ? data[0] : null;
+
+    if (row && row.clock_in_time && row.clock_out_time) {
+      // State C: shift already completed today - render the same red
+      // "PUNCH OUT SUCCESSFUL!" card as a live clock-out and disable the
+      // button, so a page refresh mid-day can't show a stale green state.
+      renderPunchOutSuccessCard(row.hours_worked ?? '--');
+    } else if (row && row.clock_in_time && !row.clock_out_time) {
+      // State B: currently clocked in -> Show RED "Punch Out Now" button
       updateHomeUI(true);
     } else {
-      // User has not clocked in yet or already clocked out -> Show "Punch In Now"
+      // State A: not clocked in yet -> Show "Punch In Now"
       updateHomeUI(false);
     }
   } catch (e) {
@@ -1317,11 +1354,37 @@ async function checkTodayAttendanceStatus() {
   }
 }
 
-function updateHomeUI(isClockedIn) {
-  // Target both possible button IDs present in index.html
-  const btn = document.getElementById('punchInBtn') || document.getElementById('homeClockBtn');
-  const btnLabel = document.getElementById('homeClockBtnLabel');
+function updateHomeUI(isClockedIn, isCompleted = false) {
+  // #punchInBtn / #punchBtnText are the only button IDs index.html ships.
+  const btn = document.getElementById('punchInBtn');
+  const btnLabel = document.getElementById('punchBtnText');
   const timerChip = document.getElementById('timerChip');
+
+  if (isCompleted) {
+    // State C: clock_in_time AND clock_out_time both exist for today -
+    // lock the button so the employee can't punch in again same day.
+    if (btn) {
+      btn.onclick = null;
+      btn.disabled = true;
+      btn.style.background = 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)';
+      btn.style.border = 'none';
+      btn.style.cursor = 'not-allowed';
+      btn.style.opacity = '0.75';
+    }
+    if (btnLabel) {
+      btnLabel.innerText = 'Shift Completed Today';
+    } else if (btn) {
+      btn.innerText = 'Shift Completed Today';
+    }
+    if (timerChip) timerChip.style.display = 'none';
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.style.cursor = '';
+    btn.style.opacity = '';
+  }
 
   if (isClockedIn) {
     if (btn) {
@@ -1339,6 +1402,7 @@ function updateHomeUI(isClockedIn) {
     if (btn) {
       btn.onclick = handlePunchInAnimated;
       btn.style.background = ''; // Revert to default stylesheet theme
+      btn.style.border = ''; // Clear any red/green border left by success cards
     }
     if (btnLabel) {
       btnLabel.innerText = "Punch In Now";
@@ -1984,9 +2048,10 @@ function initApp() {
   if (captureBtn) captureBtn.addEventListener('click', handleCaptureSelfie);
 
   // Punch-in button: wire the animated pulse -> flash -> bounce sequence.
-  // Falls back to the legacy #homeClockBtn if #punchInBtn isn't present, and
-  // never overrides the onclick handler updateHomeUI() assigns after a
-  // clock-out (which switches the button back to the plain handleClockIn).
+  // #punchInBtn is the only button ID in index.html. This initial listener
+  // only fires while the button is still in its default "Punch In Now"
+  // state - updateHomeUI() reassigns .onclick directly once clocked in,
+  // out, or shift-completed, so it always wins over this listener.
   const punchInBtn = document.getElementById('punchInBtn');
   if (punchInBtn) punchInBtn.addEventListener('click', handlePunchInAnimated);
 
