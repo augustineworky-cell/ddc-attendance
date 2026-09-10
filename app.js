@@ -563,6 +563,29 @@ function injectUiEnhancementStyles() {
       100% { transform: scale(1); opacity: 1; }
     }
     .success-bounce { animation: successBounceIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+    .punch-success-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 9999; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .punch-success-overlay.show {
+      opacity: 1; pointer-events: auto;
+    }
+    .success-checkmark {
+      font-size: 3rem; color: #22c55e;
+      background: #f0fdf4; border-radius: 50%;
+      width: 90px; height: 90px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .success-text {
+      font-size: 1.5rem; font-weight: bold; color: #ffffff;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -888,27 +911,37 @@ function renderPunchInSuccessCard() {
     presentCountEl.innerText = current + 1;
   }
 
-  // Update top status card styling
-  const statusCard = document.getElementById('homeStatusCard');
-  const statusIcon = document.getElementById('homeStatusIcon');
-  const statusTitle = document.getElementById('homeStatusTitle');
-  const statusSubtitle = document.getElementById('homeStatusSubtitle');
+  // Update card text using both possible element IDs. index.html actually
+  // ships #geofenceIcon/#geofenceTitle/#geofenceSubtitle inside
+  // .geofence-status-card - the #homeStatus* IDs never existed in the
+  // markup, which is why this card was previously stuck on
+  // "Checking Location..." after a successful punch-in.
+  const titleEl = document.getElementById('geofenceTitle') || document.getElementById('homeStatusTitle');
+  const subtitleEl = document.getElementById('geofenceSubtitle') || document.getElementById('homeStatusSubtitle');
+  const iconEl = document.getElementById('geofenceIcon') || document.getElementById('homeStatusIcon');
 
+  if (titleEl) {
+    titleEl.textContent = 'PUNCH IN SUCCESSFUL!';
+    titleEl.style.color = '#15803d';
+  }
+  if (subtitleEl) subtitleEl.textContent = `Clocked in at ${timeStr} today`;
+  if (iconEl) iconEl.textContent = '✅';
+
+  // Bounce the surrounding card if we can find it, since there's no
+  // #homeStatusCard/#geofenceCard ID in the markup to hang the animation
+  // off of directly - .geofence-status-card is the actual wrapper class.
+  const statusCard = titleEl ? titleEl.closest('.geofence-status-card') : null;
   if (statusCard) {
     statusCard.style.background = '#f0fdf4';
     statusCard.style.borderColor = '#bbf7d0';
     statusCard.classList.add('success-bounce');
     setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
   }
-  if (statusIcon) statusIcon.textContent = '🎉';
-  if (statusTitle) {
-    statusTitle.textContent = 'PUNCH IN SUCCESSFUL!';
-    statusTitle.style.color = '#15803d';
-  }
-  if (statusSubtitle) statusSubtitle.textContent = `Clocked in at ${timeStr} today`;
 
-  // Transform the main clock button
-  const btn = document.getElementById('homeClockBtn');
+  // Transform the main clock button. index.html only ships #punchInBtn
+  // (no #homeClockBtn), so fall back the same way the rest of the file
+  // already does in handleClockIn()/updateHomeUI().
+  const btn = document.getElementById('homeClockBtn') || document.getElementById('punchInBtn');
   const btnLabel = document.getElementById('homeClockBtnLabel');
   if (btn) {
     btn.style.background = 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)';
