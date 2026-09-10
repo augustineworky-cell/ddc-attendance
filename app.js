@@ -175,6 +175,9 @@ async function callAPI(action, payload = {}) {
           p_lng: payload.gps.lng
         });
         if (error) throw error;
+        if (payload.gps && payload.gps.selfieBase64) {
+          await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockout');
+        }
         return data;
       }
       case "pingLocation": {
@@ -870,6 +873,7 @@ async function handleClockIn() {
 
   if (!ATTENDANCE_SELFIE_BASE64) {
     alert("Please capture verification selfie first.");
+    highlightSelfieCaptureCard();
     return;
   }
 
@@ -974,6 +978,12 @@ async function handleClockOut() {
   const id = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : "";
   if (!id) return;
 
+  if (!ATTENDANCE_SELFIE_BASE64) {
+    alert("Please capture verification selfie before clocking out.");
+    highlightSelfieCaptureCard();
+    return;
+  }
+
   // Early-departure guard: shift runs until SHIFT_END_TIME (07:30 PM IST).
   // Ask for confirmation before punching out ahead of that time; bail out
   // entirely on cancel, before any button/loading state is touched.
@@ -993,7 +1003,11 @@ async function handleClockOut() {
 
     const res = await callAPI("clockOut", {
       employeeId: id,
-      gps: { lat: pos.coords.latitude, lng: pos.coords.longitude }
+      gps: {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        selfieBase64: ATTENDANCE_SELFIE_BASE64
+      }
     });
 
     if (!res) {
@@ -1002,7 +1016,12 @@ async function handleClockOut() {
     }
 
     if (res.status === 'SUCCESS') {
+      ATTENDANCE_SELFIE_BASE64 = null;
       stopLocationPinging();
+
+      const selfiePreview = document.getElementById('selfiePreview');
+      if (selfiePreview) selfiePreview.style.display = 'none';
+
       showPunchSuccess(`Hours worked: ${res.hours_worked} hrs`, "Clocked Out Successfully!");
       // renderPunchOutSuccessCard() sets the red PUNCH OUT SUCCESSFUL!
       // card state and calls updateHomeUI(false) itself.
@@ -1078,6 +1097,20 @@ function setButtonLabel(btn, text) {
   } else if (btn) {
     btn.innerText = text;
   }
+}
+
+// Draws attention back to the selfie-capture card when handleClockIn() or
+// handleClockOut() is blocked because ATTENDANCE_SELFIE_BASE64 is empty -
+// scrolls it into view and briefly reuses the existing .pulse-glow
+// keyframe animation already defined in styles.css, so no new CSS is
+// required.
+function highlightSelfieCaptureCard() {
+  const card = document.querySelector('.camera-verification-card');
+  if (!card) return;
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.add('pulse-glow');
+  setTimeout(() => card.classList.remove('pulse-glow'), 2200);
 }
 
 // ==========================================================================
