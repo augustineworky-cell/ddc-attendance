@@ -718,14 +718,22 @@ async function handleClockIn() {
       navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 })
     );
 
-    const res = await callAPI("clockIn", {
+    // clock_in RPC now returns a single JSON object:
+    //   { status: 'SUCCESS', distance_m: 24.89 }
+    //   { status: 'OUT_OF_RANGE', distance_m: 150.5 }
+    //   { status: 'ERROR', message: '...' }
+    // (previously an array-of-rows shape like res[0][0]/res[0][1]).
+    const data = await callAPI("clockIn", {
       employeeId: id,
       gps: { lat: pos.coords.latitude, lng: pos.coords.longitude, selfieBase64: ATTENDANCE_SELFIE_BASE64 }
     });
 
-    const statusCode = res && res[0] ? res[0][0] : null;
+    if (!data) {
+      alert("Error clocking in. Please try again.");
+      return;
+    }
 
-    if (statusCode === 'SUCCESS') {
+    if (data.status === 'SUCCESS') {
       ATTENDANCE_SELFIE_BASE64 = null;
       startLocationPinging(id);
 
@@ -734,20 +742,24 @@ async function handleClockIn() {
       if (selfiePreview) selfiePreview.style.display = 'none';
 
       // Show Full-Screen Overlay Animation
-      showPunchSuccess(`Distance from HQ: ${Math.round(res[0][1])} meters`);
+      showPunchSuccess(`Distance from HQ: ${Math.round(data.distance_m)} meters`);
       updateHomeUI(true);
       renderPunchInSuccessCard();
-    } else if (statusCode === 'OUT_OF_RANGE') {
-      const distanceInfo = (res[0][1] !== undefined && res[0][1] !== null)
-        ? ` You are approximately ${Math.round(res[0][1])} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
+    } else if (data.status === 'OUT_OF_RANGE') {
+      const distanceInfo = (data.distance_m !== undefined && data.distance_m !== null)
+        ? ` You are approximately ${Math.round(data.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
         : '';
       alert(`You're outside the office geofence.${distanceInfo} Please move within range of DDC Safdarjung HQ before punching in.`);
-    } else if (statusCode === 'ALREADY_CLOCKED_OUT') {
+    } else if (data.status === 'ERROR') {
+      alert(data.message || "Error clocking in. Please try again.");
+    } else if (data.status === 'ALREADY_CLOCKED_OUT') {
+      // Retained in case this status is ever reintroduced server-side;
+      // not part of the current documented response set.
       alert("You have already completed your attendance for today (clocked in and out). You cannot clock in again.");
-    } else if (statusCode) {
+    } else if (data.status) {
       // Any other status string the RPC returns - surfaced verbatim so
       // nothing silently fails, but framed clearly as a server message.
-      alert(`Unable to clock in: ${statusCode}`);
+      alert(`Unable to clock in: ${data.status}`);
     } else {
       alert("Error clocking in. Please try again.");
     }
