@@ -1421,32 +1421,25 @@ function initNavigation() {
 //   B) Active shift (in, no out)      -> red "Punch Out Now" button
 //   C) Shift completed (in AND out)   -> red completed card, button disabled
 async function checkTodayAttendanceStatus() {
-  if (!CURRENT_USER || !sbClient) return;
+  if (!CURRENT_USER) return;
   const empId = CURRENT_USER.employeeId || CURRENT_USER.employee_id;
 
   try {
-    const { data, error } = await sbClient.rpc('get_today_attendance', {
-      p_employee_id: empId
-    });
-
-    if (error) throw error;
-
+    const data = await callAPI("getTodayAttendance", { employeeId: empId });
     const row = data && data.length > 0 ? data[0] : null;
 
     if (row && row.clock_in_time && row.clock_out_time) {
-      // State C: shift already completed today - render the same red
-      // "PUNCH OUT SUCCESSFUL!" card as a live clock-out and disable the
-      // button, so a page refresh mid-day can't show a stale green state.
+      // State C: Shift completed today
       renderPunchOutSuccessCard(row.hours_worked ?? '--');
     } else if (row && row.clock_in_time && !row.clock_out_time) {
-      // State B: currently clocked in -> Show RED "Punch Out Now" button
+      // State B: Currently clocked in
       updateHomeUI(true);
     } else {
-      // State A: not clocked in yet -> Show "Punch In Now"
+      // State A: Not clocked in yet
       updateHomeUI(false);
     }
   } catch (e) {
-    console.warn("Could not fetch today's punch status via RPC:", e);
+    console.warn("Could not fetch today's punch status via callAPI:", e);
     updateHomeUI(false);
   }
 }
