@@ -36,7 +36,7 @@ const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4
 let CURRENT_USER = null;
 let ATTENDANCE_SELFIE_BASE64 = null;
 let locationPingTimer = null;
-let autoLogoutTimer = null;
+let autoLogoutInterval = null;
 let liveMapInstance = null;
 let liveMapMarkers = {};
 let liveMapInterval = null;
@@ -497,7 +497,7 @@ function applySessionAndRenderApp(user, persist) {
 // Attempt to restore an existing session from localStorage on page load.
 // Runs once, from the single DOMContentLoaded initializer at the bottom of
 // this file - no other init path should call this.
-function restoreSessionFromStorage() {
+async function restoreSessionFromStorage() {
   try {
     const stored = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!stored) {
@@ -506,6 +506,21 @@ function restoreSessionFromStorage() {
     }
     const user = JSON.parse(stored);
     if (user && (user.employeeId || user.employee_id)) {
+      const empId = user.employeeId || user.employee_id;
+
+      // Check if session belongs to a completed shift
+      const { data: attData } = await sbClient.rpc('get_today_attendance', { p_employee_id: empId });
+      if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        applySessionUI(false);
+        const errorDiv = document.getElementById('loginError');
+        if (errorDiv) {
+          errorDiv.textContent = 'Your shift for today is completed. Login is restricted until tomorrow.';
+          errorDiv.style.display = 'block';
+        }
+        return;
+      }
+
       applySessionAndRenderApp(user, false);
     } else {
       localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -557,6 +572,18 @@ async function handleLogin(e) {
     }
 
     const user = data[0];
+    const empId = user.employeeId || user.employee_id;
+
+    // SHIFT COMPLETION CHECK: Block login if both clock_in and clock_out exist for today
+    const { data: attData } = await sbClient.rpc('get_today_attendance', { p_employee_id: empId });
+    if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
+      if (errorDiv) {
+        errorDiv.textContent = 'Your shift for today is completed. Login is restricted until tomorrow.';
+        errorDiv.style.display = 'block';
+      }
+      return; // Block login access
+    }
+
     applySessionAndRenderApp(user, true);
   } catch (err) {
     console.error("Login error:", err);
@@ -1050,60 +1077,59 @@ function setButtonLabel(btn, text) {
 // AUTO-LOGOUT COUNTDOWN (fires after a successful Punch In / Punch Out)
 // ==========================================================================
 function startAutoLogoutTimer(seconds = 10) {
-  stopAutoLogoutTimer();
+  stopAutoLogoutTimer(); // Clear any existing timer instance
 
-  let remaining = seconds;
-
+  let timeLeft = seconds;
   let banner = document.getElementById('autoLogoutBanner');
+
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'autoLogoutBanner';
-    banner.style.position = 'fixed';
-    banner.style.bottom = '24px';
-    banner.style.left = '50%';
-    banner.style.transform = 'translateX(-50%)';
-    banner.style.background = '#1e293b';
-    banner.style.color = '#ffffff';
-    banner.style.padding = '12px 20px';
-    banner.style.borderRadius = '10px';
-    banner.style.boxShadow = '0 4px 14px rgba(0,0,0,0.35)';
-    banner.style.display = 'flex';
-    banner.style.alignItems = 'center';
-    banner.style.gap = '14px';
-    banner.style.zIndex = '10000';
-    banner.style.fontSize = '0.9rem';
-    banner.innerHTML = `
-      <span id="autoLogoutBannerText"></span>
-      <button id="autoLogoutStayBtn" class="btn btn-sm btn-outline-light">Stay Logged In</button>
+    banner.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 50px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      z-index: 10000;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid #334155;
     `;
     document.body.appendChild(banner);
-    document.getElementById('autoLogoutStayBtn').onclick = stopAutoLogoutTimer;
   }
 
-  const textEl = document.getElementById('autoLogoutBannerText');
+  // Pure countdown display — "Stay Logged In" button removed
+  banner.innerHTML = `
+    <span><i class="fas fa-clock text-warning me-2"></i> Logging out automatically in <b id="logoutTimerCount" class="text-warning">${timeLeft}</b>s...</span>
+  `;
   banner.style.display = 'flex';
-  if (textEl) textEl.textContent = `Auto logging out in ${remaining} seconds`;
 
-  autoLogoutTimer = setInterval(() => {
-    remaining -= 1;
-    if (remaining <= 0) {
-      clearInterval(autoLogoutTimer);
-      autoLogoutTimer = null;
-      if (banner) banner.style.display = 'none';
+  autoLogoutInterval = setInterval(() => {
+    timeLeft--;
+    const countEl = document.getElementById('logoutTimerCount');
+    if (countEl) countEl.innerText = timeLeft;
+
+    if (timeLeft <= 0) {
+      stopAutoLogoutTimer();
       handleLogout();
-      return;
     }
-    if (textEl) textEl.textContent = `Auto logging out in ${remaining} seconds`;
   }, 1000);
 }
 
 function stopAutoLogoutTimer() {
-  if (autoLogoutTimer) {
-    clearInterval(autoLogoutTimer);
-    autoLogoutTimer = null;
+  if (autoLogoutInterval) {
+    clearInterval(autoLogoutInterval);
+    autoLogoutInterval = null;
   }
   const banner = document.getElementById('autoLogoutBanner');
-  if (banner) banner.style.display = 'none';
+  if (banner) banner.remove();
 }
 
 // Green "Punch In Successful" card + metric + button treatment described in spec
