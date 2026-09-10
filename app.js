@@ -2137,13 +2137,12 @@ function initApp() {
   const captureBtn = document.getElementById('captureBtn');
   if (captureBtn) captureBtn.addEventListener('click', handleCaptureSelfie);
 
-  // Punch-in button: wire the animated pulse -> flash -> bounce sequence.
-  // #punchInBtn is the only button ID in index.html. This initial listener
-  // only fires while the button is still in its default "Punch In Now"
-  // state - updateHomeUI() reassigns .onclick directly once clocked in,
-  // out, or shift-completed, so it always wins over this listener.
-  const punchInBtn = document.getElementById('punchInBtn');
-  if (punchInBtn) punchInBtn.addEventListener('click', handlePunchInAnimated);
+  // Punch-in button: no addEventListener here. updateHomeUI() is the
+  // single source of truth for the click handler via btn.onclick, and it
+  // always runs (through checkTodayAttendanceStatus()) right after login/
+  // session restore. A stacked addEventListener + onclick previously
+  // caused BOTH handlePunchInAnimated() and the onclick handler (e.g.
+  // handleClockOut) to fire on a single click.
 
   // Employee autocomplete on login screen
   initSuggestions();
