@@ -16,6 +16,13 @@ const HQ_LAT = OFFICE_LAT;
 const HQ_LNG = OFFICE_LNG;
 const MAX_GEOFENCE_RADIUS_METERS = OFFICE_RADIUS_M;
 
+// Official shift timing (IST) - DDC Safdarjung HQ
+const SHIFT_START_TIME = "11:00 AM";
+const SHIFT_END_TIME = "07:30 PM";
+const SHIFT_LATE_GRACE_MINUTES = 15;               // late after 11:15 AM IST
+const SHIFT_LATE_CUTOFF_MINUTES = 11 * 60 + 15;    // 11:15 AM in minutes-since-midnight
+const SHIFT_END_MINUTES = 19 * 60 + 30;            // 07:30 PM in minutes-since-midnight
+
 // Single source of truth for the localStorage session key. Every part of
 // the app (login, logout, session restore) reads/writes through this key
 // only - this is what previously caused the auto-logout loop, since older
@@ -46,6 +53,43 @@ function getLocalDateString(d = new Date()) {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// Utility: Minutes-since-midnight in IST, independent of the device's own
+// local timezone (a phone set to a different timezone must still be judged
+// against DDC Safdarjung HQ's local shift clock, not its own).
+function getISTMinutesNow() {
+  const istString = new Date().toLocaleString('en-US', {
+    timeZone: 'Asia/Kolkata',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  const [hh, mm] = istString.split(':').map(Number);
+  return hh * 60 + mm;
+}
+
+// ==========================================================================
+// SHIFT GUIDANCE BADGE
+// ==========================================================================
+// Shows the official shift window as subtext under the geofence status
+// card. Created dynamically since index.html doesn't ship a dedicated
+// element for it - safe to call repeatedly, it reuses the same node
+// rather than duplicating it on every call.
+function renderShiftGuidanceBadge() {
+  const geofenceCard = document.querySelector('.geofence-status-card');
+  if (!geofenceCard) return;
+
+  let badge = document.getElementById('shiftGuidanceBadge');
+  if (!badge) {
+    badge = document.createElement('p');
+    badge.id = 'shiftGuidanceBadge';
+    badge.className = 'status-subheading';
+    badge.style.marginTop = '4px';
+    badge.style.opacity = '0.8';
+    geofenceCard.appendChild(badge);
+  }
+  badge.textContent = `Official Shift: ${SHIFT_START_TIME} - ${SHIFT_END_TIME} IST`;
 }
 
 // ==========================================================================
@@ -760,6 +804,11 @@ async function handleClockIn() {
     btnLabel = document.getElementById('homeClockBtnLabel');
   }
 
+  // Late-punch check: flagged purely on IST wall-clock time, independent
+  // of whether the RPC call itself succeeds - the employee either was or
+  // wasn't late for the 11:00 AM shift start regardless of server response.
+  const isLatePunch = getISTMinutesNow() > SHIFT_LATE_CUTOFF_MINUTES;
+
   // UI Loading State
   btn.classList.add('loading');
   if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
@@ -793,9 +842,10 @@ async function handleClockIn() {
       if (selfiePreview) selfiePreview.style.display = 'none';
 
       // Show Full-Screen Overlay Animation
-      showPunchSuccess(`Distance from HQ: ${Math.round(data.distance_m)} meters`);
+      const lateSuffix = isLatePunch ? ' • (Late Punch)' : '';
+      showPunchSuccess(`Distance from HQ: ${Math.round(data.distance_m)} meters${lateSuffix}`);
       updateHomeUI(true);
-      renderPunchInSuccessCard();
+      renderPunchInSuccessCard(isLatePunch);
     } else if (data.status === 'OUT_OF_RANGE') {
       const distanceInfo = (data.distance_m !== undefined && data.distance_m !== null)
         ? ` You are approximately ${Math.round(data.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
@@ -847,6 +897,14 @@ async function handlePunchIn() {
 async function handleClockOut() {
   const id = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : "";
   if (!id) return;
+
+  // Early-departure guard: shift runs until SHIFT_END_TIME (07:30 PM IST).
+  // Ask for confirmation before punching out ahead of that time; bail out
+  // entirely on cancel, before any button/loading state is touched.
+  if (getISTMinutesNow() < SHIFT_END_MINUTES) {
+    const confirmedEarlyOut = confirm(`Your shift ends at ${SHIFT_END_TIME}. Are you sure you want to clock out early?`);
+    if (!confirmedEarlyOut) return;
+  }
 
   const btn = document.getElementById('homeClockBtn') || document.getElementById('punchInBtn');
   if (!btn) return;
@@ -928,7 +986,7 @@ function showPunchSuccess(distanceText) {
 }
 
 // Green "Punch In Successful" card + metric + button treatment described in spec
-function renderPunchInSuccessCard() {
+function renderPunchInSuccessCard(isLate = false) {
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -952,7 +1010,14 @@ function renderPunchInSuccessCard() {
     titleEl.textContent = 'PUNCH IN SUCCESSFUL!';
     titleEl.style.color = '#15803d';
   }
-  if (subtitleEl) subtitleEl.textContent = `Clocked in at ${timeStr} today`;
+  if (subtitleEl) {
+    // Subtle late-punch flag: same layout, just an appended note and a
+    // warm amber tint instead of the default muted gray.
+    subtitleEl.textContent = isLate
+      ? `Clocked in at ${timeStr} today (Late Punch)`
+      : `Clocked in at ${timeStr} today`;
+    subtitleEl.style.color = isLate ? '#b45309' : '';
+  }
   if (iconEl) iconEl.textContent = '✅';
 
   // Bounce the surrounding card if we can find it, since there's no
@@ -1823,6 +1888,9 @@ function initApp() {
 
   // Sidebar / mobile drawer navigation
   initNavigation();
+
+  // Official shift-timing subtext under the geofence card
+  renderShiftGuidanceBadge();
 
   // Restore a previously active session (or show the login screen) - the
   // one and only place session state is read on page load.
