@@ -90,7 +90,7 @@ async function callAPI(action, payload = {}) {
         });
         if (error) throw error;
         if (payload.gps.selfieBase64) {
-          await uploadSelfie(payload.employeeId, payload.gps.selfieBase64);
+          await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockin');
         }
         return data;
       }
@@ -283,14 +283,16 @@ function base64ToBlob(base64, mimeType = 'image/webp') {
   return new Blob([byteArray], { type: mimeType });
 }
 
-async function uploadSelfie(employeeId, base64) {
+async function uploadSelfie(employeeId, base64, eventType = 'clockin') {
   try {
     const blob = base64ToBlob(base64);
     const dateStr = getLocalDateString();
-    const filePath = `selfies/${employeeId}_${dateStr}.webp`;
+    // Unique per punch event: timestamp + event type prevents same-day
+    // clock-in/clock-out selfies from colliding on the same storage path.
+    const fileName = `selfies/${employeeId}_${dateStr}_${eventType}_${Date.now()}.webp`;
     const { error } = await sbClient.storage
       .from('attendance-media')
-      .upload(filePath, blob, { upsert: true, contentType: 'image/webp' });
+      .upload(fileName, blob, { upsert: true, contentType: 'image/webp' });
     if (error) console.error("Selfie upload error:", error);
   } catch (e) {
     console.error("Upload failed:", e);
