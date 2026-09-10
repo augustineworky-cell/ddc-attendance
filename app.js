@@ -944,13 +944,11 @@ async function handleClockOut() {
     if (!confirmedEarlyOut) return;
   }
 
-  const btn = document.getElementById('homeClockBtn') || document.getElementById('punchInBtn');
+  const btn = document.getElementById('punchInBtn') || document.getElementById('homeClockBtn');
   if (!btn) return;
 
-  let btnLabel = document.getElementById('homeClockBtnLabel');
-
   btn.classList.add('loading');
-  if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Clocking Out...';
+  setButtonLabel(btn, "Clocking Out...");
 
   try {
     const pos = await getGpsPosition(10000);
@@ -960,11 +958,25 @@ async function handleClockOut() {
       gps: { lat: pos.coords.latitude, lng: pos.coords.longitude }
     });
 
-    const statusCode = res && res[0] ? res[0][0] : null;
+    if (!res) {
+      alert("Error clocking out. Please try again.");
+      return;
+    }
 
-    if (statusCode === 'SUCCESS') {
+    if (res.status === 'SUCCESS') {
       stopLocationPinging();
-      showPunchSuccess(`Clocked Out Successfully! Hours: ${res[0][2]}`);
+      showPunchSuccess(`Hours worked: ${res.hours_worked} hrs`, "Clocked Out Successfully!");
+
+      const titleEl = document.getElementById('geofenceTitle') || document.getElementById('homeStatusTitle');
+      const subtitleEl = document.getElementById('geofenceSubtitle') || document.getElementById('homeStatusSubtitle');
+      if (titleEl) {
+        titleEl.textContent = 'PUNCH OUT SUCCESSFUL!';
+        titleEl.style.color = '#dc2626';
+      }
+      if (subtitleEl) {
+        subtitleEl.textContent = `Clocked out at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${res.hours_worked} hrs worked)`;
+      }
+
       updateHomeUI(false);
 
       // --- GOOGLE SHEETS SYNC (PUNCH OUT) ---
@@ -976,29 +988,30 @@ async function handleClockOut() {
         punch_out_address: `${pos.coords.latitude}, ${pos.coords.longitude}`
       });
 
-    } else if (statusCode === 'OUT_OF_RANGE') {
-      const distanceInfo = (res[0][1] !== undefined && res[0][1] !== null)
-        ? ` You are approximately ${Math.round(res[0][1])} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
+    } else if (res.status === 'OUT_OF_RANGE') {
+      const distanceInfo = (res.distance_m !== undefined && res.distance_m !== null)
+        ? ` You are approximately ${Math.round(res.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
         : '';
       alert(`You're outside the office geofence.${distanceInfo} Please move within range of DDC Safdarjung HQ before punching out.`);
-    } else if (statusCode === 'NO_CLOCK_IN') {
+    } else if (res.status === 'NO_CLOCK_IN') {
       alert("You haven't clocked in yet today. Please clock in before attempting to clock out.");
-    } else if (statusCode === 'ALREADY_CLOCKED_OUT') {
+    } else if (res.status === 'ALREADY_CLOCKED_OUT') {
       alert("You have already clocked out for today.");
-    } else if (statusCode) {
-      alert(`Unable to clock out: ${statusCode}`);
     } else {
-      alert("Error clocking out. Please try again.");
+      alert(`Unable to clock out: ${res.status || 'Unknown error'}`);
     }
   } catch (e) {
-    alert("Location permission required to clock out.");
+    console.error("Clock out error:", e);
+    alert("Location permission required or error occurred during clock out.");
   } finally {
     btn.classList.remove('loading');
   }
 }
 
-// Full-screen overlay animation helper
-function showPunchSuccess(distanceText) {
+// Full-screen overlay animation helper. titleText defaults to the clock-in
+// wording so existing handleClockIn() calls (which only pass distanceText)
+// keep working unchanged; handleClockOut() passes its own title explicitly.
+function showPunchSuccess(distanceText, titleText = "Clocked In Successfully!") {
   let overlay = document.getElementById('punchSuccessOverlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -1008,17 +1021,33 @@ function showPunchSuccess(distanceText) {
         <div class="success-checkmark">
             <i class="fas fa-check"></i>
         </div>
-        <div id="punchSuccessText" class="success-text">Clocked In Successfully!</div>
+        <div id="punchSuccessText" class="success-text"></div>
         <div id="punchSuccessSubtext" class="text-secondary mt-2 small"></div>
     `;
     document.body.appendChild(overlay);
   }
+
+  const titleEl = document.getElementById('punchSuccessText');
+  if (titleEl) titleEl.innerText = titleText;
 
   const subtext = document.getElementById('punchSuccessSubtext');
   if (subtext) subtext.innerText = distanceText;
 
   overlay.classList.add('show');
   setTimeout(() => overlay.classList.remove('show'), 2500);
+}
+
+// Small helper used by handleClockIn()/handleClockOut() to update the main
+// punch button's label text without clobbering the button itself - targets
+// #homeClockBtnLabel when present, otherwise falls back to the button's own
+// text content (covers markup where the label isn't a separate span).
+function setButtonLabel(btn, text) {
+  const btnLabel = document.getElementById('homeClockBtnLabel');
+  if (btnLabel) {
+    btnLabel.innerText = text;
+  } else if (btn) {
+    btn.innerText = text;
+  }
 }
 
 // Green "Punch In Successful" card + metric + button treatment described in spec
