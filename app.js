@@ -1267,25 +1267,24 @@ function initNavigation() {
 async function checkTodayAttendanceStatus() {
   if (!CURRENT_USER || !sbClient) return;
   const empId = CURRENT_USER.employeeId || CURRENT_USER.employee_id;
-  const dateStr = getLocalDateString();
 
   try {
-    const { data } = await sbClient
-      .from('attendance')
-      .select('clock_in_time, clock_out_time')
-      .eq('employee_id', empId)
-      .eq('work_date', dateStr)
-      .maybeSingle();
+    const { data, error } = await sbClient.rpc('get_today_attendance', {
+      p_employee_id: empId
+    });
 
-    if (data && data.clock_in_time && !data.clock_out_time) {
+    if (error) throw error;
+
+    if (data && data.length > 0 && data[0].clock_in_time && !data[0].clock_out_time) {
       // User is currently clocked in -> Show RED "Punch Out Now" button
       updateHomeUI(true);
     } else {
-      // User has not clocked in yet or already completed clock-out -> Show "Punch In Now"
+      // User has not clocked in yet or already clocked out -> Show "Punch In Now"
       updateHomeUI(false);
     }
   } catch (e) {
-    console.warn("Could not fetch today's punch status:", e);
+    console.warn("Could not fetch today's punch status via RPC:", e);
+    updateHomeUI(false);
   }
 }
 
