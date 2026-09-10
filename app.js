@@ -334,6 +334,13 @@ async function callAPI(action, payload = {}) {
         if (error) throw error;
         return data;
       }
+      case "getTodayAttendance": {
+        const { data, error } = await sbClient.rpc('get_today_attendance', {
+          p_employee_id: payload.employeeId
+        });
+        if (error) throw error;
+        return data;
+      }
       default:
         console.warn("Unknown RPC action:", action);
         return null;
@@ -506,10 +513,10 @@ async function restoreSessionFromStorage() {
     }
     const user = JSON.parse(stored);
     if (user && (user.employeeId || user.employee_id)) {
-      const empId = user.employeeId || user.employee_id;
+       const empId = user.employeeId || user.employee_id;
 
-      // Check if session belongs to a completed shift
-      const { data: attData } = await sbClient.rpc('get_today_attendance', { p_employee_id: empId });
+      // Check if session belongs to a completed shift via centralized callAPI
+      const attData = await callAPI("getTodayAttendance", { employeeId: empId });
       if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
         localStorage.removeItem(SESSION_STORAGE_KEY);
         applySessionUI(false);
@@ -574,8 +581,8 @@ async function handleLogin(e) {
     const user = data[0];
     const empId = user.employeeId || user.employee_id;
 
-    // SHIFT COMPLETION CHECK: Block login if both clock_in and clock_out exist for today
-    const { data: attData } = await sbClient.rpc('get_today_attendance', { p_employee_id: empId });
+    // SHIFT COMPLETION CHECK via centralized callAPI
+    const attData = await callAPI("getTodayAttendance", { employeeId: empId });
     if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
       if (errorDiv) {
         errorDiv.textContent = 'Your shift for today is completed. Login is restricted until tomorrow.';
