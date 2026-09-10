@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>DDC Supply Chain - Enterprise Workforce Portal</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -13,54 +14,58 @@
   <!-- ==================== SPLIT MOBILE LOGIN VIEW ==================== -->
   <div id="loginView" class="view active">
     <div class="mobile-login-wrapper">
-      <div class="login-card-container"></div>
-        <div class="login-header">
-          <div class="brand-logo">⚡</div>
-          <h2>DCC Supply Chain</h2>
-          <p class="subtitle">Workforce & Logistics Management</p>
+
+      <div class="login-header-banner">
+        <div class="brand-icon-wrapper">⚡</div>
+        <h2 class="brand-title">DCC Supply Chain</h2>
+        <p class="brand-subtitle">Workforce &amp; Logistics Management</p>
+      </div>
+
+      <div class="login-card-container">
+        <div class="login-card">
+          <form id="loginForm" onsubmit="return false;">
+            <div class="input-group">
+              <i class="fas fa-user-circle input-icon"></i>
+              <input type="text" id="loginEmpId" placeholder="Employee ID / Name / Email" autocomplete="off" required>
+            </div>
+
+            <div class="input-group">
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="loginPassword" placeholder="Password" required>
+            </div>
+
+            <div id="loginError" class="error-msg" style="display:none;"></div>
+
+            <button type="button" id="loginBtn" class="btn-primary-mobile">
+              Sign In to Portal <i class="fas fa-arrow-right ms-2"></i>
+            </button>
+
+            <!-- SECURITY BADGES & HELPDESK -->
+            <div class="login-card-footer-info">
+              <div class="security-badges-row">
+                <span class="badge-pill"><i class="fas fa-map-marker-alt text-success"></i> GPS Geofenced</span>
+                <span class="badge-pill"><i class="fas fa-shield-alt text-primary"></i> 256-Bit Encrypted</span>
+              </div>
+
+              <div class="login-support-help">
+                <span class="support-text"><i class="fas fa-headset text-muted me-1"></i> Having trouble signing in?</span>
+                <a href="javascript:void(0)" onclick="alert('Please contact your HR administrator or supervisor to recover your credentials.')" class="support-link">Contact IT / HR Support</a>
+              </div>
+            </div>
+          </form>
         </div>
-
-        <form id="loginForm" onsubmit="return false;">
-          <div class="input-group">
-            <i class="fas fa-user-circle input-icon"></i>
-            <input type="text" id="loginEmpId" placeholder="Employee ID / Name / Email" autocomplete="off" required>
-          </div>
-
-          <div class="input-group">
-            <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="loginPassword" placeholder="Password" required>
-          </div>
-
-          <div id="loginError" class="login-error-msg" style="display:none;"></div>
-
-          <button type="button" id="loginBtn" class="btn-login-submit">
-            Sign In to Portal <i class="fas fa-arrow-right ms-2"></i>
-          </button>
-
-          <!-- NEW DESIGN FILLER: SECURITY BADGES & HELPDESK -->
-          <div class="login-card-footer-info">
-            <div class="security-badges-row">
-              <span class="badge-pill"><i class="fas fa-map-marker-alt text-success"></i> GPS Geofenced</span>
-              <span class="badge-pill"><i class="fas fa-shield-alt text-primary"></i> 256-Bit Encrypted</span>
-            </div>
-
-            <div class="login-support-help">
-              <span class="support-text"><i class="fas fa-headset text-muted me-1"></i> Having trouble signing in?</span>
-              <a href="javascript:void(0)" onclick="alert('Please contact your HR administrator or supervisor to recover your credentials.')" class="support-link">Contact IT / HR Support</a>
-            </div>
-          </div>
-        </form>
 
         <div class="portal-legal-footer">
-          DCC Supply Chain & Distribution LLP • Secured Portal
+          DCC Supply Chain &amp; Distribution LLP • Secured Portal
         </div>
       </div>
+
     </div>
   </div>
 
   <!-- ==================== MAIN SAAS APP LAYOUT ==================== -->
   <div id="appLayout" class="app-layout" style="display:none;">
-    
+
     <!-- Mobile Navigation Topbar -->
     <header class="mobile-top-bar">
       <button id="menuToggleBtn" class="menu-toggle-btn">
@@ -76,7 +81,7 @@
 
     <!-- MODERN SAAS SIDEBAR -->
     <aside id="sidebar" class="sidebar">
-      
+
       <!-- Brand Logo Header -->
       <div class="sidebar-brand">
         <div class="brand-logo">
