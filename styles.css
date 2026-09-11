@@ -368,7 +368,7 @@ body {
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 0;
+  top: var(--banners-h, 0px);
   bottom: 0;
   left: -280px;
   z-index: 200;
@@ -383,7 +383,10 @@ body {
 .sidebar-backdrop {
   display: none;
   position: fixed;
-  inset: 0;
+  top: var(--banners-h, 0px);
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -676,7 +679,7 @@ body {
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid #e2e8f0;
   position: fixed;
-  top: 0;
+  top: var(--banners-h, 0px);
   left: 0;
   right: 0;
   z-index: 100;
@@ -738,7 +741,7 @@ body {
 .main-content {
   flex: 1;
   width: 100%;
-  padding: 76px 16px 88px 16px;
+  padding: calc(76px + var(--banners-h, 0px)) 16px 88px 16px;
   max-width: 1100px;
   margin: 0 auto;
 }
@@ -1001,13 +1004,13 @@ body {
 
   .sidebar {
     position: sticky;
-    top: 0;
+    top: var(--banners-h, 0px);
     left: 0;
-    height: 100vh;
+    height: calc(100vh - var(--banners-h, 0px));
   }
 
   .main-content {
-    padding: 32px 40px;
+    padding: calc(32px + var(--banners-h, 0px)) 40px 32px 40px;
   }
 }
 /* Ensure login view is centered on desktop screens */
@@ -1019,6 +1022,7 @@ body {
   justify-content: center;
   background-color: #f8fafc;
   padding: 20px;
+  padding-top: calc(20px + var(--banners-h, 0px));
   box-sizing: border-box;
 }
 
@@ -1087,13 +1091,18 @@ body {
   text-align: center;
   font-weight: 500;
 }
-/* ==================== PWA UPDATE BANNER ==================== */
-.pwa-update-banner {
+/* ==================== TOP BANNER STACK ==================== */
+.top-banner-stack {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 9999;
+  display: flex;
+  flex-direction: column;
+}
+
+.pwa-update-banner {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1148,7 +1157,54 @@ body {
   transform: translateY(0);
 }
 
-/* Push the mobile top bar / app layout down when the update banner is showing */
-body:has(.pwa-update-banner[style*="flex"]) .mobile-top-bar {
-  top: 44px;
+/* Permission warning banner: deliberately a different color (amber/red)
+   from the neutral gold update banner, since this one blocks a core
+   action (Punch In/Out) rather than just offering an optional update. */
+.permission-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: linear-gradient(90deg, #7f1d1d, #991b1b);
+  border-bottom: 2px solid #fbbf24;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  animation: pwaBannerSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.permission-banner-text {
+  color: #fef2f2;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.permission-banner-text i {
+  color: #fbbf24;
+  font-size: 14px;
+}
+
+.permission-banner-btn {
+  background: #fbbf24;
+  color: #7f1d1d;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.permission-banner-btn:hover {
+  background: #f59e0b;
+  transform: translateY(-1px);
+}
+
+.permission-banner-btn:active {
+  transform: translateY(0);
 }

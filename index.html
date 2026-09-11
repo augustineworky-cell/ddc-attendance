@@ -20,12 +20,24 @@
 </head>
 <body>
 
-  <!-- PWA UPDATE BANNER (hidden until a new version is detected) -->
-  <div id="pwaUpdateBanner" class="pwa-update-banner" style="display:none;">
-    <span class="pwa-update-text">
-      <i class="fas fa-circle-arrow-up"></i> A new version of DDC Portal is available.
-    </span>
-    <button type="button" class="pwa-update-btn" onclick="applyPwaUpdate()">Update Now</button>
+  <!-- TOP BANNER STACK: PWA update + permission warnings live here so they
+       never overlap each other; height is measured live by JS to push the
+       app's fixed header/sidebar down by exactly the right amount. -->
+  <div id="topBannerStack" class="top-banner-stack">
+    <div id="pwaUpdateBanner" class="pwa-update-banner" style="display:none;">
+      <span class="pwa-update-text">
+        <i class="fas fa-circle-arrow-up"></i> A new version of DDC Portal is available.
+      </span>
+      <button type="button" class="pwa-update-btn" onclick="applyPwaUpdate()">Update Now</button>
+    </div>
+
+    <div id="permissionBanner" class="permission-banner" style="display:none;">
+      <span class="permission-banner-text">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span id="permissionBannerText">Location & Camera access is blocked - Punch In/Out will fail until enabled.</span>
+      </span>
+      <button type="button" class="permission-banner-btn" onclick="retryEssentialPermissions()">Enable Now</button>
+    </div>
   </div>
 
   <!-- ==================== SPLIT MOBILE LOGIN VIEW ==================== -->
@@ -329,6 +341,24 @@
 
   <!-- PWA: service worker registration + install prompt + update detection -->
   <script>
+    // Keep fixed headers/sidebars offset correctly below however many
+    // banners (PWA update, permission warning) are currently showing.
+    (function initBannerStackObserver() {
+      const stack = document.getElementById('topBannerStack');
+      if (!stack) return;
+      const applyHeight = () => {
+        document.documentElement.style.setProperty('--banners-h', stack.offsetHeight + 'px');
+      };
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(applyHeight).observe(stack);
+      } else {
+        // Fallback for older browsers without ResizeObserver support
+        window.addEventListener('resize', applyHeight);
+        setInterval(applyHeight, 1000);
+      }
+      applyHeight();
+    })();
+
     let pwaWaitingWorker = null;
 
     if ('serviceWorker' in navigator) {
@@ -397,14 +427,36 @@
     });
 
     function triggerPwaInstall() {
-      if (!deferredInstallPrompt) return;
-      deferredInstallPrompt.prompt();
-      deferredInstallPrompt.userChoice.finally(() => {
-        deferredInstallPrompt = null;
-        const btn = document.getElementById('installAppBtn');
-        if (btn) btn.style.display = 'none';
-      });
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.finally(() => {
+          deferredInstallPrompt = null;
+          const btn = document.getElementById('installAppBtn');
+          if (btn) btn.style.display = 'none';
+        });
+        return;
+      }
+      // iOS Safari never fires beforeinstallprompt - there is no
+      // programmatic install API there, so give manual instructions
+      // instead of a button that would otherwise do nothing.
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS) {
+        alert("To install this app on iPhone: tap the Share button (square with an arrow) in Safari's toolbar, then choose 'Add to Home Screen'.");
+      }
     }
+
+    // iOS gets no beforeinstallprompt event at all, so the Install button
+    // must be shown manually there (pointing to Share > Add to Home
+    // Screen) rather than staying hidden forever waiting for an event
+    // that will never fire.
+    (function showInstallButtonOnIOS() {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isStandalone = window.navigator.standalone === true;
+      if (isIOS && !isStandalone) {
+        const btn = document.getElementById('installAppBtn');
+        if (btn) btn.style.display = 'inline-flex';
+      }
+    })();
 
     window.addEventListener('appinstalled', () => {
       const btn = document.getElementById('installAppBtn');

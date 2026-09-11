@@ -100,8 +100,104 @@ function getGpsPosition(timeoutMs = 10000) {
 }
 
 // ==========================================================================
-// SHIFT GUIDANCE BADGE
+// ESSENTIAL PERMISSIONS: LOCATION + CAMERA (PRIMING + PERSISTENT REMINDER)
 // ==========================================================================
+// Punch In/Out silently used to fail if a user had denied location or
+// camera access - they'd only find out mid-punch, after already trying to
+// take a selfie. This module actively asks for both permissions right
+// after login (so surprises happen once, upfront, not during a punch),
+// and re-checks every time the app is opened/foregrounded. iOS Safari is
+// known to reset permissions for installed home-screen PWAs more often
+// than Android Chrome, so this re-check-every-time behavior matters more
+// there, not less.
+const PERMISSION_STATE = { location: 'unknown', camera: 'unknown' };
+
+function hasEssentialPermissions() {
+  return PERMISSION_STATE.location !== 'denied' && PERMISSION_STATE.camera !== 'denied';
+}
+
+// Passive check via the Permissions API where supported - does NOT trigger
+// a prompt, just reads current OS/browser state. Safari's support for
+// querying 'camera' this way is inconsistent, so camera state may stay
+// 'unknown' here until primeEssentialPermissions() actually attempts it.
+async function refreshPermissionStates() {
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const locStatus = await navigator.permissions.query({ name: 'geolocation' });
+      PERMISSION_STATE.location = locStatus.state;
+      locStatus.onchange = () => {
+        PERMISSION_STATE.location = locStatus.state;
+        renderPermissionBanner();
+      };
+    } catch (e) { /* geolocation query unsupported in this browser */ }
+
+    try {
+      const camStatus = await navigator.permissions.query({ name: 'camera' });
+      PERMISSION_STATE.camera = camStatus.state;
+      camStatus.onchange = () => {
+        PERMISSION_STATE.camera = camStatus.state;
+        renderPermissionBanner();
+      };
+    } catch (e) { /* 'camera' permission name unsupported (notably older Safari) */ }
+  }
+  renderPermissionBanner();
+}
+
+// Actively triggers the native OS/browser permission dialogs. Call this
+// right after login - camera is opened for an instant purely to force the
+// prompt, then immediately stopped; nothing is recorded or shown to the
+// user during this priming step.
+async function primeEssentialPermissions() {
+  try {
+    await getGpsPosition(8000);
+    PERMISSION_STATE.location = 'granted';
+  } catch (e) {
+    PERMISSION_STATE.location = 'denied';
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    stream.getTracks().forEach((t) => t.stop());
+    PERMISSION_STATE.camera = 'granted';
+  } catch (e) {
+    PERMISSION_STATE.camera = 'denied';
+  }
+
+  renderPermissionBanner();
+}
+
+function renderPermissionBanner() {
+  const banner = document.getElementById('permissionBanner');
+  const textEl = document.getElementById('permissionBannerText');
+  if (!banner) return;
+
+  const missing = [];
+  if (PERMISSION_STATE.location === 'denied') missing.push('Location');
+  if (PERMISSION_STATE.camera === 'denied') missing.push('Camera');
+
+  if (missing.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  if (textEl) {
+    textEl.textContent = `${missing.join(' & ')} access is blocked - Punch In/Out will fail until you enable ${missing.length > 1 ? 'both' : 'it'}.`;
+  }
+  banner.style.display = 'flex';
+}
+
+// Bound to the banner's "Enable Now" button - re-triggers native prompts.
+// If the browser has already permanently blocked the permission (rather
+// than just not-yet-asked), the browser won't re-prompt; the banner text
+// then points the user to their browser/app site settings instead.
+async function retryEssentialPermissions() {
+  await primeEssentialPermissions();
+  if (!hasEssentialPermissions()) {
+    alert("Your browser has blocked this permanently. Please open your phone's Settings (or the browser's site settings for this app) and manually allow Location and Camera access for DDC Portal.");
+  }
+}
+
+
 // Shows the official shift window as subtext under the geofence status
 // card. Created dynamically since index.html doesn't ship a dedicated
 // element for it - safe to call repeatedly, it reuses the same node
@@ -507,6 +603,13 @@ function applySessionAndRenderApp(user, persist) {
   // on "Checking Location..." until the user manually navigated.
   checkGeofence();
 
+  // Proactively ask for Location + Camera access right after login/session
+  // restore, every single time the app opens - not just once ever. This is
+  // what surfaces the OS permission dialogs upfront (or the persistent
+  // warning banner if already denied) before the user ever reaches the
+  // Punch In button, instead of the punch quietly failing mid-attempt.
+  primeEssentialPermissions();
+
   // Sync the punch button state (Punch In vs Punch Out) against today's
   // actual attendance row immediately on login/session restore, so a
   // refreshed page or a re-login mid-shift doesn't show the wrong button.
@@ -880,6 +983,17 @@ async function handleClockIn() {
   const id = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : "";
   if (!id) return;
 
+  // Hard guard: don't let the punch attempt even start if we already know
+  // location or camera access is blocked. Without this, the failure only
+  // ever surfaced deep inside the try/catch below, after the user had
+  // already gone through capturing a selfie - wasted effort and a confusing
+  // late failure instead of a clear upfront one.
+  if (!hasEssentialPermissions()) {
+    renderPermissionBanner();
+    alert("Punch In needs both Location and Camera access. Please tap 'Enable Now' in the banner at the top of the screen, then try again.");
+    return;
+  }
+
   if (!ATTENDANCE_SELFIE_BASE64) {
     alert("Please capture verification selfie first.");
     highlightSelfieCaptureCard();
@@ -986,6 +1100,12 @@ async function handlePunchIn() {
 async function handleClockOut() {
   const id = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : "";
   if (!id) return;
+
+  if (!hasEssentialPermissions()) {
+    renderPermissionBanner();
+    alert("Punch Out needs both Location and Camera access. Please tap 'Enable Now' in the banner at the top of the screen, then try again.");
+    return;
+  }
 
   if (!ATTENDANCE_SELFIE_BASE64) {
     alert("Please capture verification selfie before clocking out.");
@@ -2208,6 +2328,16 @@ function initApp() {
 
   // Official shift-timing subtext under the geofence card
   renderShiftGuidanceBadge();
+
+  // iOS Safari is known to reset camera/location permissions for installed
+  // home-screen PWAs more aggressively than Android Chrome - re-verifying
+  // every time the app regains focus (not just once at login) is what
+  // catches that case before the user hits Punch In/Out and it fails.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && CURRENT_USER) {
+      refreshPermissionStates();
+    }
+  });
 
   // Restore a previously active session (or show the login screen) - the
   // one and only place session state is read on page load.
