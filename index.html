@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>DDC Supply Chain - Enterprise Workforce Portal</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DDC Portal">
+  <link rel="apple-touch-icon" href="icon-180.png">
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -170,6 +179,13 @@
           <span class="nav-label">System Settings</span>
         </a>
 
+        <a href="javascript:void(0)" id="installAppBtn" class="nav-item" style="display:none;" onclick="triggerPwaInstall()">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
+          </svg>
+          <span class="nav-label">Install App</span>
+        </a>
+
         <a href="javascript:void(0)" id="logoutBtn" class="nav-item logout">
           <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -268,5 +284,38 @@
   </div>
 
   <script src="app.js"></script>
+
+  <!-- PWA: service worker registration + install prompt -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .catch((err) => console.warn('Service worker registration failed:', err));
+      });
+    }
+
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('installAppBtn');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    function triggerPwaInstall() {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.finally(() => {
+        deferredInstallPrompt = null;
+        const btn = document.getElementById('installAppBtn');
+        if (btn) btn.style.display = 'none';
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      const btn = document.getElementById('installAppBtn');
+      if (btn) btn.style.display = 'none';
+    });
+  </script>
 </body>
 </html>
