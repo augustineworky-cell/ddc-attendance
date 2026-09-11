@@ -1393,11 +1393,12 @@ function switchSection(sectionId, el) {
 // SAAS SIDEBAR & MOBILE DRAWER NAVIGATION
 // ==========================================================================
 function initNavigation() {
-  const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-view]');
+  const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-view], .bottom-nav .bottom-nav-item[data-view]');
   const appViews = document.querySelectorAll('.app-view');
   const sidebar = document.getElementById('sidebar');
   const backdrop = document.getElementById('sidebarBackdrop');
   const menuToggleBtn = document.getElementById('menuToggleBtn');
+  const bottomMoreBtn = document.getElementById('bottomMoreBtn');
 
   navItems.forEach(item => {
     item.addEventListener('click', (e) => {
@@ -1405,8 +1406,11 @@ function initNavigation() {
       const targetViewId = item.getAttribute('data-view');
       if (!targetViewId) return;
 
-      navItems.forEach(nav => nav.classList.remove('active'));
-      item.classList.add('active');
+      // Keep the sidebar and the bottom nav in sync: whichever one was
+      // clicked, mirror the active state across BOTH navigation surfaces.
+      navItems.forEach(nav => {
+        nav.classList.toggle('active', nav.getAttribute('data-view') === targetViewId);
+      });
 
       appViews.forEach(view => {
         if (view.id === targetViewId) {
@@ -1440,6 +1444,16 @@ function initNavigation() {
 
   if (menuToggleBtn) {
     menuToggleBtn.addEventListener('click', () => {
+      if (sidebar) sidebar.classList.toggle('open');
+      if (backdrop) backdrop.classList.toggle('active');
+    });
+  }
+
+  // "More" tab in the mobile bottom nav opens the same drawer used by the
+  // hamburger button, so overflow items (Analytics, Payroll, GPS Map,
+  // Settings, Sign Out) stay reachable without crowding the bottom bar.
+  if (bottomMoreBtn) {
+    bottomMoreBtn.addEventListener('click', () => {
       if (sidebar) sidebar.classList.toggle('open');
       if (backdrop) backdrop.classList.toggle('active');
     });
