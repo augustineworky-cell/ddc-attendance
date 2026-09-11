@@ -1028,3 +1028,68 @@ body {
   text-align: center;
   font-weight: 500;
 }
+/* ==================== PWA UPDATE BANNER ==================== */
+.pwa-update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top));
+  background: linear-gradient(90deg, #0f172a, #1e293b);
+  border-bottom: 2px solid #d4af37;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  animation: pwaBannerSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pwaBannerSlideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.pwa-update-text {
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pwa-update-text i {
+  color: #d4af37;
+  font-size: 14px;
+}
+
+.pwa-update-btn {
+  background: #d4af37;
+  color: #0f172a;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.pwa-update-btn:hover {
+  background: #c49a2f;
+  transform: translateY(-1px);
+}
+
+.pwa-update-btn:active {
+  transform: translateY(0);
+}
+
+/* Push the mobile top bar / app layout down when the update banner is showing */
+body:has(.pwa-update-banner[style*="flex"]) .mobile-top-bar {
+  top: 44px;
+}

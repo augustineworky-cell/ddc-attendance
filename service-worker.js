@@ -2,7 +2,7 @@
 // Caches only the static app shell. Never caches Supabase / API / geolocation
 // data, so attendance punches and geofence checks always hit the network live.
 
-const CACHE_NAME = 'ddc-attendance-shell-v1';
+const CACHE_NAME = 'ddc-attendance-shell-v2';
 
 const SHELL_ASSETS = [
   '/',
@@ -20,7 +20,16 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
   );
-  self.skipWaiting();
+  // NOTE: intentionally no self.skipWaiting() here.
+  // We want the new worker to sit in "waiting" state until the user
+  // explicitly taps "Update Now" in the app's update banner.
+});
+
+// Let the page tell a waiting worker to activate immediately
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Activate: clean up old cache versions

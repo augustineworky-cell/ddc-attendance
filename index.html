@@ -20,6 +20,14 @@
 </head>
 <body>
 
+  <!-- PWA UPDATE BANNER (hidden until a new version is detected) -->
+  <div id="pwaUpdateBanner" class="pwa-update-banner" style="display:none;">
+    <span class="pwa-update-text">
+      <i class="fas fa-circle-arrow-up"></i> A new version of DDC Portal is available.
+    </span>
+    <button type="button" class="pwa-update-btn" onclick="applyPwaUpdate()">Update Now</button>
+  </div>
+
   <!-- ==================== SPLIT MOBILE LOGIN VIEW ==================== -->
   <div id="loginView" class="view active">
     <div class="mobile-login-wrapper">
@@ -285,13 +293,65 @@
 
   <script src="app.js"></script>
 
-  <!-- PWA: service worker registration + install prompt -->
+  <!-- PWA: service worker registration + install prompt + update detection -->
   <script>
+    let pwaWaitingWorker = null;
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .catch((err) => console.warn('Service worker registration failed:', err));
+        navigator.serviceWorker.register('/service-worker.js').then((reg) => {
+
+          // Case 1: a new worker starts installing after this registration
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              // "installed" + an existing controller means this is an UPDATE,
+              // not the very first install on this device.
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                pwaWaitingWorker = newWorker;
+                showPwaUpdateBanner();
+              }
+            });
+          });
+
+          // Case 2: a waiting worker already exists from a previous visit
+          if (reg.waiting && navigator.serviceWorker.controller) {
+            pwaWaitingWorker = reg.waiting;
+            showPwaUpdateBanner();
+          }
+
+          // Actively check for a new version: on load, and every 30 minutes
+          // (useful since this is a long-lived single-page app).
+          reg.update();
+          setInterval(() => reg.update(), 30 * 60 * 1000);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') reg.update();
+          });
+
+        }).catch((err) => console.warn('Service worker registration failed:', err));
+
+        // Reload once the new worker takes control, so the fresh version loads.
+        let reloadedAfterUpdate = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (reloadedAfterUpdate) return;
+          reloadedAfterUpdate = true;
+          window.location.reload();
+        });
       });
+    }
+
+    function showPwaUpdateBanner() {
+      const banner = document.getElementById('pwaUpdateBanner');
+      if (banner) banner.style.display = 'flex';
+    }
+
+    function applyPwaUpdate() {
+      if (pwaWaitingWorker) {
+        pwaWaitingWorker.postMessage({ type: 'SKIP_WAITING' });
+      }
+      const banner = document.getElementById('pwaUpdateBanner');
+      if (banner) banner.style.display = 'none';
     }
 
     let deferredInstallPrompt = null;
