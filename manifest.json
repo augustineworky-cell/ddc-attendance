@@ -1,6 +1,6 @@
 {
-  "name": "DDC Supply Chain - Workforce Attendance",
-  "short_name": "DDC Portal",
+  "name": "Staffly - Workforce Attendance",
+  "short_name": "Staffly",
   "description": "Supply Chain & Distribution LLP workforce attendance and payroll app",
   "start_url": "/",
   "scope": "/",

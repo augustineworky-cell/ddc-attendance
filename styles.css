@@ -267,6 +267,12 @@ body::before {
   z-index: 1;
 }
 
+.brand-icon-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
 .login-header-banner .brand-icon-wrapper {
   width: 56px;
   height: 56px;
