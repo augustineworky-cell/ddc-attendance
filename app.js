@@ -35,6 +35,11 @@ const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4
 // Global Application State
 let CURRENT_USER = null;
 let ATTENDANCE_SELFIE_BASE64 = null;
+// The current shift's own clock-in timestamp, used to compute each
+// employee's individual 9-hour shift-end (clockInTime + 9h) rather than a
+// fixed company-wide time. Set on a fresh clock-in, restored from
+// get_today_attendance on refresh/re-login, and cleared on clock-out.
+let CURRENT_SHIFT_CLOCK_IN_TIME = null;
 let locationPingTimer = null;
 let autoLogoutInterval = null;
 let liveMapInstance = null;
@@ -1107,6 +1112,11 @@ async function handleClockIn() {
       const serverIsLate = data.attendance_status === 'Late';
       startLocationPinging(id);
 
+      // Anchor this employee's own 9-hour shift-end to the moment they
+      // actually clocked in - this is what the early-departure guard in
+      // handleClockOut() checks against, instead of a fixed company time.
+      CURRENT_SHIFT_CLOCK_IN_TIME = new Date();
+
       // Clear any leftover Shift Complete/Incomplete badge from a previous
       // day's session - a fresh clock-in starts a new shift.
       hideShiftStatusBadge();
@@ -1196,13 +1206,33 @@ async function handleClockOut() {
     return;
   }
 
-  // Early-departure guard: shift runs until SHIFT_END_TIME (07:30 PM IST).
-  // Ask for confirmation before punching out ahead of that time; bail out
-  // entirely on cancel, before any button/loading state is touched.
-  if (getISTMinutesNow() < SHIFT_END_MINUTES) {
-    const confirmedEarlyOut = confirm(`Your shift ends at ${SHIFT_END_TIME}. Are you sure you want to clock out early?`);
-    if (!confirmedEarlyOut) return;
+  // Early-departure guard: each employee's shift is 9 hours measured from
+  // their OWN clock-in time, not a fixed company-wide clock time - someone
+  // who clocked in at 10:00, 10:30, or 11:00 all need their own 9 hours.
+  // This mirrors the same rule already enforced server-side (shift_complete/
+  // shift_message in the clock_out RPC response) so the confirmation
+  // dialog and the actual server outcome never disagree.
+  if (CURRENT_SHIFT_CLOCK_IN_TIME) {
+    const shiftEndForThisEmployee = new Date(CURRENT_SHIFT_CLOCK_IN_TIME.getTime() + 9 * 60 * 60 * 1000);
+    const isEarly = new Date() < shiftEndForThisEmployee;
+
+    if (isEarly) {
+      const remainingMs = shiftEndForThisEmployee - new Date();
+      const remainingMins = Math.max(0, Math.round(remainingMs / 60000));
+      const remainingH = Math.floor(remainingMins / 60);
+      const remainingM = remainingMins % 60;
+      const remainingStr = remainingH > 0 ? `${remainingH}h ${remainingM}m` : `${remainingM}m`;
+
+      const confirmedEarlyOut = confirm(
+        `You haven't completed your 9-hour shift yet (${remainingStr} remaining). Are you sure you want to clock out early?`
+      );
+      if (!confirmedEarlyOut) return;
+    }
   }
+  // If CURRENT_SHIFT_CLOCK_IN_TIME is somehow unknown (e.g. stale session
+  // state), skip the client-side confirmation entirely rather than guess -
+  // the clock_out RPC's own shift_complete/shift_message response remains
+  // the authoritative source of truth either way.
 
   const btn = document.getElementById('punchInBtn');
   if (!btn) return;
@@ -1229,6 +1259,7 @@ async function handleClockOut() {
 
     if (res.status === 'SUCCESS') {
       stopLocationPinging();
+      CURRENT_SHIFT_CLOCK_IN_TIME = null;
 
       const selfiePreview = document.getElementById('selfiePreview');
       if (selfiePreview) selfiePreview.style.display = 'none';
@@ -1707,6 +1738,7 @@ async function checkTodayAttendanceStatus() {
 
     if (row && row.clock_in_time && row.clock_out_time) {
       // State C: Shift completed today
+      CURRENT_SHIFT_CLOCK_IN_TIME = null;
       renderPunchOutSuccessCard(row.hours_worked ?? '--');
 
       // Persist the same Shift Complete/Incomplete indicator shown right
@@ -1722,11 +1754,15 @@ async function checkTodayAttendanceStatus() {
         renderShiftStatusBadge(shiftComplete, message);
       }
     } else if (row && row.clock_in_time && !row.clock_out_time) {
-      // State B: Currently clocked in
+      // State B: Currently clocked in - restore the shift's own clock-in
+      // time so the early-departure guard works correctly after a page
+      // refresh or re-login, not just within the same session as the punch.
+      CURRENT_SHIFT_CLOCK_IN_TIME = new Date(row.clock_in_time);
       hideShiftStatusBadge();
       updateHomeUI(true);
     } else {
       // State A: Not clocked in yet
+      CURRENT_SHIFT_CLOCK_IN_TIME = null;
       hideShiftStatusBadge();
       updateHomeUI(false);
     }
