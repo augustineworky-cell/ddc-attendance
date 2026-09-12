@@ -2422,7 +2422,7 @@ async function handleCaptureSelfie() {
 
     video.style.display = 'none';  
     preview.style.display = 'block';
-    captureBtn.textContent = '📷 Retake Selfie';
+    captureBtn.innerHTML = '<span class="btn-icon">📷</span> Retake Selfie';
     return;
   }
 
@@ -2436,7 +2436,7 @@ async function handleCaptureSelfie() {
     video.srcObject = webcamStream;
     video.style.display = 'block';
     preview.style.display = 'none';
-    captureBtn.textContent = '📸 Snap Photo';
+    captureBtn.innerHTML = '<span class="btn-icon">📸</span> Snap Photo';
   } catch (err) {
     console.error("Camera access error:", err);
     alert("Camera permission denied or camera not found. Please allow camera access in your browser settings.");
