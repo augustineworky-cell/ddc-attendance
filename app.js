@@ -1130,7 +1130,7 @@ async function handleClockIn() {
       showPunchSuccess(`Distance from HQ: ${Math.round(data.distance_m)} meters${lateSuffix}`);
       updateHomeUI(true);
       renderPunchInSuccessCard(serverIsLate);
-      startAutoLogoutTimer(10);
+      startAutoLogoutTimer(5);
 
       // The photo attach step is tracked separately from the punch itself -
       // don't let a failed attach silently pass as if the selfie was saved.
@@ -1268,7 +1268,7 @@ async function handleClockOut() {
       // renderPunchOutSuccessCard() sets the red PUNCH OUT SUCCESSFUL!
       // card state and calls updateHomeUI(false) itself.
       renderPunchOutSuccessCard(res.hours_worked);
-      startAutoLogoutTimer(10);
+      startAutoLogoutTimer(5);
 
       // shift_message/shift_complete come straight from the clock_out RPC
       // (e.g. "Shift Incomplete - only 6.25 of 9 hours completed." or
@@ -1377,7 +1377,7 @@ function highlightSelfieCaptureCard() {
 // ==========================================================================
 // AUTO-LOGOUT COUNTDOWN (fires after a successful Punch In / Punch Out)
 // ==========================================================================
-function startAutoLogoutTimer(seconds = 10) {
+function startAutoLogoutTimer(seconds = 5) {
   stopAutoLogoutTimer(); // Clear any existing timer instance
 
   let timeLeft = seconds;
