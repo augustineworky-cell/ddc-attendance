@@ -2136,7 +2136,7 @@ async function handleCaptureSelfie() {
     webcamStream.getTracks().forEach(track => track.stop());
     webcamStream = null;
 
-    video.style.display = 'none';
+    video.style.display = 'none';  
     preview.style.display = 'block';
     captureBtn.textContent = '📷 Retake Selfie';
     return;
