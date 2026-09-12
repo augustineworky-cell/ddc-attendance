@@ -1,5 +1,8 @@
-/* ==================== GLOBAL SAAS STYLES ==================== */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* ==================== GLOBAL SAAS STYLES ====================
+   Font is loaded via <link> tags in index.html's <head> (parallel fetch),
+   not @import here - @import forces the browser to fully download and
+   parse this stylesheet before it even discovers the font needs fetching,
+   adding a slow sequential round-trip. */
 
 /* ==================== DESIGN TOKENS: LEAFY/BOTANICAL PALETTE ====================
    Visual restyle only - see styles applied below screen by screen. No component
@@ -1476,4 +1479,86 @@ body::before {
   .bottom-nav-item.active:hover {
     background: rgba(238, 132, 120, 0.16);
   }
+}
+
+/* ==================== LOADING SPLASH (FOOD RAIN) ====================
+   Shown instantly on page load (inline HTML/CSS, no external requests),
+   hidden by app.js once the page is actually ready. Generic food shapes
+   (not branded logos) in the app's own palette. */
+.app-loading-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: linear-gradient(180deg, #dfe9f5, #eef2f8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.app-loading-splash.splash-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.food-rain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.food-item {
+  position: absolute;
+  top: -60px;
+  width: 34px;
+  height: 34px;
+  opacity: 0.85;
+  animation-name: foodFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  filter: drop-shadow(0 3px 4px rgba(46, 42, 92, 0.15));
+}
+
+@keyframes foodFall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+  }
+  100% {
+    transform: translateY(110vh) rotate(360deg);
+  }
+}
+
+.loading-splash-brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: fadeInUp 0.5s ease;
+}
+
+.loading-splash-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(46, 42, 92, 0.25);
+  margin-bottom: 6px;
+}
+
+.loading-splash-word {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--navy-dark, #2E2A5C);
+}
+
+.loading-splash-sub {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted, #9B96B5);
 }

@@ -15,11 +15,77 @@
   <meta name="apple-mobile-web-app-title" content="Staffly">
   <link rel="apple-touch-icon" href="icon-180.png">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Fonts load in parallel with styles.css instead of nested inside it
+       via @import (which forces a slow sequential fetch-after-fetch). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+
+  <!-- Font Awesome loaded non-blocking: the page paints immediately with
+       system fonts/no icons, then icons pop in a moment later, instead of
+       every visitor waiting on this external CDN before seeing anything. -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- defer (not a blocking synchronous <script>) so HTML parsing/painting
+       isn't held up waiting for this CDN download. app.js below is also
+       deferred so their relative order is preserved - app.js reads
+       window.supabase at its very top level and needs it defined first. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
 <body>
+
+  <!-- LOADING SPLASH: shown immediately (pure inline SVG/CSS, zero external
+       requests) while fonts/Supabase SDK/app.js finish loading in the
+       background. Generic food shapes (not branded logos) falling in the
+       app's own coral/navy/mint/gold palette. Hidden by app.js once the
+       page is actually ready - see hideLoadingSplash() near the bottom. -->
+  <div id="appLoadingSplash" class="app-loading-splash">
+    <div class="food-rain" aria-hidden="true">
+      <svg class="food-item" style="left:6%; animation-delay:0s; animation-duration:2.6s;" viewBox="0 0 64 64"><path d="M12 34 Q12 54 32 54 Q52 54 52 34 Q52 20 44 16 Q40 26 32 16 Q24 26 20 16 Q12 20 12 34Z" fill="#EE8478"/></svg>
+      <svg class="food-item" style="left:16%; animation-delay:0.9s; animation-duration:3.1s;" viewBox="0 0 64 64"><circle cx="32" cy="20" r="16" fill="#F0C660"/><path d="M20 30 L32 58 L44 30 Z" fill="#F0C660"/></svg>
+      <svg class="food-item" style="left:27%; animation-delay:0.3s; animation-duration:2.8s;" viewBox="0 0 64 64"><circle cx="32" cy="30" r="20" fill="#47C6B0"/><circle cx="32" cy="30" r="8" fill="#F7E7D3"/></svg>
+      <svg class="food-item" style="left:39%; animation-delay:1.4s; animation-duration:2.4s;" viewBox="0 0 64 64"><path d="M12 34 Q12 54 32 54 Q52 54 52 34 Q52 20 44 16 Q40 26 32 16 Q24 26 20 16 Q12 20 12 34Z" fill="#7B6FA8"/></svg>
+      <svg class="food-item" style="left:50%; animation-delay:0.6s; animation-duration:3.3s;" viewBox="0 0 64 64"><circle cx="32" cy="20" r="16" fill="#EE8478"/><path d="M20 30 L32 58 L44 30 Z" fill="#EE8478"/></svg>
+      <svg class="food-item" style="left:61%; animation-delay:1.7s; animation-duration:2.5s;" viewBox="0 0 64 64"><circle cx="32" cy="30" r="20" fill="#F0C660"/><circle cx="32" cy="30" r="8" fill="#F7E7D3"/></svg>
+      <svg class="food-item" style="left:72%; animation-delay:0.2s; animation-duration:2.9s;" viewBox="0 0 64 64"><path d="M12 34 Q12 54 32 54 Q52 54 52 34 Q52 20 44 16 Q40 26 32 16 Q24 26 20 16 Q12 20 12 34Z" fill="#47C6B0"/></svg>
+      <svg class="food-item" style="left:83%; animation-delay:1.1s; animation-duration:2.7s;" viewBox="0 0 64 64"><circle cx="32" cy="20" r="16" fill="#7B6FA8"/><path d="M20 30 L32 58 L44 30 Z" fill="#7B6FA8"/></svg>
+      <svg class="food-item" style="left:93%; animation-delay:0.7s; animation-duration:3.0s;" viewBox="0 0 64 64"><circle cx="32" cy="30" r="20" fill="#EE8478"/><circle cx="32" cy="30" r="8" fill="#F7E7D3"/></svg>
+    </div>
+    <div class="loading-splash-brand">
+      <img src="icon-192.png" alt="Staffly" class="loading-splash-logo">
+      <span class="loading-splash-word">STAFFLY</span>
+      <span class="loading-splash-sub">Loading your workspace...</span>
+    </div>
+  </div>
+
+  <!-- Hides the loading splash - deliberately standalone and NOT dependent
+       on app.js or the Supabase SDK finishing, so it can never get stuck
+       waiting on something else. Runs immediately (no defer). -->
+  <script>
+    (function () {
+      var MIN_SPLASH_MS = 900; // avoid an instant flash on fast connections
+      var SAFETY_NET_MS = 6000; // never block the app forever
+      var start = Date.now();
+      var hidden = false;
+
+      function hideSplash() {
+        if (hidden) return;
+        hidden = true;
+        var el = document.getElementById('appLoadingSplash');
+        if (!el) return;
+        var wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - start));
+        setTimeout(function () {
+          el.classList.add('splash-hidden');
+          setTimeout(function () { el.remove(); }, 500);
+        }, wait);
+      }
+
+      window.addEventListener('load', hideSplash);
+      setTimeout(hideSplash, SAFETY_NET_MS);
+    })();
+  </script>
 
   <!-- TOP BANNER STACK: PWA update + permission warnings live here so they
        never overlap each other; height is measured live by JS to push the
@@ -344,7 +410,7 @@
     </main>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 
   <!-- PWA: service worker registration + install prompt + update detection -->
   <script>
