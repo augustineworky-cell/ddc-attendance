@@ -7,8 +7,8 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // DDC Safdarjung HQ Geofence Coordinates
-const OFFICE_LAT = 28.5633;
-const OFFICE_LNG = 77.1912;
+const OFFICE_LAT = 28.56616;
+const OFFICE_LNG = 77.19904;
 const OFFICE_RADIUS_M = 150; // 150-meter coverage radius
 
 // Aliases used by geofence-checking helpers
@@ -259,8 +259,15 @@ async function callAPI(action, payload = {}) {
           p_lng: payload.gps.lng
         });
         if (error) throw error;
-        if (payload.gps.selfieBase64) {
-          await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockin');
+        // Only attach a selfie once the punch itself actually succeeded -
+        // uploading/attaching a photo against an OUT_OF_RANGE or
+        // ALREADY_CLOCKED_IN attempt would try to attach to an attendance
+        // row that was never created for today.
+        if (data && data.status === 'SUCCESS' && payload.gps.selfieBase64) {
+          const attached = await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockin');
+          // Surface this on the returned object rather than swallowing it -
+          // a failed attach must not be treated as if the selfie succeeded.
+          data._selfieAttached = attached;
         }
         return data;
       }
@@ -271,9 +278,11 @@ async function callAPI(action, payload = {}) {
           p_lng: payload.gps.lng
         });
         if (error) throw error;
-        // Await selfie upload to ensure DB update completes before proceeding
-        if (payload.gps && payload.gps.selfieBase64) {
-          await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockout');
+        // Same rule as clockIn: only attach the clock-out selfie once
+        // clock_out itself reports SUCCESS.
+        if (data && data.status === 'SUCCESS' && payload.gps && payload.gps.selfieBase64) {
+          const attached = await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockout');
+          data._selfieAttached = attached;
         }
         return data;
       }
@@ -516,9 +525,70 @@ async function uploadSelfie(employeeId, base64, eventType = 'clockin') {
   }
 }
 
-// ==========================================================================
-// UNIFIED SESSION / AUTHENTICATION MANAGER
-// ==========================================================================
+// Tracks a selfie that uploaded/attached successfully to Storage's bucket
+// path but whose RPC attach step failed (or the base64 the user needs to
+// retry with), so retrySelfiePhotoAttach() can re-attempt without forcing
+// the employee to punch in/out again - the punch itself already succeeded.
+let PENDING_SELFIE_RETRY = null; // { employeeId, base64, eventType } | null
+
+function renderSelfieRetryPrompt(employeeId, base64, eventType) {
+  PENDING_SELFIE_RETRY = { employeeId, base64, eventType };
+  const btn = document.getElementById('retryPhotoUploadBtn');
+  if (btn) {
+    btn.style.display = 'inline-flex';
+    btn.textContent = `⚠️ Retry ${eventType === 'clockout' ? 'Clock-Out' : 'Clock-In'} Photo Upload`;
+  }
+}
+
+async function retrySelfiePhotoAttach() {
+  if (!PENDING_SELFIE_RETRY) return;
+  const { employeeId, base64, eventType } = PENDING_SELFIE_RETRY;
+  const btn = document.getElementById('retryPhotoUploadBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Retrying...'; }
+
+  const attached = await uploadSelfie(employeeId, base64, eventType);
+
+  if (attached) {
+    PENDING_SELFIE_RETRY = null;
+    if (btn) btn.style.display = 'none';
+    alert("Photo uploaded successfully.");
+  } else {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = `⚠️ Retry ${eventType === 'clockout' ? 'Clock-Out' : 'Clock-In'} Photo Upload`;
+    }
+    alert("Photo upload failed again. Your Punch " + (eventType === 'clockout' ? 'Out' : 'In') + " time was still recorded correctly - only the photo is missing. Please try the retry button again, or contact admin if it keeps failing.");
+  }
+}
+
+// Shift-completion badge shown near the Punch button. Green when the
+// employee has completed the full 9-hour shift (measured from their own
+// clock-in, not a fixed company-wide time), amber otherwise. Used both
+// right after a clock-out (A.7) and when restoring today's status on
+// page load/refresh (B.2), so the indicator persists across refreshes.
+function renderShiftStatusBadge(shiftComplete, message) {
+  const badge = document.getElementById('shiftStatusBadge');
+  if (!badge) return;
+
+  badge.textContent = message;
+  badge.style.display = 'block';
+  if (shiftComplete) {
+    badge.style.background = '#f0fdf4';
+    badge.style.color = '#15803d';
+    badge.style.border = '1px solid #bbf7d0';
+  } else {
+    badge.style.background = '#fffbeb';
+    badge.style.color = '#b45309';
+    badge.style.border = '1px solid #fde68a';
+  }
+}
+
+function hideShiftStatusBadge() {
+  const badge = document.getElementById('shiftStatusBadge');
+  if (badge) badge.style.display = 'none';
+}
+
+
 // Everything related to "who is logged in" and "which screen is visible"
 // lives here, in one place, reading/writing SESSION_STORAGE_KEY only.
 // This replaces the previous split between applySessionAndRenderApp /
@@ -1008,11 +1078,6 @@ async function handleClockIn() {
   // markup (that legacy fallback was overwriting the button's real content).
   const btnLabel = document.getElementById('punchBtnText');
 
-  // Late-punch check: flagged purely on IST wall-clock time, independent
-  // of whether the RPC call itself succeeds - the employee either was or
-  // wasn't late for the 11:00 AM shift start regardless of server response.
-  const isLatePunch = getISTMinutesNow() > SHIFT_LATE_CUTOFF_MINUTES;
-
   // UI Loading State
   btn.classList.add('loading');
   if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
@@ -1036,19 +1101,35 @@ async function handleClockIn() {
     }
 
     if (data.status === 'SUCCESS') {
-      ATTENDANCE_SELFIE_BASE64 = null;
+      // Prefer the server's own determination of Present/Late over the
+      // wall-clock heuristic computed before we knew the response - the
+      // backend is the source of truth for attendance_status.
+      const serverIsLate = data.attendance_status === 'Late';
       startLocationPinging(id);
+
+      // Clear any leftover Shift Complete/Incomplete badge from a previous
+      // day's session - a fresh clock-in starts a new shift.
+      hideShiftStatusBadge();
 
       // Hide preview thumbnail
       const selfiePreview = document.getElementById('selfiePreview');
       if (selfiePreview) selfiePreview.style.display = 'none';
 
       // Show Full-Screen Overlay Animation
-      const lateSuffix = isLatePunch ? ' • (Late Punch)' : '';
+      const lateSuffix = serverIsLate ? ' • (Late Punch)' : '';
       showPunchSuccess(`Distance from HQ: ${Math.round(data.distance_m)} meters${lateSuffix}`);
       updateHomeUI(true);
-      renderPunchInSuccessCard(isLatePunch);
+      renderPunchInSuccessCard(serverIsLate);
       startAutoLogoutTimer(10);
+
+      // The photo attach step is tracked separately from the punch itself -
+      // don't let a failed attach silently pass as if the selfie was saved.
+      if (data._selfieAttached === false) {
+        renderSelfieRetryPrompt(id, ATTENDANCE_SELFIE_BASE64, 'clockin');
+        alert("Punch In was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
+      } else {
+        ATTENDANCE_SELFIE_BASE64 = null;
+      }
     } else if (data.status === 'OUT_OF_RANGE') {
       const distanceInfo = (data.distance_m !== undefined && data.distance_m !== null)
         ? ` You are approximately ${Math.round(data.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
@@ -1056,6 +1137,8 @@ async function handleClockIn() {
       alert(`You're outside the office geofence.${distanceInfo} Please move within range of DDC Safdarjung HQ before punching in.`);
     } else if (data.status === 'ERROR') {
       alert(data.message || "Error clocking in. Please try again.");
+    } else if (data.status === 'ALREADY_CLOCKED_IN') {
+      alert("You have already clocked in today.");
     } else if (data.status === 'ALREADY_CLOCKED_OUT') {
       // Retained in case this status is ever reintroduced server-side;
       // not part of the current documented response set.
@@ -1145,7 +1228,6 @@ async function handleClockOut() {
     }
 
     if (res.status === 'SUCCESS') {
-      ATTENDANCE_SELFIE_BASE64 = null;
       stopLocationPinging();
 
       const selfiePreview = document.getElementById('selfiePreview');
@@ -1157,6 +1239,24 @@ async function handleClockOut() {
       renderPunchOutSuccessCard(res.hours_worked);
       startAutoLogoutTimer(10);
 
+      // shift_message/shift_complete come straight from the clock_out RPC
+      // (e.g. "Shift Incomplete - only 6.25 of 9 hours completed." or
+      // "Shift Complete - 9 hours fulfilled.") - shown verbatim so the
+      // wording always matches whatever ops configures server-side.
+      if (res.shift_message) {
+        renderShiftStatusBadge(!!res.shift_complete, res.shift_message);
+      }
+
+      // Same rule as handleClockIn(): a failed photo attach must not be
+      // treated as if the selfie was saved, even though the punch itself
+      // already succeeded.
+      if (res._selfieAttached === false) {
+        renderSelfieRetryPrompt(id, ATTENDANCE_SELFIE_BASE64, 'clockout');
+        alert("Punch Out was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
+      } else {
+        ATTENDANCE_SELFIE_BASE64 = null;
+      }
+
       // --- GOOGLE SHEETS SYNC (PUNCH OUT) ---
       syncToGoogleSheets({
         record_id: id,
@@ -1167,10 +1267,11 @@ async function handleClockOut() {
       });
 
     } else if (res.status === 'OUT_OF_RANGE') {
-      const distanceInfo = (res.distance_m !== undefined && res.distance_m !== null)
-        ? ` You are approximately ${Math.round(res.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
-        : '';
-      alert(`You're outside the office geofence.${distanceInfo} Please move within range of DDC Safdarjung HQ before punching out.`);
+      // Use the server's own wording verbatim - this is deliberately a
+      // different, more specific message than clock-in's generic
+      // out-of-geofence alert, since ops wants employees to see the exact
+      // clock-out phrasing (it explains the 9-hour shift consequence too).
+      alert(res.message || `You're outside the office geofence. Please move within range of DDC Safdarjung HQ before punching out.`);
     } else if (res.status === 'NO_CLOCK_IN') {
       alert("You haven't clocked in yet today. Please clock in before attempting to clock out.");
     } else if (res.status === 'ALREADY_CLOCKED_OUT') {
@@ -1607,11 +1708,26 @@ async function checkTodayAttendanceStatus() {
     if (row && row.clock_in_time && row.clock_out_time) {
       // State C: Shift completed today
       renderPunchOutSuccessCard(row.hours_worked ?? '--');
+
+      // Persist the same Shift Complete/Incomplete indicator shown right
+      // after clocking out (A.7) across page refreshes and re-logins too -
+      // get_today_attendance only returns hours_worked, not the RPC's own
+      // shift_message string, so the wording is reconstructed client-side
+      // in the same style the backend uses.
+      if (typeof row.hours_worked === 'number') {
+        const shiftComplete = row.hours_worked >= 9;
+        const message = shiftComplete
+          ? `Shift Complete - ${row.hours_worked} hours fulfilled.`
+          : `Shift Incomplete - only ${row.hours_worked} of 9 hours completed.`;
+        renderShiftStatusBadge(shiftComplete, message);
+      }
     } else if (row && row.clock_in_time && !row.clock_out_time) {
       // State B: Currently clocked in
+      hideShiftStatusBadge();
       updateHomeUI(true);
     } else {
       // State A: Not clocked in yet
+      hideShiftStatusBadge();
       updateHomeUI(false);
     }
   } catch (e) {
