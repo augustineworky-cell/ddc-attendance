@@ -5,11 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>DDC Supply Chain - Enterprise Workforce Portal</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DDC Portal">
+  <link rel="apple-touch-icon" href="icon-180.png">
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+  <!-- TOP BANNER STACK: PWA update + permission warnings live here so they
+       never overlap each other; height is measured live by JS to push the
+       app's fixed header/sidebar down by exactly the right amount. -->
+  <div id="topBannerStack" class="top-banner-stack">
+    <div id="pwaUpdateBanner" class="pwa-update-banner" style="display:none;">
+      <span class="pwa-update-text">
+        <i class="fas fa-circle-arrow-up"></i> A new version of DDC Portal is available.
+      </span>
+      <button type="button" class="pwa-update-btn" onclick="applyPwaUpdate()">Update Now</button>
+    </div>
+
+    <div id="permissionBanner" class="permission-banner" style="display:none;">
+      <span class="permission-banner-text">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span id="permissionBannerText">Location & Camera access is blocked - Punch In/Out will fail until enabled.</span>
+      </span>
+      <button type="button" class="permission-banner-btn" onclick="retryEssentialPermissions()">Enable Now</button>
+    </div>
+  </div>
 
   <!-- ==================== SPLIT MOBILE LOGIN VIEW ==================== -->
   <div id="loginView" class="view active">
@@ -79,29 +108,75 @@
 
     <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
 
+    <!-- MOBILE BOTTOM NAVIGATION BAR (hidden on desktop) -->
+    <nav class="bottom-nav" id="bottomNav">
+      <a href="javascript:void(0)" class="bottom-nav-item active" data-view="homeView">
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        <span class="bottom-nav-label">Home</span>
+      </a>
+
+      <a href="javascript:void(0)" class="bottom-nav-item" data-view="leaveView">
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <span class="bottom-nav-label">Leave</span>
+      </a>
+
+      <a href="javascript:void(0)" class="bottom-nav-item" data-view="trainingView">
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+        </svg>
+        <span class="bottom-nav-label">Training</span>
+      </a>
+
+      <a href="javascript:void(0)" class="bottom-nav-item" id="bottomMoreBtn">
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+        <span class="bottom-nav-label">More</span>
+      </a>
+    </nav>
+
     <!-- MODERN SAAS SIDEBAR -->
     <aside id="sidebar" class="sidebar">
 
-      <!-- Brand Logo Header -->
-      <div class="sidebar-brand">
-        <div class="brand-logo">
-          <img src="favicon.svg" alt="DDC Logo" class="brand-logo-img">
-        </div>
-        <div class="brand-text">
-          <span class="brand-name">DDC Logistics</span>
-          <span class="brand-tag">Enterprise v2.4</span>
-        </div>
-      </div>
+      <!-- Coral header block: brand + profile, with a leaf-cluster
+           illustration bleeding behind it, per the botanical design system. -->
+      <div class="sidebar-coral-header">
+        <svg class="sidebar-leaf-cluster" viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M40 10 C90 0 140 30 130 80 C120 130 60 130 40 90 C25 60 15 20 40 10 Z" fill="var(--navy-dark)" opacity="0.55"/>
+          <path d="M160 -10 C220 -5 250 40 220 90 C195 130 140 120 135 75 C130 35 130 -5 160 -10 Z" fill="var(--mint-green)" opacity="0.5"/>
+          <path d="M200 60 C245 70 260 120 225 150 C195 175 155 150 165 115 C173 85 175 55 200 60 Z" fill="var(--coral-light)" opacity="0.55"/>
+          <path d="M10 100 C55 95 75 140 50 175 C28 205 -10 190 -5 150 C-2 125 -15 105 10 100 Z" fill="var(--navy-dark)" opacity="0.4"/>
+        </svg>
+        <span class="sidebar-blob" aria-hidden="true"></span>
 
-      <!-- User Profile Card -->
-      <div class="sidebar-user-card">
-        <div class="user-avatar-wrapper">
-          <div class="user-avatar" id="userAvatar">KR</div>
-          <span class="status-indicator"></span>
+        <!-- Brand Logo Header -->
+        <div class="sidebar-brand">
+          <div class="brand-logo">
+            <img src="favicon.svg" alt="DDC Logo" class="brand-logo-img">
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">DDC Logistics</span>
+            <span class="brand-tag">Enterprise v2.4</span>
+          </div>
         </div>
-        <div class="user-details">
-          <h4 id="userNameDisplay" class="user-name">Khayali Ram</h4>
-          <span id="userRoleBadge" class="role-pill">Employee</span>
+
+        <!-- User Profile Card -->
+        <div class="sidebar-user-card">
+          <div class="user-avatar-wrapper">
+            <div class="user-avatar" id="userAvatar">KR</div>
+            <span class="status-indicator"></span>
+          </div>
+          <div class="user-details">
+            <h4 id="userNameDisplay" class="user-name">Khayali Ram</h4>
+            <span id="userRoleBadge" class="role-pill">Employee</span>
+          </div>
         </div>
       </div>
 
@@ -170,6 +245,13 @@
           <span class="nav-label">System Settings</span>
         </a>
 
+        <a href="javascript:void(0)" id="installAppBtn" class="nav-item" style="display:none;" onclick="triggerPwaInstall()">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
+          </svg>
+          <span class="nav-label">Install App</span>
+        </a>
+
         <a href="javascript:void(0)" id="logoutBtn" class="nav-item logout">
           <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -183,6 +265,17 @@
     <main class="main-content">
       <section id="homeView" class="app-view active fade-in-up">
         <div class="punch-card-wrapper">
+          <!-- Botanical background decoration: leaf cluster + soft coral
+               circle blob, tucked behind the card corners per the design
+               system. Purely decorative - non-interactive, sits behind
+               all real content. -->
+          <svg class="punch-card-leaf-deco" viewBox="0 0 420 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M320 -20 C380 -15 410 30 380 75 C355 110 300 100 295 60 C290 25 290 -15 320 -20 Z" fill="var(--mint-green)" opacity="0.35"/>
+            <path d="M370 10 C420 20 430 65 400 95 C375 118 340 100 348 68 C355 40 350 5 370 10 Z" fill="var(--navy-dark)" opacity="0.25"/>
+            <path d="M20 140 C-25 150 -35 195 5 215 C35 232 70 210 60 178 C52 152 45 135 20 140 Z" fill="var(--coral-primary)" opacity="0.3"/>
+          </svg>
+          <span class="punch-card-blob" aria-hidden="true"></span>
+
           <div class="geofence-status-card">
             <div class="geofence-icon-badge" id="geofenceIcon">📍</div>
             <h3 id="geofenceTitle" class="status-heading">Checking Location...</h3>
@@ -193,7 +286,7 @@
             <div class="selfie-frame">
               <video id="webcam" autoplay playsinline style="display:none;"></video>
               <canvas id="canvas" style="display:none;"></canvas>
-              <img id="selfiePreview" src="https://via.placeholder.com/150" alt="Selfie Verification">
+              <img id="selfiePreview" src="default-avatar.svg" alt="Selfie Verification">
             </div>
             <button type="button" id="captureBtn" class="btn-action-outline">📷 Capture Selfie</button>
           </div>
@@ -201,6 +294,9 @@
           <button type="button" id="punchInBtn" class="btn-punch-action">
             <span id="punchBtnText">Punch In Now</span>
           </button>
+
+          <div id="shiftStatusBadge" class="shift-status-badge" style="display:none;"></div>
+          <button type="button" id="retryPhotoUploadBtn" class="btn-retry-photo" style="display:none;" onclick="retrySelfiePhotoAttach()">⚠️ Retry Photo Upload</button>
 
           <div class="stats-counter-grid">
             <div class="stat-card"><span class="stat-val" id="presentCount">0</span><span class="stat-lbl">Present</span></div>
@@ -242,5 +338,130 @@
   </div>
 
   <script src="app.js"></script>
+
+  <!-- PWA: service worker registration + install prompt + update detection -->
+  <script>
+    // Keep fixed headers/sidebars offset correctly below however many
+    // banners (PWA update, permission warning) are currently showing.
+    (function initBannerStackObserver() {
+      const stack = document.getElementById('topBannerStack');
+      if (!stack) return;
+      const applyHeight = () => {
+        document.documentElement.style.setProperty('--banners-h', stack.offsetHeight + 'px');
+      };
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(applyHeight).observe(stack);
+      } else {
+        // Fallback for older browsers without ResizeObserver support
+        window.addEventListener('resize', applyHeight);
+        setInterval(applyHeight, 1000);
+      }
+      applyHeight();
+    })();
+
+    let pwaWaitingWorker = null;
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').then((reg) => {
+
+          // Case 1: a new worker starts installing after this registration
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              // "installed" + an existing controller means this is an UPDATE,
+              // not the very first install on this device.
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                pwaWaitingWorker = newWorker;
+                showPwaUpdateBanner();
+              }
+            });
+          });
+
+          // Case 2: a waiting worker already exists from a previous visit
+          if (reg.waiting && navigator.serviceWorker.controller) {
+            pwaWaitingWorker = reg.waiting;
+            showPwaUpdateBanner();
+          }
+
+          // Actively check for a new version: on load, and every 30 minutes
+          // (useful since this is a long-lived single-page app).
+          reg.update();
+          setInterval(() => reg.update(), 30 * 60 * 1000);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') reg.update();
+          });
+
+        }).catch((err) => console.warn('Service worker registration failed:', err));
+
+        // Reload once the new worker takes control, so the fresh version loads.
+        let reloadedAfterUpdate = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (reloadedAfterUpdate) return;
+          reloadedAfterUpdate = true;
+          window.location.reload();
+        });
+      });
+    }
+
+    function showPwaUpdateBanner() {
+      const banner = document.getElementById('pwaUpdateBanner');
+      if (banner) banner.style.display = 'flex';
+    }
+
+    function applyPwaUpdate() {
+      if (pwaWaitingWorker) {
+        pwaWaitingWorker.postMessage({ type: 'SKIP_WAITING' });
+      }
+      const banner = document.getElementById('pwaUpdateBanner');
+      if (banner) banner.style.display = 'none';
+    }
+
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('installAppBtn');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    function triggerPwaInstall() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.finally(() => {
+          deferredInstallPrompt = null;
+          const btn = document.getElementById('installAppBtn');
+          if (btn) btn.style.display = 'none';
+        });
+        return;
+      }
+      // iOS Safari never fires beforeinstallprompt - there is no
+      // programmatic install API there, so give manual instructions
+      // instead of a button that would otherwise do nothing.
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS) {
+        alert("To install this app on iPhone: tap the Share button (square with an arrow) in Safari's toolbar, then choose 'Add to Home Screen'.");
+      }
+    }
+
+    // iOS gets no beforeinstallprompt event at all, so the Install button
+    // must be shown manually there (pointing to Share > Add to Home
+    // Screen) rather than staying hidden forever waiting for an event
+    // that will never fire.
+    (function showInstallButtonOnIOS() {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isStandalone = window.navigator.standalone === true;
+      if (isIOS && !isStandalone) {
+        const btn = document.getElementById('installAppBtn');
+        if (btn) btn.style.display = 'inline-flex';
+      }
+    })();
+
+    window.addEventListener('appinstalled', () => {
+      const btn = document.getElementById('installAppBtn');
+      if (btn) btn.style.display = 'none';
+    });
+  </script>
 </body>
 </html>

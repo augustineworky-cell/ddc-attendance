@@ -7,8 +7,8 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // DDC Safdarjung HQ Geofence Coordinates
-const OFFICE_LAT = 28.5633;
-const OFFICE_LNG = 77.1912;
+const OFFICE_LAT = 28.56616;
+const OFFICE_LNG = 77.19904;
 const OFFICE_RADIUS_M = 150; // 150-meter coverage radius
 
 // Aliases used by geofence-checking helpers
@@ -35,6 +35,11 @@ const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwiU8qhkQXeVv4
 // Global Application State
 let CURRENT_USER = null;
 let ATTENDANCE_SELFIE_BASE64 = null;
+// The current shift's own clock-in timestamp, used to compute each
+// employee's individual 9-hour shift-end (clockInTime + 9h) rather than a
+// fixed company-wide time. Set on a fresh clock-in, restored from
+// get_today_attendance on refresh/re-login, and cleared on clock-out.
+let CURRENT_SHIFT_CLOCK_IN_TIME = null;
 let locationPingTimer = null;
 let autoLogoutInterval = null;
 let liveMapInstance = null;
@@ -100,8 +105,104 @@ function getGpsPosition(timeoutMs = 10000) {
 }
 
 // ==========================================================================
-// SHIFT GUIDANCE BADGE
+// ESSENTIAL PERMISSIONS: LOCATION + CAMERA (PRIMING + PERSISTENT REMINDER)
 // ==========================================================================
+// Punch In/Out silently used to fail if a user had denied location or
+// camera access - they'd only find out mid-punch, after already trying to
+// take a selfie. This module actively asks for both permissions right
+// after login (so surprises happen once, upfront, not during a punch),
+// and re-checks every time the app is opened/foregrounded. iOS Safari is
+// known to reset permissions for installed home-screen PWAs more often
+// than Android Chrome, so this re-check-every-time behavior matters more
+// there, not less.
+const PERMISSION_STATE = { location: 'unknown', camera: 'unknown' };
+
+function hasEssentialPermissions() {
+  return PERMISSION_STATE.location !== 'denied' && PERMISSION_STATE.camera !== 'denied';
+}
+
+// Passive check via the Permissions API where supported - does NOT trigger
+// a prompt, just reads current OS/browser state. Safari's support for
+// querying 'camera' this way is inconsistent, so camera state may stay
+// 'unknown' here until primeEssentialPermissions() actually attempts it.
+async function refreshPermissionStates() {
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const locStatus = await navigator.permissions.query({ name: 'geolocation' });
+      PERMISSION_STATE.location = locStatus.state;
+      locStatus.onchange = () => {
+        PERMISSION_STATE.location = locStatus.state;
+        renderPermissionBanner();
+      };
+    } catch (e) { /* geolocation query unsupported in this browser */ }
+
+    try {
+      const camStatus = await navigator.permissions.query({ name: 'camera' });
+      PERMISSION_STATE.camera = camStatus.state;
+      camStatus.onchange = () => {
+        PERMISSION_STATE.camera = camStatus.state;
+        renderPermissionBanner();
+      };
+    } catch (e) { /* 'camera' permission name unsupported (notably older Safari) */ }
+  }
+  renderPermissionBanner();
+}
+
+// Actively triggers the native OS/browser permission dialogs. Call this
+// right after login - camera is opened for an instant purely to force the
+// prompt, then immediately stopped; nothing is recorded or shown to the
+// user during this priming step.
+async function primeEssentialPermissions() {
+  try {
+    await getGpsPosition(8000);
+    PERMISSION_STATE.location = 'granted';
+  } catch (e) {
+    PERMISSION_STATE.location = 'denied';
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    stream.getTracks().forEach((t) => t.stop());
+    PERMISSION_STATE.camera = 'granted';
+  } catch (e) {
+    PERMISSION_STATE.camera = 'denied';
+  }
+
+  renderPermissionBanner();
+}
+
+function renderPermissionBanner() {
+  const banner = document.getElementById('permissionBanner');
+  const textEl = document.getElementById('permissionBannerText');
+  if (!banner) return;
+
+  const missing = [];
+  if (PERMISSION_STATE.location === 'denied') missing.push('Location');
+  if (PERMISSION_STATE.camera === 'denied') missing.push('Camera');
+
+  if (missing.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  if (textEl) {
+    textEl.textContent = `${missing.join(' & ')} access is blocked - Punch In/Out will fail until you enable ${missing.length > 1 ? 'both' : 'it'}.`;
+  }
+  banner.style.display = 'flex';
+}
+
+// Bound to the banner's "Enable Now" button - re-triggers native prompts.
+// If the browser has already permanently blocked the permission (rather
+// than just not-yet-asked), the browser won't re-prompt; the banner text
+// then points the user to their browser/app site settings instead.
+async function retryEssentialPermissions() {
+  await primeEssentialPermissions();
+  if (!hasEssentialPermissions()) {
+    alert("Your browser has blocked this permanently. Please open your phone's Settings (or the browser's site settings for this app) and manually allow Location and Camera access for DDC Portal.");
+  }
+}
+
+
 // Shows the official shift window as subtext under the geofence status
 // card. Created dynamically since index.html doesn't ship a dedicated
 // element for it - safe to call repeatedly, it reuses the same node
@@ -163,8 +264,15 @@ async function callAPI(action, payload = {}) {
           p_lng: payload.gps.lng
         });
         if (error) throw error;
-        if (payload.gps.selfieBase64) {
-          await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockin');
+        // Only attach a selfie once the punch itself actually succeeded -
+        // uploading/attaching a photo against an OUT_OF_RANGE or
+        // ALREADY_CLOCKED_IN attempt would try to attach to an attendance
+        // row that was never created for today.
+        if (data && data.status === 'SUCCESS' && payload.gps.selfieBase64) {
+          const attached = await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockin');
+          // Surface this on the returned object rather than swallowing it -
+          // a failed attach must not be treated as if the selfie succeeded.
+          data._selfieAttached = attached;
         }
         return data;
       }
@@ -175,9 +283,11 @@ async function callAPI(action, payload = {}) {
           p_lng: payload.gps.lng
         });
         if (error) throw error;
-        // Await selfie upload to ensure DB update completes before proceeding
-        if (payload.gps && payload.gps.selfieBase64) {
-          await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockout');
+        // Same rule as clockIn: only attach the clock-out selfie once
+        // clock_out itself reports SUCCESS.
+        if (data && data.status === 'SUCCESS' && payload.gps && payload.gps.selfieBase64) {
+          const attached = await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockout');
+          data._selfieAttached = attached;
         }
         return data;
       }
@@ -420,9 +530,70 @@ async function uploadSelfie(employeeId, base64, eventType = 'clockin') {
   }
 }
 
-// ==========================================================================
-// UNIFIED SESSION / AUTHENTICATION MANAGER
-// ==========================================================================
+// Tracks a selfie that uploaded/attached successfully to Storage's bucket
+// path but whose RPC attach step failed (or the base64 the user needs to
+// retry with), so retrySelfiePhotoAttach() can re-attempt without forcing
+// the employee to punch in/out again - the punch itself already succeeded.
+let PENDING_SELFIE_RETRY = null; // { employeeId, base64, eventType } | null
+
+function renderSelfieRetryPrompt(employeeId, base64, eventType) {
+  PENDING_SELFIE_RETRY = { employeeId, base64, eventType };
+  const btn = document.getElementById('retryPhotoUploadBtn');
+  if (btn) {
+    btn.style.display = 'inline-flex';
+    btn.textContent = `⚠️ Retry ${eventType === 'clockout' ? 'Clock-Out' : 'Clock-In'} Photo Upload`;
+  }
+}
+
+async function retrySelfiePhotoAttach() {
+  if (!PENDING_SELFIE_RETRY) return;
+  const { employeeId, base64, eventType } = PENDING_SELFIE_RETRY;
+  const btn = document.getElementById('retryPhotoUploadBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Retrying...'; }
+
+  const attached = await uploadSelfie(employeeId, base64, eventType);
+
+  if (attached) {
+    PENDING_SELFIE_RETRY = null;
+    if (btn) btn.style.display = 'none';
+    alert("Photo uploaded successfully.");
+  } else {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = `⚠️ Retry ${eventType === 'clockout' ? 'Clock-Out' : 'Clock-In'} Photo Upload`;
+    }
+    alert("Photo upload failed again. Your Punch " + (eventType === 'clockout' ? 'Out' : 'In') + " time was still recorded correctly - only the photo is missing. Please try the retry button again, or contact admin if it keeps failing.");
+  }
+}
+
+// Shift-completion badge shown near the Punch button. Green when the
+// employee has completed the full 9-hour shift (measured from their own
+// clock-in, not a fixed company-wide time), amber otherwise. Used both
+// right after a clock-out (A.7) and when restoring today's status on
+// page load/refresh (B.2), so the indicator persists across refreshes.
+function renderShiftStatusBadge(shiftComplete, message) {
+  const badge = document.getElementById('shiftStatusBadge');
+  if (!badge) return;
+
+  badge.textContent = message;
+  badge.style.display = 'block';
+  if (shiftComplete) {
+    badge.style.background = 'rgba(71, 198, 176, 0.18)'; // mint-green tint
+    badge.style.color = '#1f7d6c';
+    badge.style.border = '1.5px solid #47C6B0';
+  } else {
+    badge.style.background = 'rgba(240, 198, 96, 0.2)'; // gold-yellow tint
+    badge.style.color = '#8a6d1f';
+    badge.style.border = '1.5px solid #F0C660';
+  }
+}
+
+function hideShiftStatusBadge() {
+  const badge = document.getElementById('shiftStatusBadge');
+  if (badge) badge.style.display = 'none';
+}
+
+
 // Everything related to "who is logged in" and "which screen is visible"
 // lives here, in one place, reading/writing SESSION_STORAGE_KEY only.
 // This replaces the previous split between applySessionAndRenderApp /
@@ -506,6 +677,13 @@ function applySessionAndRenderApp(user, persist) {
   // to trigger it - this is what previously left the status card stuck
   // on "Checking Location..." until the user manually navigated.
   checkGeofence();
+
+  // Proactively ask for Location + Camera access right after login/session
+  // restore, every single time the app opens - not just once ever. This is
+  // what surfaces the OS permission dialogs upfront (or the persistent
+  // warning banner if already denied) before the user ever reaches the
+  // Punch In button, instead of the punch quietly failing mid-attempt.
+  primeEssentialPermissions();
 
   // Sync the punch button state (Punch In vs Punch Out) against today's
   // actual attendance row immediately on login/session restore, so a
@@ -880,6 +1058,17 @@ async function handleClockIn() {
   const id = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : "";
   if (!id) return;
 
+  // Hard guard: don't let the punch attempt even start if we already know
+  // location or camera access is blocked. Without this, the failure only
+  // ever surfaced deep inside the try/catch below, after the user had
+  // already gone through capturing a selfie - wasted effort and a confusing
+  // late failure instead of a clear upfront one.
+  if (!hasEssentialPermissions()) {
+    renderPermissionBanner();
+    alert("Punch In needs both Location and Camera access. Please tap 'Enable Now' in the banner at the top of the screen, then try again.");
+    return;
+  }
+
   if (!ATTENDANCE_SELFIE_BASE64) {
     alert("Please capture verification selfie first.");
     highlightSelfieCaptureCard();
@@ -893,11 +1082,6 @@ async function handleClockIn() {
   // need to synthesize a #homeClockBtnLabel span that never exists in the
   // markup (that legacy fallback was overwriting the button's real content).
   const btnLabel = document.getElementById('punchBtnText');
-
-  // Late-punch check: flagged purely on IST wall-clock time, independent
-  // of whether the RPC call itself succeeds - the employee either was or
-  // wasn't late for the 11:00 AM shift start regardless of server response.
-  const isLatePunch = getISTMinutesNow() > SHIFT_LATE_CUTOFF_MINUTES;
 
   // UI Loading State
   btn.classList.add('loading');
@@ -922,19 +1106,40 @@ async function handleClockIn() {
     }
 
     if (data.status === 'SUCCESS') {
-      ATTENDANCE_SELFIE_BASE64 = null;
+      // Prefer the server's own determination of Present/Late over the
+      // wall-clock heuristic computed before we knew the response - the
+      // backend is the source of truth for attendance_status.
+      const serverIsLate = data.attendance_status === 'Late';
       startLocationPinging(id);
+
+      // Anchor this employee's own 9-hour shift-end to the moment they
+      // actually clocked in - this is what the early-departure guard in
+      // handleClockOut() checks against, instead of a fixed company time.
+      CURRENT_SHIFT_CLOCK_IN_TIME = new Date();
+
+      // Clear any leftover Shift Complete/Incomplete badge from a previous
+      // day's session - a fresh clock-in starts a new shift.
+      hideShiftStatusBadge();
 
       // Hide preview thumbnail
       const selfiePreview = document.getElementById('selfiePreview');
       if (selfiePreview) selfiePreview.style.display = 'none';
 
       // Show Full-Screen Overlay Animation
-      const lateSuffix = isLatePunch ? ' • (Late Punch)' : '';
+      const lateSuffix = serverIsLate ? ' • (Late Punch)' : '';
       showPunchSuccess(`Distance from HQ: ${Math.round(data.distance_m)} meters${lateSuffix}`);
       updateHomeUI(true);
-      renderPunchInSuccessCard(isLatePunch);
+      renderPunchInSuccessCard(serverIsLate);
       startAutoLogoutTimer(10);
+
+      // The photo attach step is tracked separately from the punch itself -
+      // don't let a failed attach silently pass as if the selfie was saved.
+      if (data._selfieAttached === false) {
+        renderSelfieRetryPrompt(id, ATTENDANCE_SELFIE_BASE64, 'clockin');
+        alert("Punch In was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
+      } else {
+        ATTENDANCE_SELFIE_BASE64 = null;
+      }
     } else if (data.status === 'OUT_OF_RANGE') {
       const distanceInfo = (data.distance_m !== undefined && data.distance_m !== null)
         ? ` You are approximately ${Math.round(data.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
@@ -942,6 +1147,8 @@ async function handleClockIn() {
       alert(`You're outside the office geofence.${distanceInfo} Please move within range of DDC Safdarjung HQ before punching in.`);
     } else if (data.status === 'ERROR') {
       alert(data.message || "Error clocking in. Please try again.");
+    } else if (data.status === 'ALREADY_CLOCKED_IN') {
+      alert("You have already clocked in today.");
     } else if (data.status === 'ALREADY_CLOCKED_OUT') {
       // Retained in case this status is ever reintroduced server-side;
       // not part of the current documented response set.
@@ -987,19 +1194,45 @@ async function handleClockOut() {
   const id = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : "";
   if (!id) return;
 
+  if (!hasEssentialPermissions()) {
+    renderPermissionBanner();
+    alert("Punch Out needs both Location and Camera access. Please tap 'Enable Now' in the banner at the top of the screen, then try again.");
+    return;
+  }
+
   if (!ATTENDANCE_SELFIE_BASE64) {
     alert("Please capture verification selfie before clocking out.");
     highlightSelfieCaptureCard();
     return;
   }
 
-  // Early-departure guard: shift runs until SHIFT_END_TIME (07:30 PM IST).
-  // Ask for confirmation before punching out ahead of that time; bail out
-  // entirely on cancel, before any button/loading state is touched.
-  if (getISTMinutesNow() < SHIFT_END_MINUTES) {
-    const confirmedEarlyOut = confirm(`Your shift ends at ${SHIFT_END_TIME}. Are you sure you want to clock out early?`);
-    if (!confirmedEarlyOut) return;
+  // Early-departure guard: each employee's shift is 9 hours measured from
+  // their OWN clock-in time, not a fixed company-wide clock time - someone
+  // who clocked in at 10:00, 10:30, or 11:00 all need their own 9 hours.
+  // This mirrors the same rule already enforced server-side (shift_complete/
+  // shift_message in the clock_out RPC response) so the confirmation
+  // dialog and the actual server outcome never disagree.
+  if (CURRENT_SHIFT_CLOCK_IN_TIME) {
+    const shiftEndForThisEmployee = new Date(CURRENT_SHIFT_CLOCK_IN_TIME.getTime() + 9 * 60 * 60 * 1000);
+    const isEarly = new Date() < shiftEndForThisEmployee;
+
+    if (isEarly) {
+      const remainingMs = shiftEndForThisEmployee - new Date();
+      const remainingMins = Math.max(0, Math.round(remainingMs / 60000));
+      const remainingH = Math.floor(remainingMins / 60);
+      const remainingM = remainingMins % 60;
+      const remainingStr = remainingH > 0 ? `${remainingH}h ${remainingM}m` : `${remainingM}m`;
+
+      const confirmedEarlyOut = confirm(
+        `You haven't completed your 9-hour shift yet (${remainingStr} remaining). Are you sure you want to clock out early?`
+      );
+      if (!confirmedEarlyOut) return;
+    }
   }
+  // If CURRENT_SHIFT_CLOCK_IN_TIME is somehow unknown (e.g. stale session
+  // state), skip the client-side confirmation entirely rather than guess -
+  // the clock_out RPC's own shift_complete/shift_message response remains
+  // the authoritative source of truth either way.
 
   const btn = document.getElementById('punchInBtn');
   if (!btn) return;
@@ -1025,8 +1258,8 @@ async function handleClockOut() {
     }
 
     if (res.status === 'SUCCESS') {
-      ATTENDANCE_SELFIE_BASE64 = null;
       stopLocationPinging();
+      CURRENT_SHIFT_CLOCK_IN_TIME = null;
 
       const selfiePreview = document.getElementById('selfiePreview');
       if (selfiePreview) selfiePreview.style.display = 'none';
@@ -1036,6 +1269,24 @@ async function handleClockOut() {
       // card state and calls updateHomeUI(false) itself.
       renderPunchOutSuccessCard(res.hours_worked);
       startAutoLogoutTimer(10);
+
+      // shift_message/shift_complete come straight from the clock_out RPC
+      // (e.g. "Shift Incomplete - only 6.25 of 9 hours completed." or
+      // "Shift Complete - 9 hours fulfilled.") - shown verbatim so the
+      // wording always matches whatever ops configures server-side.
+      if (res.shift_message) {
+        renderShiftStatusBadge(!!res.shift_complete, res.shift_message);
+      }
+
+      // Same rule as handleClockIn(): a failed photo attach must not be
+      // treated as if the selfie was saved, even though the punch itself
+      // already succeeded.
+      if (res._selfieAttached === false) {
+        renderSelfieRetryPrompt(id, ATTENDANCE_SELFIE_BASE64, 'clockout');
+        alert("Punch Out was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
+      } else {
+        ATTENDANCE_SELFIE_BASE64 = null;
+      }
 
       // --- GOOGLE SHEETS SYNC (PUNCH OUT) ---
       syncToGoogleSheets({
@@ -1047,10 +1298,11 @@ async function handleClockOut() {
       });
 
     } else if (res.status === 'OUT_OF_RANGE') {
-      const distanceInfo = (res.distance_m !== undefined && res.distance_m !== null)
-        ? ` You are approximately ${Math.round(res.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
-        : '';
-      alert(`You're outside the office geofence.${distanceInfo} Please move within range of DDC Safdarjung HQ before punching out.`);
+      // Use the server's own wording verbatim - this is deliberately a
+      // different, more specific message than clock-in's generic
+      // out-of-geofence alert, since ops wants employees to see the exact
+      // clock-out phrasing (it explains the 9-hour shift consequence too).
+      alert(res.message || `You're outside the office geofence. Please move within range of DDC Safdarjung HQ before punching out.`);
     } else if (res.status === 'NO_CLOCK_IN') {
       alert("You haven't clocked in yet today. Please clock in before attempting to clock out.");
     } else if (res.status === 'ALREADY_CLOCKED_OUT') {
@@ -1202,24 +1454,24 @@ function renderPunchInSuccessCard(isLate = false) {
 
   if (titleEl) {
     titleEl.textContent = 'PUNCH IN SUCCESSFUL!';
-    titleEl.style.color = '#15803d';
+    titleEl.style.color = '#8FE3D3'; // mint accent, readable on the navy card
   }
   if (subtitleEl) {
     // Subtle late-punch flag: same layout, just an appended note and a
-    // warm amber tint instead of the default muted gray.
+    // warm gold tint instead of the default translucent white.
     subtitleEl.textContent = isLate
       ? `Clocked in at ${timeStr} today (Late Punch)`
       : `Clocked in at ${timeStr} today`;
-    subtitleEl.style.color = isLate ? '#b45309' : '';
+    subtitleEl.style.color = isLate ? '#F0C660' : '';
   }
   if (iconEl) iconEl.textContent = '✅';
 
   // Bounce the surrounding card - .geofence-status-card is the actual
   // wrapper class, there's no separate #homeStatusCard/#geofenceCard ID.
+  // Background intentionally left as the navy gradient from styles.css -
+  // only the accent text colors change between punch-in/punch-out states.
   const statusCard = titleEl ? titleEl.closest('.geofence-status-card') : null;
   if (statusCard) {
-    statusCard.style.background = '#f0fdf4';
-    statusCard.style.borderColor = '#bbf7d0';
     statusCard.classList.add('success-bounce');
     setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
   }
@@ -1229,7 +1481,7 @@ function renderPunchInSuccessCard(isLate = false) {
   const btn = document.getElementById('punchInBtn');
   const btnLabel = document.getElementById('punchBtnText');
   if (btn) {
-    btn.style.background = 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)';
+    btn.style.background = 'linear-gradient(135deg, #47C6B0 0%, #6dd6c4 100%)';
     btn.style.border = 'none';
   }
   if (btnLabel) btnLabel.innerText = '✓ CLOCKED IN TODAY';
@@ -1259,7 +1511,7 @@ function renderPunchOutSuccessCard(hoursWorked) {
 
   if (titleEl) {
     titleEl.textContent = 'PUNCH OUT SUCCESSFUL!';
-    titleEl.style.color = '#dc2626';
+    titleEl.style.color = '#F5B8A8'; // coral-light accent, readable on the navy card
   }
   if (subtitleEl) {
     subtitleEl.textContent = `Clocked out at ${timeStr} today (${hoursWorked} hrs worked)`;
@@ -1269,10 +1521,8 @@ function renderPunchOutSuccessCard(hoursWorked) {
 
   const statusCard = titleEl ? titleEl.closest('.geofence-status-card') : null;
   if (statusCard) {
-    // Red card treatment, replacing any green background left by
-    // renderPunchInSuccessCard() earlier in the same shift.
-    statusCard.style.background = '#fef2f2';
-    statusCard.style.borderColor = '#fecaca';
+    // Background intentionally stays the navy gradient from styles.css -
+    // only the accent title color distinguishes punch-out from punch-in.
     statusCard.classList.add('success-bounce');
     setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
   }
@@ -1393,11 +1643,12 @@ function switchSection(sectionId, el) {
 // SAAS SIDEBAR & MOBILE DRAWER NAVIGATION
 // ==========================================================================
 function initNavigation() {
-  const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-view]');
+  const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-view], .bottom-nav .bottom-nav-item[data-view]');
   const appViews = document.querySelectorAll('.app-view');
   const sidebar = document.getElementById('sidebar');
   const backdrop = document.getElementById('sidebarBackdrop');
   const menuToggleBtn = document.getElementById('menuToggleBtn');
+  const bottomMoreBtn = document.getElementById('bottomMoreBtn');
 
   navItems.forEach(item => {
     item.addEventListener('click', (e) => {
@@ -1405,8 +1656,11 @@ function initNavigation() {
       const targetViewId = item.getAttribute('data-view');
       if (!targetViewId) return;
 
-      navItems.forEach(nav => nav.classList.remove('active'));
-      item.classList.add('active');
+      // Keep the sidebar and the bottom nav in sync: whichever one was
+      // clicked, mirror the active state across BOTH navigation surfaces.
+      navItems.forEach(nav => {
+        nav.classList.toggle('active', nav.getAttribute('data-view') === targetViewId);
+      });
 
       appViews.forEach(view => {
         if (view.id === targetViewId) {
@@ -1445,6 +1699,16 @@ function initNavigation() {
     });
   }
 
+  // "More" tab in the mobile bottom nav opens the same drawer used by the
+  // hamburger button, so overflow items (Analytics, Payroll, GPS Map,
+  // Settings, Sign Out) stay reachable without crowding the bottom bar.
+  if (bottomMoreBtn) {
+    bottomMoreBtn.addEventListener('click', () => {
+      if (sidebar) sidebar.classList.toggle('open');
+      if (backdrop) backdrop.classList.toggle('active');
+    });
+  }
+
   if (backdrop) {
     backdrop.addEventListener('click', () => {
       if (sidebar) sidebar.classList.remove('open');
@@ -1472,12 +1736,32 @@ async function checkTodayAttendanceStatus() {
 
     if (row && row.clock_in_time && row.clock_out_time) {
       // State C: Shift completed today
+      CURRENT_SHIFT_CLOCK_IN_TIME = null;
       renderPunchOutSuccessCard(row.hours_worked ?? '--');
+
+      // Persist the same Shift Complete/Incomplete indicator shown right
+      // after clocking out (A.7) across page refreshes and re-logins too -
+      // get_today_attendance only returns hours_worked, not the RPC's own
+      // shift_message string, so the wording is reconstructed client-side
+      // in the same style the backend uses.
+      if (typeof row.hours_worked === 'number') {
+        const shiftComplete = row.hours_worked >= 9;
+        const message = shiftComplete
+          ? `Shift Complete - ${row.hours_worked} hours fulfilled.`
+          : `Shift Incomplete - only ${row.hours_worked} of 9 hours completed.`;
+        renderShiftStatusBadge(shiftComplete, message);
+      }
     } else if (row && row.clock_in_time && !row.clock_out_time) {
-      // State B: Currently clocked in
+      // State B: Currently clocked in - restore the shift's own clock-in
+      // time so the early-departure guard works correctly after a page
+      // refresh or re-login, not just within the same session as the punch.
+      CURRENT_SHIFT_CLOCK_IN_TIME = new Date(row.clock_in_time);
+      hideShiftStatusBadge();
       updateHomeUI(true);
     } else {
       // State A: Not clocked in yet
+      CURRENT_SHIFT_CLOCK_IN_TIME = null;
+      hideShiftStatusBadge();
       updateHomeUI(false);
     }
   } catch (e) {
@@ -1498,7 +1782,7 @@ function updateHomeUI(isClockedIn, isCompleted = false) {
     if (btn) {
       btn.onclick = null;
       btn.disabled = true;
-      btn.style.background = 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)';
+      btn.style.background = 'linear-gradient(135deg, #9B96B5 0%, #7B6FA8 100%)';
       btn.style.border = 'none';
       btn.style.cursor = 'not-allowed';
       btn.style.opacity = '0.75';
@@ -1521,7 +1805,7 @@ function updateHomeUI(isClockedIn, isCompleted = false) {
   if (isClockedIn) {
     if (btn) {
       btn.onclick = handleClockOut;
-      btn.style.background = 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'; // Red button
+      btn.style.background = 'linear-gradient(135deg, #2E2A5C 0%, #423d78 100%)'; // Navy "ready to clock out" state
       btn.style.border = 'none';
     }
     if (btnLabel) {
@@ -2194,6 +2478,16 @@ function initApp() {
 
   // Official shift-timing subtext under the geofence card
   renderShiftGuidanceBadge();
+
+  // iOS Safari is known to reset camera/location permissions for installed
+  // home-screen PWAs more aggressively than Android Chrome - re-verifying
+  // every time the app regains focus (not just once at login) is what
+  // catches that case before the user hits Punch In/Out and it fails.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && CURRENT_USER) {
+      refreshPermissionStates();
+    }
+  });
 
   // Restore a previously active session (or show the login screen) - the
   // one and only place session state is read on page load.
