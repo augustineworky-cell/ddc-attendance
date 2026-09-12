@@ -76,23 +76,42 @@
 
   <!-- Hides the loading splash - deliberately standalone and NOT dependent
        on app.js or the Supabase SDK finishing, so it can never get stuck
-       waiting on something else. Runs immediately (no defer). -->
+       waiting on something else. Runs immediately (no defer).
+
+       This is a punch in/out utility opened many times a day, so the full
+       3s animation only forces a wait on a "fresh" open (first open, or
+       after a several-hour gap) - not on every single launch. Someone
+       punching out a few hours after punching in that same day gets an
+       instant app, not a repeated forced wait. -->
   <script>
     (function () {
-      var MIN_SPLASH_MS = 3000; // show the food-rain animation for at least 3s
+      var MIN_SPLASH_MS = 3000; // full animation length on a fresh open
       var SAFETY_NET_MS = 8000; // never block the app forever
+      var SKIP_THRESHOLD_MS = 6 * 60 * 60 * 1000; // 6 hours
+      var STORAGE_KEY = 'staffly_last_splash_shown';
       var start = Date.now();
       var hidden = false;
+
+      var lastShown = 0;
+      try { lastShown = parseInt(localStorage.getItem(STORAGE_KEY), 10) || 0; } catch (e) {}
+      var isFreshOpen = (Date.now() - lastShown) >= SKIP_THRESHOLD_MS;
+
+      if (isFreshOpen) {
+        try { localStorage.setItem(STORAGE_KEY, String(Date.now())); } catch (e) {}
+      }
 
       function hideSplash() {
         if (hidden) return;
         hidden = true;
         var el = document.getElementById('appLoadingSplash');
         if (!el) return;
-        var wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - start));
+        // Fresh open: hold for the full animation. Repeat open within the
+        // same session window: no artificial wait, just hide as soon as
+        // the page is actually ready.
+        var wait = isFreshOpen ? Math.max(0, MIN_SPLASH_MS - (Date.now() - start)) : 0;
         setTimeout(function () {
           el.classList.add('splash-hidden');
-          setTimeout(function () { el.remove(); }, 500);
+          setTimeout(function () { el.remove(); }, isFreshOpen ? 500 : 0);
         }, wait);
       }
 
