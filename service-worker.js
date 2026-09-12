@@ -2,7 +2,7 @@
 // Caches only the static app shell. Never caches Supabase / API / geolocation
 // data, so attendance punches and geofence checks always hit the network live.
 
-const CACHE_NAME = 'ddc-attendance-shell-v7';
+const CACHE_NAME = 'ddc-attendance-shell-v8';
 
 const SHELL_ASSETS = [
   '/',

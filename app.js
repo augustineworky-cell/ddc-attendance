@@ -578,13 +578,13 @@ function renderShiftStatusBadge(shiftComplete, message) {
   badge.textContent = message;
   badge.style.display = 'block';
   if (shiftComplete) {
-    badge.style.background = '#f0fdf4';
-    badge.style.color = '#15803d';
-    badge.style.border = '1px solid #bbf7d0';
+    badge.style.background = 'rgba(71, 198, 176, 0.18)'; // mint-green tint
+    badge.style.color = '#1f7d6c';
+    badge.style.border = '1.5px solid #47C6B0';
   } else {
-    badge.style.background = '#fffbeb';
-    badge.style.color = '#b45309';
-    badge.style.border = '1px solid #fde68a';
+    badge.style.background = 'rgba(240, 198, 96, 0.2)'; // gold-yellow tint
+    badge.style.color = '#8a6d1f';
+    badge.style.border = '1.5px solid #F0C660';
   }
 }
 
@@ -1454,24 +1454,24 @@ function renderPunchInSuccessCard(isLate = false) {
 
   if (titleEl) {
     titleEl.textContent = 'PUNCH IN SUCCESSFUL!';
-    titleEl.style.color = '#15803d';
+    titleEl.style.color = '#8FE3D3'; // mint accent, readable on the navy card
   }
   if (subtitleEl) {
     // Subtle late-punch flag: same layout, just an appended note and a
-    // warm amber tint instead of the default muted gray.
+    // warm gold tint instead of the default translucent white.
     subtitleEl.textContent = isLate
       ? `Clocked in at ${timeStr} today (Late Punch)`
       : `Clocked in at ${timeStr} today`;
-    subtitleEl.style.color = isLate ? '#b45309' : '';
+    subtitleEl.style.color = isLate ? '#F0C660' : '';
   }
   if (iconEl) iconEl.textContent = '✅';
 
   // Bounce the surrounding card - .geofence-status-card is the actual
   // wrapper class, there's no separate #homeStatusCard/#geofenceCard ID.
+  // Background intentionally left as the navy gradient from styles.css -
+  // only the accent text colors change between punch-in/punch-out states.
   const statusCard = titleEl ? titleEl.closest('.geofence-status-card') : null;
   if (statusCard) {
-    statusCard.style.background = '#f0fdf4';
-    statusCard.style.borderColor = '#bbf7d0';
     statusCard.classList.add('success-bounce');
     setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
   }
@@ -1481,7 +1481,7 @@ function renderPunchInSuccessCard(isLate = false) {
   const btn = document.getElementById('punchInBtn');
   const btnLabel = document.getElementById('punchBtnText');
   if (btn) {
-    btn.style.background = 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)';
+    btn.style.background = 'linear-gradient(135deg, #47C6B0 0%, #6dd6c4 100%)';
     btn.style.border = 'none';
   }
   if (btnLabel) btnLabel.innerText = '✓ CLOCKED IN TODAY';
@@ -1511,7 +1511,7 @@ function renderPunchOutSuccessCard(hoursWorked) {
 
   if (titleEl) {
     titleEl.textContent = 'PUNCH OUT SUCCESSFUL!';
-    titleEl.style.color = '#dc2626';
+    titleEl.style.color = '#F5B8A8'; // coral-light accent, readable on the navy card
   }
   if (subtitleEl) {
     subtitleEl.textContent = `Clocked out at ${timeStr} today (${hoursWorked} hrs worked)`;
@@ -1521,10 +1521,8 @@ function renderPunchOutSuccessCard(hoursWorked) {
 
   const statusCard = titleEl ? titleEl.closest('.geofence-status-card') : null;
   if (statusCard) {
-    // Red card treatment, replacing any green background left by
-    // renderPunchInSuccessCard() earlier in the same shift.
-    statusCard.style.background = '#fef2f2';
-    statusCard.style.borderColor = '#fecaca';
+    // Background intentionally stays the navy gradient from styles.css -
+    // only the accent title color distinguishes punch-out from punch-in.
     statusCard.classList.add('success-bounce');
     setTimeout(() => statusCard.classList.remove('success-bounce'), 500);
   }
@@ -1784,7 +1782,7 @@ function updateHomeUI(isClockedIn, isCompleted = false) {
     if (btn) {
       btn.onclick = null;
       btn.disabled = true;
-      btn.style.background = 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)';
+      btn.style.background = 'linear-gradient(135deg, #9B96B5 0%, #7B6FA8 100%)';
       btn.style.border = 'none';
       btn.style.cursor = 'not-allowed';
       btn.style.opacity = '0.75';
@@ -1807,7 +1805,7 @@ function updateHomeUI(isClockedIn, isCompleted = false) {
   if (isClockedIn) {
     if (btn) {
       btn.onclick = handleClockOut;
-      btn.style.background = 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'; // Red button
+      btn.style.background = 'linear-gradient(135deg, #2E2A5C 0%, #423d78 100%)'; // Navy "ready to clock out" state
       btn.style.border = 'none';
     }
     if (btnLabel) {

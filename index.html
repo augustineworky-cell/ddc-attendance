@@ -145,26 +145,38 @@
     <!-- MODERN SAAS SIDEBAR -->
     <aside id="sidebar" class="sidebar">
 
-      <!-- Brand Logo Header -->
-      <div class="sidebar-brand">
-        <div class="brand-logo">
-          <img src="favicon.svg" alt="DDC Logo" class="brand-logo-img">
-        </div>
-        <div class="brand-text">
-          <span class="brand-name">DDC Logistics</span>
-          <span class="brand-tag">Enterprise v2.4</span>
-        </div>
-      </div>
+      <!-- Coral header block: brand + profile, with a leaf-cluster
+           illustration bleeding behind it, per the botanical design system. -->
+      <div class="sidebar-coral-header">
+        <svg class="sidebar-leaf-cluster" viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M40 10 C90 0 140 30 130 80 C120 130 60 130 40 90 C25 60 15 20 40 10 Z" fill="var(--navy-dark)" opacity="0.55"/>
+          <path d="M160 -10 C220 -5 250 40 220 90 C195 130 140 120 135 75 C130 35 130 -5 160 -10 Z" fill="var(--mint-green)" opacity="0.5"/>
+          <path d="M200 60 C245 70 260 120 225 150 C195 175 155 150 165 115 C173 85 175 55 200 60 Z" fill="var(--coral-light)" opacity="0.55"/>
+          <path d="M10 100 C55 95 75 140 50 175 C28 205 -10 190 -5 150 C-2 125 -15 105 10 100 Z" fill="var(--navy-dark)" opacity="0.4"/>
+        </svg>
+        <span class="sidebar-blob" aria-hidden="true"></span>
 
-      <!-- User Profile Card -->
-      <div class="sidebar-user-card">
-        <div class="user-avatar-wrapper">
-          <div class="user-avatar" id="userAvatar">KR</div>
-          <span class="status-indicator"></span>
+        <!-- Brand Logo Header -->
+        <div class="sidebar-brand">
+          <div class="brand-logo">
+            <img src="favicon.svg" alt="DDC Logo" class="brand-logo-img">
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">DDC Logistics</span>
+            <span class="brand-tag">Enterprise v2.4</span>
+          </div>
         </div>
-        <div class="user-details">
-          <h4 id="userNameDisplay" class="user-name">Khayali Ram</h4>
-          <span id="userRoleBadge" class="role-pill">Employee</span>
+
+        <!-- User Profile Card -->
+        <div class="sidebar-user-card">
+          <div class="user-avatar-wrapper">
+            <div class="user-avatar" id="userAvatar">KR</div>
+            <span class="status-indicator"></span>
+          </div>
+          <div class="user-details">
+            <h4 id="userNameDisplay" class="user-name">Khayali Ram</h4>
+            <span id="userRoleBadge" class="role-pill">Employee</span>
+          </div>
         </div>
       </div>
 
@@ -253,31 +265,16 @@
     <main class="main-content">
       <section id="homeView" class="app-view active fade-in-up">
         <div class="punch-card-wrapper">
-          <div class="corner-deco corner-deco-tl" aria-hidden="true">
-            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 50 L32 8 L56 50 Q32 60 8 50 Z" fill="#FDE68A" stroke="#D4AF37" stroke-width="2" stroke-linejoin="round"/>
-              <circle cx="26" cy="38" r="3" fill="#D4AF37"/>
-              <circle cx="37" cy="42" r="3" fill="#D4AF37"/>
-              <circle cx="31" cy="28" r="3" fill="#D4AF37"/>
-            </svg>
-          </div>
-          <div class="corner-deco corner-deco-tr" aria-hidden="true">
-            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="32" cy="20" r="16" fill="#FDE68A" stroke="#D4AF37" stroke-width="2"/>
-              <path d="M20 30 L32 58 L44 30 Z" fill="#FDE68A" stroke="#D4AF37" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="corner-deco corner-deco-bl" aria-hidden="true">
-            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 34 Q12 54 32 54 Q52 54 52 34 Q52 20 44 16 Q40 26 32 16 Q24 26 20 16 Q12 20 12 34Z" fill="#FDE68A" stroke="#D4AF37" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="corner-deco corner-deco-br" aria-hidden="true">
-            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="32" cy="30" r="20" fill="#FDE68A" stroke="#D4AF37" stroke-width="2"/>
-              <circle cx="32" cy="30" r="8" fill="#ffffff"/>
-            </svg>
-          </div>
+          <!-- Botanical background decoration: leaf cluster + soft coral
+               circle blob, tucked behind the card corners per the design
+               system. Purely decorative - non-interactive, sits behind
+               all real content. -->
+          <svg class="punch-card-leaf-deco" viewBox="0 0 420 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M320 -20 C380 -15 410 30 380 75 C355 110 300 100 295 60 C290 25 290 -15 320 -20 Z" fill="var(--mint-green)" opacity="0.35"/>
+            <path d="M370 10 C420 20 430 65 400 95 C375 118 340 100 348 68 C355 40 350 5 370 10 Z" fill="var(--navy-dark)" opacity="0.25"/>
+            <path d="M20 140 C-25 150 -35 195 5 215 C35 232 70 210 60 178 C52 152 45 135 20 140 Z" fill="var(--coral-primary)" opacity="0.3"/>
+          </svg>
+          <span class="punch-card-blob" aria-hidden="true"></span>
 
           <div class="geofence-status-card">
             <div class="geofence-icon-badge" id="geofenceIcon">📍</div>
