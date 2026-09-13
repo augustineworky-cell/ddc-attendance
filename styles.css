@@ -1564,19 +1564,47 @@ body::before {
 }
 
 /* ==================== LIQUID GLASS TOUCH/CURSOR EFFECT ====================
-   A specular highlight that follows the touch point or cursor, plus a soft
-   squish+glow reaction on press - applied app-wide via a single delegated
-   script (see index.html) rather than per-element markup. Uses a ::after
-   pseudo-element with border-radius:inherit, so it automatically respects
-   whatever shape the target has (pill button, rounded card, circle) without
-   needing overflow:hidden - which matters because several cards (the punch
-   card, sidebar header, login banner) rely on overflow:visible for their
-   leaf/blob decorations to bleed past their corners. This never touches
-   that property, so it's safe to apply everywhere. */
+   True glass, not just a glow: a refractive/blurred ::before surface layer
+   (warps whatever's behind it via the SVG feDisplacementMap filter defined
+   in index.html, with realistic rim lighting via inset box-shadows) plus a
+   moving specular hotspot ::after layer that tracks the finger/cursor.
+   Both are independent pseudo-elements with their OWN transform/transition
+   properties - deliberately never touching the parent element's own
+   transform/transition, since several targets (.punch-card-wrapper,
+   .stat-card, nav items, etc.) already have carefully-tuned squish/hover
+   animations from earlier work that a clobbered `transition` shorthand
+   would silently break. border-radius:inherit means both layers
+   automatically match pill buttons, rounded cards, or circles without
+   needing overflow:hidden - which matters since some cards rely on
+   overflow:visible for their leaf/blob decorations to bleed past corners. */
 .liquid-glass-target {
   position: relative;
 }
 
+/* Glass surface: refraction + blur + rim light, hidden until interacted
+   with (an always-on glass layer over every button would be visually
+   noisy at rest - Apple's own Liquid Glass mostly shows this on touch). */
+.liquid-glass-target::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: url(#liquidGlassDistort) blur(7px) saturate(180%);
+  -webkit-backdrop-filter: blur(7px) saturate(180%); /* Safari fallback: plain blur, no warp */
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 3px rgba(46, 42, 92, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  opacity: 0;
+  transform: scale(1);
+  transition: opacity 0.3s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Moving specular hotspot - the brightest point of "caught light" that
+   follows the exact finger/cursor position. */
 .liquid-glass-target::after {
   content: '';
   position: absolute;
@@ -1584,9 +1612,9 @@ body::before {
   border-radius: inherit;
   background: radial-gradient(
     circle at var(--lg-x, 50%) var(--lg-y, 50%),
-    rgba(255, 255, 255, 0.65) 0%,
-    rgba(255, 255, 255, 0.25) 30%,
-    rgba(255, 255, 255, 0) 62%
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0.35) 25%,
+    rgba(255, 255, 255, 0) 58%
   );
   opacity: 0;
   pointer-events: none;
@@ -1598,19 +1626,31 @@ body::before {
    the "glass catching light" feel. Touch devices skip this (no persistent
    pointer position) and only get the press burst below. */
 @media (hover: hover) {
+  .liquid-glass-target.lg-hovering::before {
+    opacity: 1;
+  }
   .liquid-glass-target.lg-hovering::after {
-    opacity: 0.22;
+    opacity: 0.3;
     transition: opacity 0.25s ease;
   }
 }
 
-/* Press burst: a pure additive glow overlay - deliberately does NOT touch
-   transform/filter on the parent element itself, since several targets
-   (.punch-card-wrapper, .stat-card, nav items, etc.) already have their
-   own carefully-tuned squish/hover transitions from earlier work, and the
-   `transition` shorthand fully replaces rather than merges when redeclared.
-   Each element's existing :active rule already provides its own squish;
-   this only adds the specular highlight on top of that, independently. */
+/* Press burst: the glass compresses slightly (via ::before's OWN transform,
+   never the parent's) and both layers intensify, plus a soft coral rim
+   glow echoing the app's own palette instead of a generic white ring. */
+.liquid-glass-target.lg-pressed::before {
+  opacity: 1;
+  transform: scale(0.94);
+  backdrop-filter: url(#liquidGlassDistort) blur(4px) saturate(220%);
+  -webkit-backdrop-filter: blur(4px) saturate(220%);
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.8),
+    inset 0 -1.5px 3px rgba(46, 42, 92, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 0 14px rgba(238, 132, 120, 0.35);
+  transition: opacity 0.06s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.06s ease;
+}
+
 .liquid-glass-target.lg-pressed::after {
   opacity: 0.85;
   transition: opacity 0.06s ease;
