@@ -2461,6 +2461,12 @@ async function handleCaptureSelfie() {
 // 'liquid-glass-target' class (and thus the ::after glow layer defined in
 // styles.css) to any matched element the first time it's interacted with.
 function initLiquidGlassEffect() {
+  // Deliberately limited to small, discrete tap targets - NOT whole card
+  // containers like .login-card/.punch-card-wrapper/.geofence-status-card.
+  // Those are large, text-heavy areas; the glass surface covers a target's
+  // ENTIRE bounding box, so applying it to a whole card meant the frost
+  // sat over all the readable content inside it for as long as the mouse
+  // merely hovered anywhere on the card - not just an actual tap target.
   const LG_SELECTOR = [
     'button',
     '.nav-item',
@@ -2471,14 +2477,11 @@ function initLiquidGlassEffect() {
     '.btn-primary-mobile',
     '.btn-retry-photo',
     '.selfie-frame',
-    '.login-card',
-    '.geofence-status-card',
     '.badge-pill',
     '.mobile-user-avatar',
     '.menu-toggle-btn',
     '.pwa-update-btn',
-    '.permission-banner-btn',
-    '.punch-card-wrapper'
+    '.permission-banner-btn'
   ].join(', ');
 
   function setPointerVars(target, clientX, clientY) {

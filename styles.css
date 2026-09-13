@@ -1579,11 +1579,19 @@ body::before {
    overflow:visible for their leaf/blob decorations to bleed past corners. */
 .liquid-glass-target {
   position: relative;
+  isolation: isolate; /* contains the ::before's negative z-index locally,
+    so the frost layer can't escape and paint behind unrelated ancestors */
 }
 
 /* Glass surface: refraction + blur + rim light, hidden until interacted
    with (an always-on glass layer over every button would be visually
-   noisy at rest - Apple's own Liquid Glass mostly shows this on touch). */
+   noisy at rest - Apple's own Liquid Glass mostly shows this on touch).
+   z-index: -1 is deliberate and load-bearing: it keeps this frost layer
+   BEHIND the button's own text/icon content (which paints at the default
+   z-index:auto tier, above negative-z descendants per the CSS stacking
+   spec) while still rendering ON TOP of the button's own background color
+   (which paints even further back). Without this, the frost sat above
+   button labels and made them unreadable while hovering/pressing. */
 .liquid-glass-target::before {
   content: '';
   position: absolute;
@@ -1599,7 +1607,7 @@ body::before {
   opacity: 0;
   transform: scale(1);
   transition: opacity 0.3s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 2;
+  z-index: -1;
   pointer-events: none;
 }
 
@@ -1630,7 +1638,7 @@ body::before {
     opacity: 1;
   }
   .liquid-glass-target.lg-hovering::after {
-    opacity: 0.3;
+    opacity: 0.22;
     transition: opacity 0.25s ease;
   }
 }
@@ -1652,6 +1660,6 @@ body::before {
 }
 
 .liquid-glass-target.lg-pressed::after {
-  opacity: 0.85;
+  opacity: 0.5;
   transition: opacity 0.06s ease;
 }
