@@ -922,7 +922,7 @@ async function patternHandleComplete() {
   patternIsBusy = false;
 
   if (result && result.success) {
-    showQuickToast(`Welcome, ${result.employeeName}!`);
+    showQuickToast(result.employeeName);
     // No resetPatternLock() call needed here - applySessionAndRenderApp()
     // (inside handlePatternLogin) already switches away from the login
     // view entirely, so the grid isn't visible again until next logout.
@@ -944,25 +944,34 @@ async function patternHandleComplete() {
   }
 }
 
-// A quick, non-blocking welcome toast instead of a native alert() - this
-// screen is shown many times a day (auto-logout fires 5s after every
-// punch), and a blocking dialog requiring a manual dismiss on every single
-// login would work directly against the stated "as fast as possible" goal.
-function showQuickToast(message) {
+// A prominent, non-blocking welcome card instead of a tiny toast or a
+// native alert() - this screen is shown many times a day (auto-logout
+// fires 5s after every punch), so it still auto-dismisses on its own and
+// never blocks navigation to Home, but the name itself needs to actually
+// be readable at a glance, not squint-sized.
+function showQuickToast(employeeName) {
   const existing = document.getElementById('quickToast');
   if (existing) existing.remove();
+
+  const initial = employeeName ? employeeName.charAt(0).toUpperCase() : '?';
 
   const toast = document.createElement('div');
   toast.id = 'quickToast';
   toast.className = 'quick-toast';
-  toast.textContent = message;
+  toast.innerHTML = `
+    <div class="quick-toast-avatar">${initial}</div>
+    <div class="quick-toast-text">
+      <span class="quick-toast-label">Welcome back</span>
+      <span class="quick-toast-name">${employeeName}</span>
+    </div>
+  `;
   document.body.appendChild(toast);
 
   requestAnimationFrame(() => toast.classList.add('quick-toast-visible'));
   setTimeout(() => {
     toast.classList.remove('quick-toast-visible');
     setTimeout(() => toast.remove(), 300);
-  }, 1500);
+  }, 2200);
 }
 
 // Sets up the pattern grid's pointer handling exactly once. Uses a single
