@@ -1562,3 +1562,56 @@ body::before {
   font-weight: 500;
   color: var(--text-muted, #9B96B5);
 }
+
+/* ==================== LIQUID GLASS TOUCH/CURSOR EFFECT ====================
+   A specular highlight that follows the touch point or cursor, plus a soft
+   squish+glow reaction on press - applied app-wide via a single delegated
+   script (see index.html) rather than per-element markup. Uses a ::after
+   pseudo-element with border-radius:inherit, so it automatically respects
+   whatever shape the target has (pill button, rounded card, circle) without
+   needing overflow:hidden - which matters because several cards (the punch
+   card, sidebar header, login banner) rely on overflow:visible for their
+   leaf/blob decorations to bleed past their corners. This never touches
+   that property, so it's safe to apply everywhere. */
+.liquid-glass-target {
+  position: relative;
+}
+
+.liquid-glass-target::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--lg-x, 50%) var(--lg-y, 50%),
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.25) 30%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity 0.5s ease;
+}
+
+/* Continuous soft glow tracking the cursor on hover-capable devices only -
+   the "glass catching light" feel. Touch devices skip this (no persistent
+   pointer position) and only get the press burst below. */
+@media (hover: hover) {
+  .liquid-glass-target.lg-hovering::after {
+    opacity: 0.22;
+    transition: opacity 0.25s ease;
+  }
+}
+
+/* Press burst: a pure additive glow overlay - deliberately does NOT touch
+   transform/filter on the parent element itself, since several targets
+   (.punch-card-wrapper, .stat-card, nav items, etc.) already have their
+   own carefully-tuned squish/hover transitions from earlier work, and the
+   `transition` shorthand fully replaces rather than merges when redeclared.
+   Each element's existing :active rule already provides its own squish;
+   this only adds the specular highlight on top of that, independently. */
+.liquid-glass-target.lg-pressed::after {
+  opacity: 0.85;
+  transition: opacity 0.06s ease;
+}

@@ -2452,9 +2452,87 @@ async function handleCaptureSelfie() {
 // "bulletproof" session init) that each manipulated #loginView/#appLayout
 // independently - that's what produced the auto-logout loop and the view
 // getting stuck in the wrong state. Now there is exactly one.
+// ==========================================================================
+// LIQUID GLASS TOUCH/CURSOR EFFECT (Apple-style specular highlight)
+// ==========================================================================
+// One delegated system covering every interactive element app-wide, rather
+// than wiring listeners per-button. Pointer Events unify touch, mouse, and
+// pen automatically - no separate touch/mouse code paths needed. Adds the
+// 'liquid-glass-target' class (and thus the ::after glow layer defined in
+// styles.css) to any matched element the first time it's interacted with.
+function initLiquidGlassEffect() {
+  const LG_SELECTOR = [
+    'button',
+    '.nav-item',
+    '.bottom-nav-item',
+    '.stat-card',
+    '.btn-action-outline',
+    '.btn-punch-action',
+    '.btn-primary-mobile',
+    '.btn-retry-photo',
+    '.selfie-frame',
+    '.login-card',
+    '.geofence-status-card',
+    '.badge-pill',
+    '.mobile-user-avatar',
+    '.menu-toggle-btn',
+    '.pwa-update-btn',
+    '.permission-banner-btn',
+    '.punch-card-wrapper'
+  ].join(', ');
+
+  function setPointerVars(target, clientX, clientY) {
+    const rect = target.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 100;
+    const y = ((clientY - rect.top) / rect.height) * 100;
+    target.style.setProperty('--lg-x', x + '%');
+    target.style.setProperty('--lg-y', y + '%');
+  }
+
+  // Continuous cursor-tracking glow (mouse only - @media(hover:hover) in
+  // CSS also gates this, this is just the JS-side position update).
+  document.addEventListener('pointermove', (e) => {
+    const target = e.target.closest(LG_SELECTOR);
+    if (!target) return;
+    target.classList.add('liquid-glass-target');
+    if (e.pointerType === 'mouse') {
+      target.classList.add('lg-hovering');
+      setPointerVars(target, e.clientX, e.clientY);
+    }
+  }, { passive: true });
+
+  // Press burst - fires identically for a finger tap or a mouse click.
+  document.addEventListener('pointerdown', (e) => {
+    const target = e.target.closest(LG_SELECTOR);
+    if (!target) return;
+    target.classList.add('liquid-glass-target');
+    setPointerVars(target, e.clientX, e.clientY);
+    target.classList.add('lg-pressed');
+  }, { passive: true });
+
+  function releasePress() {
+    document.querySelectorAll('.lg-pressed').forEach((el) => el.classList.remove('lg-pressed'));
+  }
+  document.addEventListener('pointerup', releasePress, { passive: true });
+  document.addEventListener('pointercancel', releasePress, { passive: true });
+
+  // Clear the tracking glow when the pointer leaves - only meaningful for
+  // mouse, since touch never sets lg-hovering in the first place.
+  document.addEventListener('pointerout', (e) => {
+    const target = e.target.closest(LG_SELECTOR);
+    if (target && e.pointerType === 'mouse' && !target.contains(e.relatedTarget)) {
+      target.classList.remove('lg-hovering');
+    }
+  }, { passive: true });
+}
+
 function initApp() {
   // Inject shimmer/transition/animation CSS used by the enhancements above
   injectUiEnhancementStyles();
+
+  // Liquid Glass touch/cursor effect - app-wide, works on the login screen
+  // too since this runs unconditionally regardless of auth state.
+  initLiquidGlassEffect();
 
   // Auth: login/logout buttons + form, wired exactly once
   setupAuth();
