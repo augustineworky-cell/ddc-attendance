@@ -1663,3 +1663,60 @@ body::before {
   opacity: 0.5;
   transition: opacity 0.06s ease;
 }
+
+/* ==================== LOGIN PAGE: FILL REMAINING SPACE ====================
+   .mobile-login-wrapper is min-height:100vh by design, but its actual
+   content (header + card) doesn't reach that height on most phone screens,
+   leaving blank white space below the card. This section is a flex sibling
+   that expands (flex: 1) to occupy exactly that leftover space and fill it
+   with a soft leaf flourish + product branding, instead of a dead gap. */
+.login-fill-space {
+  flex: 1;
+  min-height: 80px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.login-fill-leaf {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 85%;
+  max-width: 320px;
+  height: auto;
+  pointer-events: none;
+}
+
+.login-fill-brand {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 16px 0 28px 0;
+}
+
+.login-fill-powered {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-muted, #9B96B5);
+}
+
+.login-fill-staffly {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--navy-dark, #2E2A5C);
+}
+
+.login-fill-tagline {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted, #9B96B5);
+}
