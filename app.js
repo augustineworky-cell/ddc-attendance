@@ -1127,6 +1127,23 @@ async function handleClockIn() {
   try {
     const pos = await getGpsPosition(10000);
 
+    // Burn the address + timestamp into the photo's actual pixels before
+    // upload - the geocode lookup was already kicked off in parallel when
+    // the camera opened, so this is usually near-instant here. Show a
+    // "Stamping photo..." label only if it's taking noticeably long (>300ms)
+    // so a fast resolve doesn't cause an unnecessary label flicker.
+    const stampingLabelTimer = setTimeout(() => {
+      if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Stamping photo...';
+    }, 300);
+    const watermarkedSelfie = await getWatermarkedSelfieForPunch(
+      ATTENDANCE_SELFIE_BASE64,
+      pos.coords.latitude,
+      pos.coords.longitude
+    );
+    clearTimeout(stampingLabelTimer);
+    if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+    PENDING_GEOCODE_PROMISE = null; // consumed - next capture starts its own fresh lookup
+
     // clock_in RPC now returns a single JSON object:
     //   { status: 'SUCCESS', distance_m: 24.89 }
     //   { status: 'OUT_OF_RANGE', distance_m: 150.5 }
@@ -1134,7 +1151,7 @@ async function handleClockIn() {
     // (previously an array-of-rows shape like res[0][0]/res[0][1]).
     const data = await callAPI("clockIn", {
       employeeId: id,
-      gps: { lat: pos.coords.latitude, lng: pos.coords.longitude, selfieBase64: ATTENDANCE_SELFIE_BASE64 }
+      gps: { lat: pos.coords.latitude, lng: pos.coords.longitude, selfieBase64: watermarkedSelfie }
     });
 
     if (!data) {
@@ -1171,8 +1188,10 @@ async function handleClockIn() {
 
       // The photo attach step is tracked separately from the punch itself -
       // don't let a failed attach silently pass as if the selfie was saved.
+      // Retry must reuse the watermarked version, not the raw capture -
+      // otherwise a retry would silently upload an unwatermarked photo.
       if (data._selfieAttached === false) {
-        renderSelfieRetryPrompt(id, ATTENDANCE_SELFIE_BASE64, 'clockin');
+        renderSelfieRetryPrompt(id, watermarkedSelfie, 'clockin');
         alert("Punch In was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
       } else {
         ATTENDANCE_SELFIE_BASE64 = null;
@@ -1280,12 +1299,27 @@ async function handleClockOut() {
   try {
     const pos = await getGpsPosition(10000);
 
+    // Same watermarking step as handleClockIn() - burn address+timestamp
+    // into the photo's pixels before upload. The geocode lookup was
+    // already started in parallel when the camera opened.
+    const stampingLabelTimer = setTimeout(() => {
+      setButtonLabel(btn, "Stamping photo...");
+    }, 300);
+    const watermarkedSelfie = await getWatermarkedSelfieForPunch(
+      ATTENDANCE_SELFIE_BASE64,
+      pos.coords.latitude,
+      pos.coords.longitude
+    );
+    clearTimeout(stampingLabelTimer);
+    setButtonLabel(btn, "Clocking Out...");
+    PENDING_GEOCODE_PROMISE = null; // consumed - next capture starts its own fresh lookup
+
     const res = await callAPI("clockOut", {
       employeeId: id,
       gps: {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
-        selfieBase64: ATTENDANCE_SELFIE_BASE64
+        selfieBase64: watermarkedSelfie
       }
     });
 
@@ -1317,9 +1351,10 @@ async function handleClockOut() {
 
       // Same rule as handleClockIn(): a failed photo attach must not be
       // treated as if the selfie was saved, even though the punch itself
-      // already succeeded.
+      // already succeeded. Retry must reuse the watermarked version, not
+      // the raw capture.
       if (res._selfieAttached === false) {
-        renderSelfieRetryPrompt(id, ATTENDANCE_SELFIE_BASE64, 'clockout');
+        renderSelfieRetryPrompt(id, watermarkedSelfie, 'clockout');
         alert("Punch Out was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
       } else {
         ATTENDANCE_SELFIE_BASE64 = null;
@@ -2385,6 +2420,164 @@ function toggleTheme() {
 }
 
 // ==========================================================================
+// SELFIE GEO-WATERMARKING (address + timestamp burned into image pixels)
+// ==========================================================================
+// PENDING_GEOCODE_PROMISE is kicked off the moment the camera opens (see
+// handleCaptureSelfie below), running in parallel with the user framing and
+// taking the photo - by the time they've captured the selfie and tapped
+// Punch In/Out, the address lookup has almost always already finished, so
+// the watermarking step at punch-time is effectively instant rather than
+// adding a fresh multi-second wait on top of the punch flow.
+let PENDING_GEOCODE_PROMISE = null;
+
+function reverseGeocodeWithTimeout(lat, lng, timeoutMs) {
+  const fetchPromise = fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+    { headers: { 'User-Agent': 'DDCWorkforceApp/1.0' } }
+  )
+    .then((r) => r.json())
+    .then((data) => (data && data.display_name) ? data.display_name : null)
+    .catch(() => null);
+
+  const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
+
+  // Whichever finishes first wins - a slow/unresponsive Nominatim request
+  // must never hold up the punch flow beyond this hard cap.
+  return Promise.race([fetchPromise, timeoutPromise]);
+}
+
+// Starts the GPS fix + reverse-geocode as soon as the camera opens, not
+// after the photo is taken - this is the "start in parallel" requirement.
+function startGeocodeLookup() {
+  return (async () => {
+    try {
+      const pos = await getGpsPosition(6000);
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const address = await reverseGeocodeWithTimeout(lat, lng, 3000);
+      return { address, lat, lng };
+    } catch (e) {
+      // No GPS fix at all (permission denied, timeout) - the watermark
+      // will fall back to "Location unavailable" rather than block capture.
+      return { address: null, lat: null, lng: null };
+    }
+  })();
+}
+
+function formatWatermarkTimestamp(date) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
+}
+
+// Greedy word-wrap against the canvas's own measured text width - used so
+// a long resolved address never gets truncated, it just wraps onto however
+// many lines it actually needs (the caller grows the dark bar to match).
+function wrapCanvasText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+// Draws the captured photo onto a canvas with a permanent address+timestamp
+// burn-in, then re-encodes it - this returned data URL, not the original
+// unwatermarked capture, is what gets uploaded to storage.
+function createWatermarkedSelfie(rawBase64, addressInfo) {
+  return new Promise((resolve) => {
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const addressText = (addressInfo && addressInfo.address)
+          ? addressInfo.address
+          : (addressInfo && typeof addressInfo.lat === 'number')
+            ? `Lat: ${addressInfo.lat.toFixed(5)}, Lng: ${addressInfo.lng.toFixed(5)}`
+            : 'Location unavailable';
+        const timestampText = formatWatermarkTimestamp(new Date());
+
+        const fontSize = Math.max(12, canvas.width * 0.035);
+        ctx.font = `${fontSize}px Arial, sans-serif`;
+        const padding = 10;
+        const maxTextWidth = canvas.width - padding * 2;
+
+        const addressLines = wrapCanvasText(ctx, addressText, maxTextWidth);
+        const allLines = [...addressLines, timestampText];
+
+        const lineHeight = fontSize * 1.35;
+        const minBarHeight = canvas.height * 0.15;
+        const neededBarHeight = allLines.length * lineHeight + padding * 2;
+        // Grow the bar for a long/wrapped address instead of truncating it.
+        const barHeight = Math.max(minBarHeight, neededBarHeight);
+        const barY = canvas.height - barHeight;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.fillRect(0, barY, canvas.width, barHeight);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.textBaseline = 'top';
+        const extraSpace = Math.max(0, barHeight - neededBarHeight) / 2;
+        const startY = barY + padding + extraSpace;
+        allLines.forEach((line, i) => {
+          ctx.fillText(line, padding, startY + i * lineHeight);
+        });
+
+        canvas.toBlob((blob) => {
+          if (!blob) { resolve(rawBase64); return; } // never block the punch on a canvas failure
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => resolve(rawBase64);
+          reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.9);
+      } catch (err) {
+        console.error('Watermarking failed, using unwatermarked photo instead:', err);
+        resolve(rawBase64);
+      }
+    };
+
+    img.onerror = () => resolve(rawBase64); // never block the punch flow
+    img.src = rawBase64;
+  });
+}
+
+// Called from handleClockIn/handleClockOut right before upload. Awaits
+// whatever geocode lookup is already in flight (started when the camera
+// opened); if none is in flight for some reason, falls back to a fresh
+// lookup using the punch-time GPS fix instead.
+async function getWatermarkedSelfieForPunch(rawBase64, fallbackLat, fallbackLng) {
+  let addressInfo;
+  if (PENDING_GEOCODE_PROMISE) {
+    addressInfo = await PENDING_GEOCODE_PROMISE;
+  } else {
+    const address = await reverseGeocodeWithTimeout(fallbackLat, fallbackLng, 3000);
+    addressInfo = { address, lat: fallbackLat, lng: fallbackLng };
+  }
+  return createWatermarkedSelfie(rawBase64, addressInfo);
+}
+
+// ==========================================================================
 // WEBCAM & SELFIE CAPTURE LOGIC
 // ==========================================================================
 async function handleCaptureSelfie() {
@@ -2430,6 +2623,12 @@ async function handleCaptureSelfie() {
     video.style.display = 'block';
     preview.style.display = 'none';
     captureBtn.innerHTML = '<span class="btn-icon">📸</span> Snap Photo';
+
+    // Kick off the GPS fix + reverse-geocode the moment the camera opens,
+    // in parallel with the user framing/taking the photo - by punch time
+    // this has almost always already resolved (or hit its 3s cap), so the
+    // watermarking step doesn't add a fresh wait on top of the punch flow.
+    PENDING_GEOCODE_PROMISE = startGeocodeLookup();
   } catch (err) {
     console.error("Camera access error:", err);
     alert("Camera permission denied or camera not found. Please allow camera access in your browser settings.");
