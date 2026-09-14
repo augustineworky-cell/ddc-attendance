@@ -257,9 +257,9 @@ async function callAPI(action, payload = {}) {
         if (error) throw error;
         return data;
       }
-      case "loginWithPattern": {
-        const { data, error } = await sbClient.rpc('login_with_pattern', {
-          p_pattern: payload.pattern
+      case "loginWithPassword": {
+        const { data, error } = await sbClient.rpc('login_with_password', {
+          p_password: payload.password
         });
         if (error) throw error;
         return data;
@@ -737,23 +737,42 @@ async function restoreSessionFromStorage() {
   }
 }
 
-// Pattern-lock login: authenticates against the login_with_pattern RPC.
-// The pattern itself is the lookup key - the RPC resolves employee_id and
-// employee_name server-side, so no manual ID/name entry exists anywhere in
-// this flow. Called by the pattern-lock UI (see PatternLock below) once a
-// user lifts their finger after connecting 4+ dots.
-async function handlePatternLogin(patternString) {
+// Single-field password login: authenticates against login_with_password.
+// The password itself is the lookup key - no separate Employee ID field
+// exists anywhere in this flow. The RPC resolves employee_id/employee_name
+// server-side and matches case-insensitively on its own, so nothing needs
+// to be transformed here before sending it.
+async function handlePasswordLogin(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const passwordInput = document.getElementById('loginPasswordOnly');
   const errorDiv = document.getElementById('loginError');
   if (errorDiv) errorDiv.style.display = 'none';
 
+  if (!passwordInput) return;
+  const enteredValue = passwordInput.value; // sent as-is, no trim/lowercase
+
+  if (!enteredValue) {
+    if (errorDiv) {
+      errorDiv.textContent = 'Please enter your password.';
+      errorDiv.style.display = 'block';
+    }
+    return;
+  }
+
   try {
-    const data = await callAPI("loginWithPattern", { pattern: patternString });
+    const data = await callAPI("loginWithPassword", { password: enteredValue });
 
     if (!data || data.status !== 'SUCCESS') {
-      // INVALID_PATTERN - deliberately no other detail revealed (no hint
-      // about whether the pattern was close, whose pattern it might be,
-      // etc.) - PatternLock's own caller handles the red-flash + reset.
-      return { success: false };
+      // INVALID_PASSWORD - clear the field so they can immediately retype,
+      // no other detail revealed about why it failed.
+      passwordInput.value = '';
+      passwordInput.focus();
+      if (errorDiv) {
+        errorDiv.textContent = 'Incorrect password, try again.';
+        errorDiv.style.display = 'block';
+      }
+      return;
     }
 
     const user = {
@@ -764,7 +783,7 @@ async function handlePatternLogin(patternString) {
       role: data.role
     };
 
-    // Same shift-completion safeguard the old password login enforced -
+    // Same shift-completion safeguard the previous login methods enforced -
     // block re-entry once today's shift is already fully clocked out.
     const attData = await callAPI("getTodayAttendance", { employeeId: user.employeeId });
     if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
@@ -772,18 +791,17 @@ async function handlePatternLogin(patternString) {
         errorDiv.textContent = 'Your shift for today is completed. Login is restricted until tomorrow.';
         errorDiv.style.display = 'block';
       }
-      return { success: false, shiftComplete: true };
+      return;
     }
 
     applySessionAndRenderApp(user, true);
-    return { success: true, employeeName: user.name };
+    showQuickToast(user.name);
   } catch (err) {
-    console.error("Pattern login error:", err);
+    console.error("Password login error:", err);
     if (errorDiv) {
       errorDiv.textContent = 'Login failed. Connection error.';
       errorDiv.style.display = 'block';
     }
-    return { success: false, connectionError: true };
   }
 }
 
@@ -813,243 +831,50 @@ async function handleLogout(e) {
 
   const loginError = document.getElementById('loginError');
   if (loginError) loginError.style.display = 'none';
-  resetPatternLock();
+  const passwordInput = document.getElementById('loginPasswordOnly');
+  if (passwordInput) passwordInput.value = '';
 
   applySessionUI(false);
 }
 
-// ==========================================================================
-// PATTERN-LOCK LOGIN (Android-unlock-style 3x3 grid)
-// ==========================================================================
-// Coordinates in the SVG's own 300x300 viewBox - fixed layout, matches the
-// numbering 0-8 (left-to-right, top-to-bottom) the login_with_pattern RPC
-// expects. Hit-testing is done via simple distance math on pointer
-// coordinates (not per-dot DOM listeners/pointer-events), which is both
-// faster and gives full control over how generous the touch area is,
-// independent of each dot's visible drawn size - this matters given the
-// stated goal of zero perceptible lag on a screen shown many times a day.
-const PATTERN_DOT_COORDS = [
-  [60, 60], [150, 60], [240, 60],
-  [60, 150], [150, 150], [240, 150],
-  [60, 240], [150, 240], [240, 240]
-];
-const PATTERN_HIT_RADIUS = 34; // generous vs the ~14 visual dot radius
-const PATTERN_MIN_DOTS = 4;
-
-let patternTouchedDots = [];
-let patternIsDragging = false;
-let patternIsBusy = false; // true while an RPC call is in flight
-
-function patternClientToSvgPoint(svgEl, clientX, clientY) {
-  const pt = svgEl.createSVGPoint();
-  pt.x = clientX;
-  pt.y = clientY;
-  const ctm = svgEl.getScreenCTM();
-  if (!ctm) return { x: 0, y: 0 };
-  const transformed = pt.matrixTransform(ctm.inverse());
-  return { x: transformed.x, y: transformed.y };
-}
-
-function patternHitTestDot(svgPoint, excludeSet) {
-  for (let i = 0; i < PATTERN_DOT_COORDS.length; i++) {
-    if (excludeSet.has(i)) continue;
-    const [dx, dy] = PATTERN_DOT_COORDS[i];
-    const dist = Math.hypot(svgPoint.x - dx, svgPoint.y - dy);
-    if (dist <= PATTERN_HIT_RADIUS) return i;
-  }
-  return -1;
-}
-
-function patternRedrawCommittedLines() {
-  const linesGroup = document.getElementById('patternLines');
-  if (!linesGroup) return;
-  linesGroup.innerHTML = '';
-  for (let i = 0; i < patternTouchedDots.length - 1; i++) {
-    const [x1, y1] = PATTERN_DOT_COORDS[patternTouchedDots[i]];
-    const [x2, y2] = PATTERN_DOT_COORDS[patternTouchedDots[i + 1]];
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', x1);
-    line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2);
-    line.setAttribute('y2', y2);
-    line.setAttribute('class', 'pattern-line');
-    linesGroup.appendChild(line);
-  }
-}
-
-function patternMarkDotTouched(index) {
-  const dot = document.querySelector(`.pattern-dot[data-index="${index}"]`);
-  if (dot) dot.classList.add('touched');
-}
-
-// Clears all drawn state - called on logout, and after every completed
-// attempt (success navigates away anyway; failure/too-short both reset so
-// the next attempt starts clean instantly, no leftover lines).
-function resetPatternLock() {
-  patternTouchedDots = [];
-  patternIsDragging = false;
-  document.querySelectorAll('.pattern-dot.touched').forEach((el) => el.classList.remove('touched'));
-  const linesGroup = document.getElementById('patternLines');
-  if (linesGroup) linesGroup.innerHTML = '';
-  const liveLine = document.getElementById('patternLiveLine');
-  if (liveLine) liveLine.style.display = 'none';
-  const svgEl = document.getElementById('patternSvg');
-  if (svgEl) svgEl.classList.remove('pattern-invalid');
-}
-
-async function patternHandleComplete() {
-  patternIsDragging = false;
-  const liveLine = document.getElementById('patternLiveLine');
-  if (liveLine) liveLine.style.display = 'none';
-
-  if (patternTouchedDots.length < PATTERN_MIN_DOTS) {
-    // Too short - reject without ever calling the RPC. Brief inline hint,
-    // instant reset so the next attempt isn't delayed by anything.
-    const errorDiv = document.getElementById('loginError');
-    if (errorDiv) {
-      errorDiv.textContent = `Connect at least ${PATTERN_MIN_DOTS} dots.`;
-      errorDiv.style.display = 'block';
-    }
-    setTimeout(resetPatternLock, 350);
-    return;
-  }
-
-  if (patternIsBusy) return; // guard against double-fire on fast repeat taps
-  patternIsBusy = true;
-
-  const patternString = patternTouchedDots.join('-');
-  const result = await handlePatternLogin(patternString);
-  patternIsBusy = false;
-
-  if (result && result.success) {
-    showQuickToast(result.employeeName);
-    // No resetPatternLock() call needed here - applySessionAndRenderApp()
-    // (inside handlePatternLogin) already switches away from the login
-    // view entirely, so the grid isn't visible again until next logout.
-  } else if (result && (result.shiftComplete || result.connectionError)) {
-    // Specific, already-worded error messages - just clear the grid, no
-    // red-flash (this isn't "you drew the wrong pattern", it's a different
-    // kind of block and shouldn't look like a wrong-answer buzz).
-    resetPatternLock();
-  } else {
-    // INVALID_PATTERN - flash red briefly, reveal nothing else, then reset.
-    const svgEl = document.getElementById('patternSvg');
-    if (svgEl) svgEl.classList.add('pattern-invalid');
-    const errorDiv = document.getElementById('loginError');
-    if (errorDiv) {
-      errorDiv.textContent = 'Incorrect pattern, try again.';
-      errorDiv.style.display = 'block';
-    }
-    setTimeout(resetPatternLock, 450);
-  }
-}
-
-// A prominent, non-blocking welcome card instead of a tiny toast or a
-// native alert() - this screen is shown many times a day (auto-logout
-// fires 5s after every punch), so it still auto-dismisses on its own and
-// never blocks navigation to Home, but the name itself needs to actually
-// be readable at a glance, not squint-sized.
-function showQuickToast(employeeName) {
-  const existing = document.getElementById('quickToast');
-  if (existing) existing.remove();
-
-  const initial = employeeName ? employeeName.charAt(0).toUpperCase() : '?';
-
-  const toast = document.createElement('div');
-  toast.id = 'quickToast';
-  toast.className = 'quick-toast';
-  toast.innerHTML = `
-    <div class="quick-toast-avatar">${initial}</div>
-    <div class="quick-toast-text">
-      <span class="quick-toast-label">Welcome back</span>
-      <span class="quick-toast-name">${employeeName}</span>
-    </div>
-  `;
-  document.body.appendChild(toast);
-
-  requestAnimationFrame(() => toast.classList.add('quick-toast-visible'));
-  setTimeout(() => {
-    toast.classList.remove('quick-toast-visible');
-    setTimeout(() => toast.remove(), 300);
-  }, 2200);
-}
-
-// Sets up the pattern grid's pointer handling exactly once. Uses a single
-// listener on the SVG for pointerdown, then follows the drag via listeners
-// on `document` (not just the SVG) so a fast finger swipe that briefly
-// exits the SVG's exact bounding box doesn't drop the gesture.
-function initPatternLock() {
-  const svgEl = document.getElementById('patternSvg');
-  if (!svgEl || svgEl.dataset.wired) return; // wire exactly once
-  svgEl.dataset.wired = 'true';
-
-  function onPointerDown(e) {
-    if (patternIsBusy) return;
-    resetPatternLock();
-    const svgPoint = patternClientToSvgPoint(svgEl, e.clientX, e.clientY);
-    const hit = patternHitTestDot(svgPoint, new Set());
-    if (hit === -1) return;
-
-    patternIsDragging = true;
-    patternTouchedDots = [hit];
-    patternMarkDotTouched(hit);
-
-    const liveLine = document.getElementById('patternLiveLine');
-    if (liveLine) {
-      const [dx, dy] = PATTERN_DOT_COORDS[hit];
-      liveLine.setAttribute('x1', dx);
-      liveLine.setAttribute('y1', dy);
-      liveLine.setAttribute('x2', svgPoint.x);
-      liveLine.setAttribute('y2', svgPoint.y);
-      liveLine.style.display = '';
-    }
-  }
-
-  function onPointerMove(e) {
-    if (!patternIsDragging) return;
-    const svgPoint = patternClientToSvgPoint(svgEl, e.clientX, e.clientY);
-
-    // Live "rubber band" line from the last committed dot to the current
-    // finger/cursor position - this is what makes the line "follow the
-    // finger in real time" rather than only snapping between dot centers.
-    const liveLine = document.getElementById('patternLiveLine');
-    if (liveLine && patternTouchedDots.length > 0) {
-      const [lx, ly] = PATTERN_DOT_COORDS[patternTouchedDots[patternTouchedDots.length - 1]];
-      liveLine.setAttribute('x1', lx);
-      liveLine.setAttribute('y1', ly);
-      liveLine.setAttribute('x2', svgPoint.x);
-      liveLine.setAttribute('y2', svgPoint.y);
-    }
-
-    const hit = patternHitTestDot(svgPoint, new Set(patternTouchedDots));
-    if (hit !== -1) {
-      patternTouchedDots.push(hit);
-      patternMarkDotTouched(hit);
-      patternRedrawCommittedLines();
-    }
-  }
-
-  function onPointerUp() {
-    if (!patternIsDragging) return;
-    patternHandleComplete();
-  }
-
-  svgEl.addEventListener('pointerdown', onPointerDown);
-  document.addEventListener('pointermove', onPointerMove, { passive: true });
-  document.addEventListener('pointerup', onPointerUp, { passive: true });
-  document.addEventListener('pointercancel', onPointerUp, { passive: true });
-}
-
-
-// does NOT register any supabase.auth.onAuthStateChange listener - that
-// listener was the source of the unwanted auto-redirect-to-login loop,
-// since it could fire and clear the session behind the unified manager's
-// back. Session state is owned entirely by SESSION_STORAGE_KEY above.
+// Wires up #logoutBtn exactly once. Intentionally does NOT register any
+// supabase.auth.onAuthStateChange listener - that listener was the source
+// of the unwanted auto-redirect-to-login loop, since it could fire and
+// clear the session behind the unified manager's back. Session state is
+// owned entirely by SESSION_STORAGE_KEY above.
 function setupAuth() {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) logoutBtn.onclick = handleLogout;
 
-  initPatternLock();
+  const loginBtn = document.getElementById('loginBtn');
+  const passwordInput = document.getElementById('loginPasswordOnly');
+  const toggleBtn = document.getElementById('togglePasswordVisibility');
+
+  if (loginBtn) loginBtn.onclick = handlePasswordLogin;
+
+  if (passwordInput) {
+    // Enter key submits, same as tapping the button - this is typed many
+    // times a day (5s auto-logout after every punch), so Enter needs to
+    // work exactly like it would have for a real password field.
+    passwordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handlePasswordLogin(e);
+    });
+
+    // Instant focus on load - no animation delay before the field is
+    // typeable, per the stated performance requirement for a screen shown
+    // this often.
+    passwordInput.focus();
+  }
+
+  if (toggleBtn && passwordInput) {
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = passwordInput.type === 'password';
+      passwordInput.type = isHidden ? 'text' : 'password';
+      toggleBtn.querySelector('i').className = isHidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+      toggleBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      passwordInput.focus();
+    });
+  }
 }
 
 // ==========================================================================
@@ -2642,6 +2467,7 @@ function initLiquidGlassEffect() {
     '.stat-card',
     '.btn-action-outline',
     '.btn-punch-action',
+    '.btn-primary-mobile',
     '.btn-retry-photo',
     '.selfie-frame',
     '.badge-pill',
