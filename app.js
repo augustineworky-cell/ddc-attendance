@@ -9,11 +9,11 @@ const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
 // DDC Safdarjung HQ Geofence Coordinates
 const OFFICE_LAT = 28.56616;
 const OFFICE_LNG = 77.19904;
-// Widened from 150m to 1km on request - a radius this size comfortably
-// absorbs normal GPS error on any device (typically well under 300-400m
-// even on a bad fix), so punch-in/out should now work consistently across
-// phones without needing to fine-tune accuracy handling further.
-const OFFICE_RADIUS_M = 1000; // 1km coverage radius
+// Set to 500m - wide enough to absorb normal GPS error across devices
+// (typical phone accuracy is 10-50m outdoors, 50-150m indoors), while
+// still meaningfully tied to "near the office" rather than the wider
+// 1km radius previously used.
+const OFFICE_RADIUS_M = 500; // 500-meter coverage radius
 
 // Aliases used by geofence-checking helpers
 const HQ_LAT = OFFICE_LAT;
