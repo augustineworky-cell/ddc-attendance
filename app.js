@@ -247,9 +247,10 @@ function buildOutOfRangeMessage(action, distanceM, accuracyM) {
       `1. Phone Settings > Location: ON, and turn ON "Google Location Accuracy" / "Improve accuracy".\n` +
       `2. Settings > Apps > Chrome > Permissions > Location: "Allow only while using" and turn ON "Use precise location".\n` +
       `3. Turn OFF Battery Saver / Power Saving mode.\n` +
-      `4. Stand near a window for 10-20 seconds, then try ${action} again.`;
+      `4. Stand near a window for 10-20 seconds, then try ${action} again.\n\n` +
+      `OR connect this phone to the OFFICE Wi-Fi (not mobile data) and try again.`;
   }
-  return `You're outside the office area.${dist} Please move within range of DDC Safdarjung HQ and try ${action} again.`;
+  return `You're outside the office area.${dist} Please move within range of DDC Safdarjung HQ, or connect to the OFFICE Wi-Fi, and try ${action} again.`;
 }
 
 // ==========================================================================
@@ -425,8 +426,32 @@ const RPC_MAP = {
   getOverallMetrics:  p => ['get_overall_metrics', { p_date_param: p.date }],
   getOverallCharts:   p => ['get_overall_charts', { p_date_param: p.date }],
   getAuditLogs:       () => ['get_audit_logs', {}],
-  getEmployeeNames:   () => ['get_employee_names', {}]
+  getEmployeeNames:   () => ['get_employee_names', {}],
+  networkCheck:       () => ['app_network_check', {}],
+  listOfficeNetworks: () => ['admin_list_office_networks', {}],
+  addCurrentNetwork:  p => ['admin_add_current_network', { p_label: p.label }],
+  removeOfficeNetwork:p => ['admin_remove_office_network', { p_id: p.id }]
 };
+
+// ==========================================================================
+// OFFICE WI-FI CHECK
+// ==========================================================================
+// The server compares the phone's public IP with the office networks saved
+// by Admin. On office Wi-Fi, punches are accepted even if GPS is weak or
+// wrong (the server does the check - the client can't fake it). This is
+// only used here to show the status on the home card.
+let OFFICE_NET = { onOffice: false, checkedAt: 0 };
+
+async function checkOfficeNetwork(force = false) {
+  if (!force && Date.now() - OFFICE_NET.checkedAt < 60000) return OFFICE_NET.onOffice;
+  try {
+    const r = await callAPI("networkCheck");
+    OFFICE_NET = { onOffice: !!(r && r.on_office_network), checkedAt: Date.now() };
+  } catch (e) {
+    OFFICE_NET = { onOffice: false, checkedAt: Date.now() };
+  }
+  return OFFICE_NET.onOffice;
+}
 
 // ==========================================================================
 // SUPABASE RPC / API CALL WRAPPER
@@ -1155,7 +1180,17 @@ async function handleClockIn() {
   if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Getting GPS...';
 
   try {
-    const pos = await getGpsPosition(20000);
+    let pos = null;
+    try {
+      pos = await getGpsPosition(20000);
+    } catch (gpsErr) {
+      // Permission denied is final. A timeout is fine - the server can
+      // still verify the punch through the office Wi-Fi.
+      if (gpsErr && gpsErr.code === 1) throw gpsErr;
+    }
+    const gps = pos
+      ? { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }
+      : { lat: null, lng: null, accuracy: null };
 
     // Burn the address + timestamp into the photo's actual pixels before
     // upload - the geocode lookup was already kicked off in parallel when
@@ -1167,8 +1202,8 @@ async function handleClockIn() {
     }, 300);
     const watermarkedSelfie = await getWatermarkedSelfieForPunch(
       ATTENDANCE_SELFIE_BASE64,
-      pos.coords.latitude,
-      pos.coords.longitude
+      gps.lat ?? OFFICE_LAT,
+      gps.lng ?? OFFICE_LNG
     );
     clearTimeout(stampingLabelTimer);
     if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
@@ -1181,7 +1216,7 @@ async function handleClockIn() {
     // (previously an array-of-rows shape like res[0][0]/res[0][1]).
     const data = await callAPI("clockIn", {
       employeeId: id,
-      gps: { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, selfieBase64: watermarkedSelfie }
+      gps: { lat: gps.lat, lng: gps.lng, accuracy: gps.accuracy, selfieBase64: watermarkedSelfie }
     });
 
     if (!data) {
@@ -1227,7 +1262,9 @@ async function handleClockIn() {
         ATTENDANCE_SELFIE_BASE64 = null;
       }
     } else if (data.status === 'OUT_OF_RANGE') {
-      alert(buildOutOfRangeMessage('Punch In', data.distance_m, pos.coords.accuracy));
+      alert(buildOutOfRangeMessage('Punch In', data.distance_m, gps.accuracy));
+    } else if (data.status === 'NO_LOCATION') {
+      alert("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch In again.");
     } else if (data.status === 'ERROR') {
       alert(data.message || "Error clocking in. Please try again.");
     } else if (data.status === 'ALREADY_CLOCKED_IN') {
@@ -1324,7 +1361,17 @@ async function handleClockOut() {
   setButtonLabel(btn, "Getting GPS...");
 
   try {
-    const pos = await getGpsPosition(20000);
+    let pos = null;
+    try {
+      pos = await getGpsPosition(20000);
+    } catch (gpsErr) {
+      // Permission denied is final. A timeout is fine - the server can
+      // still verify the punch through the office Wi-Fi.
+      if (gpsErr && gpsErr.code === 1) throw gpsErr;
+    }
+    const gps = pos
+      ? { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }
+      : { lat: null, lng: null, accuracy: null };
 
     // Same watermarking step as handleClockIn() - burn address+timestamp
     // into the photo's pixels before upload. The geocode lookup was
@@ -1334,8 +1381,8 @@ async function handleClockOut() {
     }, 300);
     const watermarkedSelfie = await getWatermarkedSelfieForPunch(
       ATTENDANCE_SELFIE_BASE64,
-      pos.coords.latitude,
-      pos.coords.longitude
+      gps.lat ?? OFFICE_LAT,
+      gps.lng ?? OFFICE_LNG
     );
     clearTimeout(stampingLabelTimer);
     setButtonLabel(btn, "Clocking Out...");
@@ -1344,9 +1391,9 @@ async function handleClockOut() {
     const res = await callAPI("clockOut", {
       employeeId: id,
       gps: {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        accuracy: pos.coords.accuracy,
+        lat: gps.lat,
+        lng: gps.lng,
+        accuracy: gps.accuracy,
         selfieBase64: watermarkedSelfie
       }
     });
@@ -1394,12 +1441,14 @@ async function handleClockOut() {
         employee_id: id,
         employee_name: CURRENT_USER ? (CURRENT_USER.fullName || CURRENT_USER.name || "") : "",
         punch_out_time: new Date().toISOString(),
-        punch_out_address: `${pos.coords.latitude}, ${pos.coords.longitude}`
+        punch_out_address: gps.lat !== null ? `${gps.lat}, ${gps.lng}` : 'Office Wi-Fi (no GPS)'
       });
 
     } else if (res.status === 'OUT_OF_RANGE') {
       // Early punch-out IS allowed - the only thing that blocks it is location.
-      alert(buildOutOfRangeMessage('Punch Out', res.distance_m, pos.coords.accuracy));
+      alert(buildOutOfRangeMessage('Punch Out', res.distance_m, gps.accuracy));
+    } else if (res.status === 'NO_LOCATION') {
+      alert("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch Out again.");
     } else if (res.status === 'NO_CLOCK_IN') {
       alert("You haven't clocked in yet today. Please clock in before attempting to clock out.");
     } else if (res.status === 'ALREADY_CLOCKED_OUT') {
@@ -1703,11 +1752,28 @@ async function checkGeofence() {
     }
 
     updateMyLocationMap(currentLatitude, currentLongitude, currentAccuracy, dist);
+
+    // GPS says outside / weak, but the phone is on office Wi-Fi: the server
+    // will accept the punch, so don't scare the employee.
+    if (effectiveDist > MAX_GEOFENCE_RADIUS_METERS || lowAccuracy) {
+      if (await checkOfficeNetwork()) {
+        if (icon) icon.textContent = "📶";
+        if (title) title.textContent = "On Office Wi-Fi ✓";
+        if (subtitle) subtitle.textContent =
+          `You can punch. Verified by office Wi-Fi (GPS reads ${Math.round(dist)}m, ±${Math.round(currentAccuracy || 0)}m).`;
+      }
+    }
   } catch (err) {
     console.warn("Location prompt or signal timeout:", err);
+    if (err && err.code !== 1 && await checkOfficeNetwork()) {
+      if (icon) icon.textContent = "📶";
+      if (title) title.textContent = "On Office Wi-Fi ✓";
+      if (subtitle) subtitle.textContent = "GPS not available, but you're on office Wi-Fi - you can punch.";
+      return;
+    }
     if (icon) icon.textContent = "📍";
     if (title) title.textContent = "GPS Location Pending";
-    if (subtitle) subtitle.textContent = "Please allow location access in your browser bar";
+    if (subtitle) subtitle.textContent = "Please allow location access, or connect to the office Wi-Fi";
   }
 }
 
@@ -1891,7 +1957,7 @@ function initNavigation() {
       if (targetViewId === 'salaryView') loadSalaryData();
       if (targetViewId === 'trainingView') loadTrainingData();
       if (targetViewId === 'fieldMapView') initLiveMap();
-      if (targetViewId === 'userMgmtView') loadUserManagement();
+      if (targetViewId === 'userMgmtView') { loadUserManagement(); loadOfficeNetworks(); }
       // Only poll this employee's own live location while they're actually
       // looking at the punch-in screen - no point burning battery/GPS
       // requests on views where the map isn't even visible.
@@ -2428,6 +2494,63 @@ function stopLiveMapRefresh() {
 // ==========================================================================
 // USER MANAGEMENT MODULE (ADMIN CRUD)
 // ==========================================================================
+// ==========================================================================
+// ADMIN: OFFICE WI-FI NETWORKS
+// ==========================================================================
+async function loadOfficeNetworks() {
+  const box = document.getElementById('officeNetworksBox');
+  if (!box) return;
+  box.innerHTML = '<div class="office-net-meta">Loading...</div>';
+  try {
+    const r = await callAPI("listOfficeNetworks");
+    if (!r) { box.innerHTML = ''; return; }
+    const list = r.networks || [];
+    const rows = list.length
+      ? list.map(n => `
+          <div class="office-net-row">
+            <div>
+              <div class="office-net-label">${escapeHtml(n.label)}</div>
+              <div class="office-net-meta">${escapeHtml(n.network)} &bull; added by ${escapeHtml(n.added_by || '-')}</div>
+            </div>
+            <button type="button" class="office-net-remove" onclick="removeOfficeNetwork(${Number(n.id)})">Remove</button>
+          </div>`).join('')
+      : '<div class="office-net-meta office-net-empty">No office network saved yet.</div>';
+    const status = r.you_are_on_office_network
+      ? `<div class="office-net-status ok">✓ This device is on a saved office network (${escapeHtml(r.your_ip || '')}).</div>`
+      : `<div class="office-net-status">This device's internet IP: <b>${escapeHtml(r.your_ip || 'not detected')}</b></div>`;
+    box.innerHTML = status + rows;
+    window.OFFICE_NET_DEBUG = r.headers_seen; // for troubleshooting in console
+  } catch (e) {
+    box.innerHTML = '<div class="office-net-status err">Could not load office networks.</div>';
+  }
+}
+
+async function addCurrentOfficeNetwork() {
+  const labelEl = document.getElementById('officeNetworkLabel');
+  const label = labelEl ? labelEl.value.trim() : '';
+  if (!confirm("Save the internet connection you are on RIGHT NOW as office Wi-Fi?\n\nOnly do this while connected to the office Wi-Fi (not mobile data).")) return;
+  try {
+    const r = await callAPI("addCurrentNetwork", { label: label || 'Office Wi-Fi' });
+    alert(r && r.success ? `Saved office network (${r.ip}).` : (r && r.message) || 'Could not save.');
+    if (labelEl) labelEl.value = '';
+    OFFICE_NET.checkedAt = 0;
+    loadOfficeNetworks();
+  } catch (e) {
+    alert('Could not save the network.');
+  }
+}
+
+async function removeOfficeNetwork(id) {
+  if (!confirm('Remove this office network? Punches from it will need GPS again.')) return;
+  try {
+    await callAPI("removeOfficeNetwork", { id });
+    OFFICE_NET.checkedAt = 0;
+    loadOfficeNetworks();
+  } catch (e) {
+    alert('Could not remove the network.');
+  }
+}
+
 async function loadUserManagement() {
   const tbody = document.getElementById('usersTableBody');
   if (!tbody) return;

@@ -467,6 +467,16 @@
 
       <section id="userMgmtView" class="app-view fade-in-up">
         <div class="view-header"><h2>System Settings</h2><p>Manage accounts and portal permissions.</p></div>
+
+        <div class="office-net-card" id="officeNetworksCard">
+          <h3 class="office-net-title">📶 Office Wi-Fi Networks</h3>
+          <p class="office-net-help">Phones on these networks can punch even when GPS is weak. Connect this device to the office Wi-Fi, then tap "Add this network".</p>
+          <div id="officeNetworksBox"></div>
+          <div class="office-net-add">
+            <input type="text" id="officeNetworkLabel" placeholder="Label, e.g. DDC 1st floor Wi-Fi" maxlength="60">
+            <button type="button" onclick="addCurrentOfficeNetwork()">Add this network</button>
+          </div>
+        </div>
       </section>
     </main>
   </div>
