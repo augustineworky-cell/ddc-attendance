@@ -134,23 +134,122 @@ function getISTMinutesNow() {
 // based positioning), retry once with high accuracy disabled and a longer
 // timeout. This prevents the "Checking Location..." / clock-in spinner
 // from hanging indefinitely or failing outright on desktop/incognito.
+// Why this changed: the old version gave real GPS only 4 seconds, then fell
+// back to low-accuracy mode with a 30s-old cached fix. Many Android phones
+// (OnePlus, Xiaomi/Redmi, etc.) need 5-15s indoors for a GPS lock, so they
+// always fell back to cell-tower/Wi-Fi location - often 1-3 km off - and got
+// "you are far from the office" while standing inside it.
+//
+// Now: keep GPS warm while the app is open (watchPosition), and for a punch
+// wait up to timeoutMs for a fix of <= GPS_GOOD_ACCURACY_M, keeping the most
+// accurate reading seen. Low-accuracy mode is only a last resort when no
+// high-accuracy fix arrives at all (desktop / no GPS chip).
+const GPS_GOOD_ACCURACY_M = 50;
+const GPS_ROUGH_ACCURACY_M = 150;   // worse than this = not real GPS, warn the user
+let GPS_WARM_WATCH_ID = null;
+let GPS_LAST_FIX = null;            // GeolocationPosition
+
+function rememberFix(pos) {
+  if (!pos || !pos.coords) return;
+  const prev = GPS_LAST_FIX;
+  const prevAge = prev ? Date.now() - prev.timestamp : Infinity;
+  // Prefer the newer fix unless it's much worse than a still-fresh one.
+  if (!prev || prevAge > 15000 || pos.coords.accuracy <= prev.coords.accuracy + 20) {
+    GPS_LAST_FIX = pos;
+  }
+}
+
+function startGpsWarmup() {
+  if (!navigator.geolocation || GPS_WARM_WATCH_ID !== null) return;
+  try {
+    GPS_WARM_WATCH_ID = navigator.geolocation.watchPosition(
+      rememberFix,
+      () => { /* ignore - punch flow reports errors itself */ },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
+    );
+  } catch (e) { GPS_WARM_WATCH_ID = null; }
+}
+
+function stopGpsWarmup() {
+  if (GPS_WARM_WATCH_ID !== null && navigator.geolocation) {
+    navigator.geolocation.clearWatch(GPS_WARM_WATCH_ID);
+  }
+  GPS_WARM_WATCH_ID = null;
+  GPS_LAST_FIX = null;
+}
+
 function getGpsPosition(timeoutMs = 10000) {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       return reject(new Error("Geolocation not supported"));
     }
-    navigator.geolocation.getCurrentPosition(
-      resolve,
-      () => {
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 30000 }
-        );
+
+    // Fresh, accurate fix already available from the warm watcher.
+    if (GPS_LAST_FIX && Date.now() - GPS_LAST_FIX.timestamp < 10000 &&
+        GPS_LAST_FIX.coords.accuracy <= GPS_GOOD_ACCURACY_M) {
+      return resolve(GPS_LAST_FIX);
+    }
+
+    let best = null;
+    let done = false;
+    let watchId = null;
+
+    const finish = (pos, err) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (pos) { rememberFix(pos); resolve(pos); } else { reject(err); }
+    };
+
+    const consider = (pos) => {
+      if (!best || pos.coords.accuracy < best.coords.accuracy) best = pos;
+      if (pos.coords.accuracy <= GPS_GOOD_ACCURACY_M) finish(pos);
+    };
+
+    const timer = setTimeout(() => {
+      // Take the best fix we got, including one from the warm watcher.
+      const warm = GPS_LAST_FIX && Date.now() - GPS_LAST_FIX.timestamp < 30000 ? GPS_LAST_FIX : null;
+      const candidate = [best, warm].filter(Boolean)
+        .sort((a, b) => a.coords.accuracy - b.coords.accuracy)[0];
+      if (candidate) return finish(candidate);
+
+      // No high-accuracy fix at all (desktop / no GPS): last resort.
+      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => finish(pos),
+        (err) => finish(null, err),
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+      );
+    }, timeoutMs);
+
+    watchId = navigator.geolocation.watchPosition(
+      consider,
+      (err) => {
+        // Permission denied is final - don't wait for the timer.
+        if (err && err.code === 1) finish(null, err);
       },
-      { enableHighAccuracy: true, timeout: 4000, maximumAge: 0 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs }
     );
   });
+}
+
+// Shown when the server says OUT_OF_RANGE. If the phone's own reported
+// accuracy is poor, the real problem is the phone's location settings, not
+// where the employee is standing - say so, with the fix.
+function buildOutOfRangeMessage(action, distanceM, accuracyM) {
+  const dist = (distanceM !== undefined && distanceM !== null)
+    ? ` Your phone says you are about ${Math.round(distanceM)} m from DDC Safdarjung HQ (allowed: ${OFFICE_RADIUS_M} m).`
+    : '';
+  if (accuracyM && accuracyM > GPS_ROUGH_ACCURACY_M) {
+    return `Your phone is giving only a ROUGH location (accuracy ±${Math.round(accuracyM)} m), not real GPS, so it thinks you are far away.${dist}\n\n` +
+      `Fix it on this phone:\n` +
+      `1. Phone Settings > Location: ON, and turn ON "Google Location Accuracy" / "Improve accuracy".\n` +
+      `2. Settings > Apps > Chrome > Permissions > Location: "Allow only while using" and turn ON "Use precise location".\n` +
+      `3. Turn OFF Battery Saver / Power Saving mode.\n` +
+      `4. Stand near a window for 10-20 seconds, then try ${action} again.`;
+  }
+  return `You're outside the office area.${dist} Please move within range of DDC Safdarjung HQ and try ${action} again.`;
 }
 
 // ==========================================================================
@@ -597,6 +696,7 @@ function applySessionAndRenderApp(user, persist) {
   // on "Checking Location..." until the user manually navigated. Home is
   // also the default active view right after login, so start polling.
   startGeofencePolling();
+  startGpsWarmup();
 
   // Proactively ask for Location + Camera access right after login/session
   // restore, every single time the app opens - not just once ever. This is
@@ -757,6 +857,7 @@ async function handleLogout(e) {
   stopLocationPinging();
   stopLiveMapRefresh();
   stopAutoLogoutTimer();
+  stopGpsWarmup();
 
   const loginError = document.getElementById('loginError');
   if (loginError) loginError.style.display = 'none';
@@ -1051,10 +1152,10 @@ async function handleClockIn() {
 
   // UI Loading State
   btn.classList.add('loading');
-  if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+  if (btnLabel) btnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Getting GPS...';
 
   try {
-    const pos = await getGpsPosition(10000);
+    const pos = await getGpsPosition(20000);
 
     // Burn the address + timestamp into the photo's actual pixels before
     // upload - the geocode lookup was already kicked off in parallel when
@@ -1126,10 +1227,7 @@ async function handleClockIn() {
         ATTENDANCE_SELFIE_BASE64 = null;
       }
     } else if (data.status === 'OUT_OF_RANGE') {
-      const distanceInfo = (data.distance_m !== undefined && data.distance_m !== null)
-        ? ` You are approximately ${Math.round(data.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
-        : '';
-      alert(`You're outside the office geofence.${distanceInfo} Please move within range of DDC Safdarjung HQ before punching in.`);
+      alert(buildOutOfRangeMessage('Punch In', data.distance_m, pos.coords.accuracy));
     } else if (data.status === 'ERROR') {
       alert(data.message || "Error clocking in. Please try again.");
     } else if (data.status === 'ALREADY_CLOCKED_IN') {
@@ -1209,7 +1307,7 @@ async function handleClockOut() {
       const remainingStr = remainingH > 0 ? `${remainingH}h ${remainingM}m` : `${remainingM}m`;
 
       const confirmedEarlyOut = confirm(
-        `You haven't completed your 9-hour shift yet (${remainingStr} remaining). Are you sure you want to clock out early?`
+        `You haven't completed your 9-hour shift yet (${remainingStr} remaining).\n\nYou can still punch out early - it will be recorded as "Shift Incomplete". Punch out now?`
       );
       if (!confirmedEarlyOut) return;
     }
@@ -1223,10 +1321,10 @@ async function handleClockOut() {
   if (!btn) return;
 
   btn.classList.add('loading');
-  setButtonLabel(btn, "Clocking Out...");
+  setButtonLabel(btn, "Getting GPS...");
 
   try {
-    const pos = await getGpsPosition(10000);
+    const pos = await getGpsPosition(20000);
 
     // Same watermarking step as handleClockIn() - burn address+timestamp
     // into the photo's pixels before upload. The geocode lookup was
@@ -1300,14 +1398,8 @@ async function handleClockOut() {
       });
 
     } else if (res.status === 'OUT_OF_RANGE') {
-      // Use the server's own wording verbatim - this is deliberately a
-      // different, more specific message than clock-in's generic
-      // out-of-geofence alert, since ops wants employees to see the exact
-      // clock-out phrasing (it explains the 9-hour shift consequence too).
-      const distanceInfo = (res.distance_m !== undefined && res.distance_m !== null)
-        ? ` You are approximately ${Math.round(res.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
-        : '';
-      alert(`${res.message || `You're outside the office geofence. Please move within range of DDC Safdarjung HQ before punching out.`}${distanceInfo}`);
+      // Early punch-out IS allowed - the only thing that blocks it is location.
+      alert(buildOutOfRangeMessage('Punch Out', res.distance_m, pos.coords.accuracy));
     } else if (res.status === 'NO_CLOCK_IN') {
       alert("You haven't clocked in yet today. Please clock in before attempting to clock out.");
     } else if (res.status === 'ALREADY_CLOCKED_OUT') {
