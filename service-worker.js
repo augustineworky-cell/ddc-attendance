@@ -2,7 +2,7 @@
 // Caches only the static app shell. Never caches Supabase / API / geolocation
 // data, so attendance punches and geofence checks always hit the network live.
 
-const CACHE_NAME = 'staffly-shell-v26';
+const CACHE_NAME = 'staffly-shell-v27';
 
 const SHELL_ASSETS = [
   '/',
