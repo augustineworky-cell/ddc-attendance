@@ -9,12 +9,39 @@ const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
 // DDC Safdarjung HQ Geofence Coordinates
 const OFFICE_LAT = 28.56616;
 const OFFICE_LNG = 77.19904;
-const OFFICE_RADIUS_M = 150; // 150-meter coverage radius
+// Widened from 150m to 1km on request - a radius this size comfortably
+// absorbs normal GPS error on any device (typically well under 300-400m
+// even on a bad fix), so punch-in/out should now work consistently across
+// phones without needing to fine-tune accuracy handling further.
+const OFFICE_RADIUS_M = 1000; // 1km coverage radius
 
 // Aliases used by geofence-checking helpers
 const HQ_LAT = OFFICE_LAT;
 const HQ_LNG = OFFICE_LNG;
 const MAX_GEOFENCE_RADIUS_METERS = OFFICE_RADIUS_M;
+
+// A GPS fix's reported coordinate always comes with a horizontal error
+// margin (pos.coords.accuracy, in meters). Two employees standing at the
+// exact same physical spot can get very different accuracy - one phone
+// might report +-15m, another +-400m (weak signal, indoors, battery-saver
+// location mode, etc). If we compare raw distance straight to the 150m
+// radius, the low-accuracy employee gets wrongly told they're outside
+// even though they're standing right there. We forgive some of that
+// error before judging in/out - capped, so a wildly inaccurate fix can't
+// be abused to spoof presence from far away.
+const GEOFENCE_ACCURACY_FORGIVENESS_CAP_M = 100;
+// Above this accuracy we still let the punch through (if within the
+// forgiven radius) but warn the user their fix is unreliable, since a
+// fresh/better reading may change the outcome.
+const GEOFENCE_LOW_ACCURACY_WARNING_M = 300;
+
+// Distance to compare against the geofence radius, after forgiving up to
+// GEOFENCE_ACCURACY_FORGIVENESS_CAP_M meters of the device's own reported
+// GPS error.
+function getEffectiveGeofenceDistance(distanceM, accuracyM) {
+  const forgiveness = Math.min(accuracyM || 0, GEOFENCE_ACCURACY_FORGIVENESS_CAP_M);
+  return Math.max(0, distanceM - forgiveness);
+}
 
 // Official shift timing (IST) - DDC Safdarjung HQ
 const SHIFT_START_TIME = "11:00 AM";
@@ -50,8 +77,13 @@ let dirFilterState = "all";
 let weeklyChartObj = null, statusChartObj = null, monthlyChartObj = null;
 let currentLatitude = null;
 let currentLongitude = null;
+let currentAccuracy = null;
 let EMPLOYEE_LIST = [];
 let webcamStream = null;
+let myLocationMapInstance = null;
+let myLocationMarker = null;
+let myLocationAccuracyCircle = null;
+let myLocationGeofenceCircle = null;
 
 // Utility: Date String Formatter (YYYY-MM-DD)
 function getLocalDateString(d = new Date()) {
@@ -265,10 +297,15 @@ async function callAPI(action, payload = {}) {
         return data;
       }
       case "clockIn": {
+        // NOTE: p_accuracy is only useful once the clock_in() Postgres
+        // function is updated to accept it and apply the same
+        // accuracy-forgiveness logic as getEffectiveGeofenceDistance()
+        // client-side - see the SQL template provided alongside this file.
         const { data, error } = await sbClient.rpc('clock_in', {
           p_employee_id: payload.employeeId,
           p_lat: payload.gps.lat,
-          p_lng: payload.gps.lng
+          p_lng: payload.gps.lng,
+          p_accuracy: payload.gps.accuracy ?? null
         });
         if (error) throw error;
         // Only attach a selfie once the punch itself actually succeeded -
@@ -284,10 +321,12 @@ async function callAPI(action, payload = {}) {
         return data;
       }
       case "clockOut": {
+        // Same p_accuracy note as clockIn above.
         const { data, error } = await sbClient.rpc('clock_out', {
           p_employee_id: payload.employeeId,
           p_lat: payload.gps.lat,
-          p_lng: payload.gps.lng
+          p_lng: payload.gps.lng,
+          p_accuracy: payload.gps.accuracy ?? null
         });
         if (error) throw error;
         // Same rule as clockIn: only attach the clock-out selfie once
@@ -682,8 +721,9 @@ function applySessionAndRenderApp(user, persist) {
   // Kick off the geofence status check immediately on login/session
   // restore, rather than waiting for whatever view happens to be active
   // to trigger it - this is what previously left the status card stuck
-  // on "Checking Location..." until the user manually navigated.
-  checkGeofence();
+  // on "Checking Location..." until the user manually navigated. Home is
+  // also the default active view right after login, so start polling.
+  startGeofencePolling();
 
   // Proactively ask for Location + Camera access right after login/session
   // restore, every single time the app opens - not just once ever. This is
@@ -1151,7 +1191,7 @@ async function handleClockIn() {
     // (previously an array-of-rows shape like res[0][0]/res[0][1]).
     const data = await callAPI("clockIn", {
       employeeId: id,
-      gps: { lat: pos.coords.latitude, lng: pos.coords.longitude, selfieBase64: watermarkedSelfie }
+      gps: { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, selfieBase64: watermarkedSelfie }
     });
 
     if (!data) {
@@ -1319,6 +1359,7 @@ async function handleClockOut() {
       gps: {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
         selfieBase64: watermarkedSelfie
       }
     });
@@ -1656,23 +1697,132 @@ async function checkGeofence() {
 
     currentLatitude = pos.coords.latitude;
     currentLongitude = pos.coords.longitude;
+    currentAccuracy = pos.coords.accuracy;
 
     const dist = calculateDistance(currentLatitude, currentLongitude, HQ_LAT, HQ_LNG);
+    const effectiveDist = getEffectiveGeofenceDistance(dist, currentAccuracy);
+    const lowAccuracy = currentAccuracy && currentAccuracy > GEOFENCE_LOW_ACCURACY_WARNING_M;
 
-    if (dist <= MAX_GEOFENCE_RADIUS_METERS) {
-      if (icon) icon.textContent = "✅";
-      if (title) title.textContent = "Inside Geofence";
-      if (subtitle) subtitle.textContent = `${Math.round(dist)}m from DDC Safdarjung HQ`;
+    if (effectiveDist <= MAX_GEOFENCE_RADIUS_METERS) {
+      if (icon) icon.textContent = lowAccuracy ? "⚠️" : "✅";
+      if (title) title.textContent = lowAccuracy ? "Inside Geofence (weak signal)" : "Inside Geofence";
+      if (subtitle) {
+        subtitle.textContent = lowAccuracy
+          ? `${Math.round(dist)}m away, but your GPS signal is weak (±${Math.round(currentAccuracy)}m). Move near a window or open sky for a more reliable reading.`
+          : `${Math.round(dist)}m from DDC Safdarjung HQ (±${Math.round(currentAccuracy || 0)}m accuracy)`;
+      }
     } else {
       if (icon) icon.textContent = "📍";
       if (title) title.textContent = "Outside Geofence";
-      if (subtitle) subtitle.textContent = `${Math.round(dist)}m from DDC Safdarjung HQ`;
+      if (subtitle) {
+        subtitle.textContent = lowAccuracy
+          ? `${Math.round(dist)}m from DDC Safdarjung HQ, with a weak GPS signal (±${Math.round(currentAccuracy)}m). Try moving outdoors or near a window and wait a few seconds before punching in.`
+          : `${Math.round(dist)}m from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m)`;
+      }
     }
+
+    updateMyLocationMap(currentLatitude, currentLongitude, currentAccuracy, dist);
   } catch (err) {
     console.warn("Location prompt or signal timeout:", err);
     if (icon) icon.textContent = "📍";
     if (title) title.textContent = "GPS Location Pending";
     if (subtitle) subtitle.textContent = "Please allow location access in your browser bar";
+  }
+}
+
+// ==========================================================================
+// EMPLOYEE-FACING LIVE LOCATION MAP (home / clock-in card)
+// ==========================================================================
+// Shows the employee their own live position, their device's own GPS
+// accuracy radius, and the HQ geofence circle - so when a punch is
+// blocked they can *see* why (e.g. their accuracy circle straddles the
+// geofence edge) instead of just getting a flat "you're not in location"
+// message. Reuses the Leaflet library already used by the admin field map.
+function initMyLocationMap() {
+  const container = document.getElementById('myLocationMapContainer');
+  if (!container || myLocationMapInstance || typeof L === 'undefined') return;
+
+  myLocationMapInstance = L.map('myLocationMapContainer', {
+    zoomControl: false,
+    attributionControl: false
+  }).setView([OFFICE_LAT, OFFICE_LNG], 16);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+  }).addTo(myLocationMapInstance);
+
+  myLocationGeofenceCircle = L.circle([OFFICE_LAT, OFFICE_LNG], {
+    radius: OFFICE_RADIUS_M,
+    color: '#2f9e44',
+    weight: 2,
+    fillOpacity: 0.08
+  }).addTo(myLocationMapInstance);
+
+  L.marker([OFFICE_LAT, OFFICE_LNG]).addTo(myLocationMapInstance)
+    .bindPopup('DDC Safdarjung HQ');
+}
+
+function updateMyLocationMap(lat, lng, accuracy, distanceM) {
+  const container = document.getElementById('myLocationMapContainer');
+  if (!container || typeof L === 'undefined') return;
+  if (!myLocationMapInstance) initMyLocationMap();
+  if (!myLocationMapInstance || lat == null || lng == null) return;
+
+  const latLng = [lat, lng];
+  const isInside = getEffectiveGeofenceDistance(distanceM, accuracy) <= MAX_GEOFENCE_RADIUS_METERS;
+  const dotColor = isInside ? '#2f9e44' : '#e8590c';
+
+  if (!myLocationMarker) {
+    myLocationMarker = L.circleMarker(latLng, {
+      radius: 7,
+      color: '#fff',
+      weight: 2,
+      fillColor: dotColor,
+      fillOpacity: 1
+    }).addTo(myLocationMapInstance);
+  } else {
+    myLocationMarker.setLatLng(latLng);
+    myLocationMarker.setStyle({ fillColor: dotColor });
+  }
+
+  // The accuracy circle is the whole point here - it visualizes exactly
+  // how much horizontal error this device's GPS fix carries, which is
+  // usually the real reason a punch gets rejected.
+  if (accuracy) {
+    if (!myLocationAccuracyCircle) {
+      myLocationAccuracyCircle = L.circle(latLng, {
+        radius: accuracy,
+        color: dotColor,
+        weight: 1,
+        fillColor: dotColor,
+        fillOpacity: 0.12
+      }).addTo(myLocationMapInstance);
+    } else {
+      myLocationAccuracyCircle.setLatLng(latLng);
+      myLocationAccuracyCircle.setRadius(accuracy);
+      myLocationAccuracyCircle.setStyle({ color: dotColor, fillColor: dotColor });
+    }
+  }
+
+  // Fit both the geofence circle and the employee's own accuracy circle
+  // in view, so it's visually obvious whether/how much they overlap.
+  const bounds = L.latLngBounds([[OFFICE_LAT, OFFICE_LNG], latLng]);
+  myLocationMapInstance.fitBounds(bounds.pad(0.6), { maxZoom: 18 });
+}
+
+// Keeps the geofence badge + live map genuinely "live" while the employee
+// is looking at the home/punch screen, instead of a one-time check that
+// goes stale the moment they walk closer to (or further from) HQ.
+let geofencePollInterval = null;
+function startGeofencePolling() {
+  if (geofencePollInterval) return;
+  checkGeofence();
+  geofencePollInterval = setInterval(checkGeofence, 20000);
+}
+function stopGeofencePolling() {
+  if (geofencePollInterval) {
+    clearInterval(geofencePollInterval);
+    geofencePollInterval = null;
   }
 }
 
@@ -1761,6 +1911,11 @@ function initNavigation() {
       if (targetViewId === 'trainingView') loadTrainingData();
       if (targetViewId === 'fieldMapView') initLiveMap();
       if (targetViewId === 'userMgmtView') loadUserManagement();
+      // Only poll this employee's own live location while they're actually
+      // looking at the punch-in screen - no point burning battery/GPS
+      // requests on views where the map isn't even visible.
+      if (targetViewId === 'homeView') startGeofencePolling();
+      else stopGeofencePolling();
 
       if (sidebar) sidebar.classList.remove('open');
       if (backdrop) backdrop.classList.remove('active');

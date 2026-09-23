@@ -28,6 +28,13 @@
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
 
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Leaflet: powers both the admin Field Map view and the employee-facing
+       "my location" map on the punch-in card. Was referenced (L.map/L.circle)
+       but never actually loaded before - added here. -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+
   <!-- defer (not a blocking synchronous <script>) so HTML parsing/painting
        isn't held up waiting for this CDN download. app.js below is also
        deferred so their relative order is preserved - app.js reads
@@ -397,6 +404,11 @@
             <div class="geofence-icon-badge" id="geofenceIcon">📍</div>
             <h3 id="geofenceTitle" class="status-heading">Checking Location...</h3>
             <p id="geofenceSubtitle" class="status-subheading">Calculating distance to DDC Safdarjung HQ</p>
+            <!-- Live map: shows the employee's own GPS dot, their device's
+                 accuracy radius, and the HQ geofence circle, so it's
+                 visually obvious why a punch is (or isn't) being blocked
+                 instead of just a flat text message. -->
+            <div id="myLocationMapContainer" class="my-location-map"></div>
           </div>
 
           <div class="camera-verification-card">

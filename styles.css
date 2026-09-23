@@ -863,6 +863,18 @@ body::before {
   transform: scale(0.99);
 }
 
+.my-location-map {
+  width: 100%;
+  height: 160px;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-top: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  /* Leaflet needs a concrete size before it initializes, and the card
+     background shows through until tiles load in. */
+  background: rgba(0, 0, 0, 0.15);
+}
+
 .geofence-icon-badge {
   width: 44px;
   height: 44px;
