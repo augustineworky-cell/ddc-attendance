@@ -85,6 +85,23 @@ let myLocationMarker = null;
 let myLocationAccuracyCircle = null;
 let myLocationGeofenceCircle = null;
 
+// Utility: escape anything user-typed before it goes into innerHTML.
+// Leave reasons, names, emails etc. are written by staff - without this a
+// reason like <img src=x onerror=...> runs code in the HR/Admin browser.
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"'`]/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;'
+  }[c]));
+}
+
+// Utility: only allow http(s) links (blocks javascript: URLs in training).
+function safeUrl(u) {
+  try {
+    const url = new URL(String(u || ''), location.href);
+    return (url.protocol === 'http:' || url.protocol === 'https:') ? url.href : '#';
+  } catch (e) { return '#'; }
+}
+
 // Utility: Date String Formatter (YYYY-MM-DD)
 function getLocalDateString(d = new Date()) {
   const year = d.getFullYear();
@@ -271,6 +288,47 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+// Session token issued by app_login(). Every RPC except app_login sends it;
+// the server works out WHO is calling from the token, never from the client.
+function getSessionToken() {
+  return (CURRENT_USER && CURRENT_USER.token) || null;
+}
+
+// Server raises SESSION_INVALID (28000) when the token is missing/expired/
+// revoked, and FORBIDDEN (42501) when the role isn't allowed.
+function isSessionError(err) {
+  return !!err && (err.code === '28000' || /SESSION_INVALID/.test(err.message || ''));
+}
+
+// Which RPC gets which args. "self" RPCs no longer take p_employee_id at all.
+const RPC_MAP = {
+  clockIn:            p => ['clock_in', { p_lat: p.gps.lat, p_lng: p.gps.lng, p_accuracy: p.gps.accuracy ?? null }],
+  clockOut:           p => ['clock_out', { p_lat: p.gps.lat, p_lng: p.gps.lng, p_accuracy: p.gps.accuracy ?? null }],
+  pingLocation:       p => ['ping_location', { p_lat: p.lat, p_lng: p.lng }],
+  applyLeave:         p => ['apply_leave', { p_from_date: p.fromDate, p_to_date: p.toDate, p_leave_type: p.leaveType, p_reason: p.reason, p_doc_pending: p.docPending || false }],
+  attachLeaveDocument:p => ['attach_leave_document', { p_doc_path: p.docPath }],
+  getTodayAttendance: () => ['get_today_attendance', {}],
+  getEmployeeLeaves:  p => ['get_employee_leaves', { p_employee_id: p.employeeId }],
+  getSalaryDetails:   p => ['get_salary_details', { p_employee_id: p.employeeId, p_month_str: p.monthStr }],
+  // DB param is p_date_param (the old p_date key never matched, so these were failing)
+  getDashboardMetrics:p => ['get_dashboard_metrics', { p_employee_id: p.employeeId, p_date_param: p.date }],
+  getDashboardCharts: p => ['get_dashboard_charts', { p_employee_id: p.employeeId, p_date_param: p.date }],
+  getAllPendingLeaves:() => ['get_all_pending_leaves', {}],
+  updateLeaveStatus:  p => ['update_leave_status', { p_leave_id: p.leaveId, p_status: p.status, p_hr_comment: p.hrComment }],
+  saveSalaryConfig:   p => ['save_salary_config', { p_employee_id: p.employeeId, p_month_str: p.monthStr, p_amount: p.amount }],
+  getEmployeesDirectory: () => ['get_employees_directory', {}],
+  getTrainingList:    () => ['get_training_list', {}],
+  addTraining:        p => ['add_training', { p_dept: p.dept, p_system: p.system, p_purpose: p.purpose, p_link: p.link }],
+  getLiveLocations:   () => ['get_live_locations', {}],
+  addUser:            p => ['add_user', { p_employee_id: p.employeeId, p_email: p.email, p_role: p.role, p_password: p.password }],
+  updateUser:         p => ['update_user', { p_employee_id: p.employeeId, p_email: p.email, p_role: p.role, p_status: p.status }],
+  getUsers:           () => ['get_users', {}],
+  getOverallMetrics:  p => ['get_overall_metrics', { p_date_param: p.date }],
+  getOverallCharts:   p => ['get_overall_charts', { p_date_param: p.date }],
+  getAuditLogs:       () => ['get_audit_logs', {}],
+  getEmployeeNames:   () => ['get_employee_names', {}]
+};
+
 // ==========================================================================
 // SUPABASE RPC / API CALL WRAPPER
 // ==========================================================================
@@ -280,233 +338,48 @@ async function callAPI(action, payload = {}) {
     return null;
   }
   try {
-    switch (action) {
-      case "login": {
-        const { data, error } = await sbClient.rpc('login', {
-          p_employee_id: payload.employeeId,
-          p_password: payload.password
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "loginWithPassword": {
-        const { data, error } = await sbClient.rpc('login_with_password', {
-          p_password: payload.password
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "clockIn": {
-        // NOTE: p_accuracy is only useful once the clock_in() Postgres
-        // function is updated to accept it and apply the same
-        // accuracy-forgiveness logic as getEffectiveGeofenceDistance()
-        // client-side - see the SQL template provided alongside this file.
-        const { data, error } = await sbClient.rpc('clock_in', {
-          p_employee_id: payload.employeeId,
-          p_lat: payload.gps.lat,
-          p_lng: payload.gps.lng,
-          p_accuracy: payload.gps.accuracy ?? null
-        });
-        if (error) throw error;
-        // Only attach a selfie once the punch itself actually succeeded -
-        // uploading/attaching a photo against an OUT_OF_RANGE or
-        // ALREADY_CLOCKED_IN attempt would try to attach to an attendance
-        // row that was never created for today.
-        if (data && data.status === 'SUCCESS' && payload.gps.selfieBase64) {
-          const attached = await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockin');
-          // Surface this on the returned object rather than swallowing it -
-          // a failed attach must not be treated as if the selfie succeeded.
-          data._selfieAttached = attached;
-        }
-        return data;
-      }
-      case "clockOut": {
-        // Same p_accuracy note as clockIn above.
-        const { data, error } = await sbClient.rpc('clock_out', {
-          p_employee_id: payload.employeeId,
-          p_lat: payload.gps.lat,
-          p_lng: payload.gps.lng,
-          p_accuracy: payload.gps.accuracy ?? null
-        });
-        if (error) throw error;
-        // Same rule as clockIn: only attach the clock-out selfie once
-        // clock_out itself reports SUCCESS.
-        if (data && data.status === 'SUCCESS' && payload.gps && payload.gps.selfieBase64) {
-          const attached = await uploadSelfie(payload.employeeId, payload.gps.selfieBase64, 'clockout');
-          data._selfieAttached = attached;
-        }
-        return data;
-      }
-      case "pingLocation": {
-        const { data, error } = await sbClient.rpc('ping_location', {
-          p_employee_id: payload.employeeId,
-          p_lat: payload.lat,
-          p_lng: payload.lng
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "applyLeave": {
-        const { data, error } = await sbClient.rpc('apply_leave', {
-          p_employee_id: payload.employeeId,
-          p_from_date: payload.fromDate,
-          p_to_date: payload.toDate,
-          p_leave_type: payload.leaveType,
-          p_reason: payload.reason,
-          p_doc_pending: payload.docPending || false
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "attachLeaveDocument": {
-        const { data, error } = await sbClient.rpc('attach_leave_document', {
-          p_employee_id: payload.employeeId,
-          p_doc_path: payload.docPath
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getEmployeeLeaves": {
-        const { data, error } = await sbClient.rpc('get_employee_leaves', {
-          p_employee_id: payload.employeeId
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getAllPendingLeaves": {
-        const { data, error } = await sbClient.rpc('get_all_pending_leaves');
-        if (error) throw error;
-        return data;
-      }
-      case "updateLeaveStatus": {
-        const { data, error } = await sbClient.rpc('update_leave_status', {
-          p_leave_id: payload.leaveId,
-          p_status: payload.status,
-          p_hr_comment: payload.hrComment
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "saveSalaryConfig": {
-        const { data, error } = await sbClient.rpc('save_salary_config', {
-          p_employee_id: payload.employeeId,
-          p_month_str: payload.monthStr,
-          p_amount: payload.amount
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getSalaryDetails": {
-        const { data, error } = await sbClient.rpc('get_salary_details', {
-          p_employee_id: payload.employeeId,
-          p_month_str: payload.monthStr
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getEmployeesDirectory": {
-        const { data, error } = await sbClient.rpc('get_employees_directory');
-        if (error) throw error;
-        return data;
-      }
-      case "getTrainingList": {
-        const { data, error } = await sbClient.rpc('get_training_list');
-        if (error) throw error;
-        return data;
-      }
-      case "addTraining": {
-        const { data, error } = await sbClient.rpc('add_training', {
-          p_dept: payload.dept,
-          p_system: payload.system,
-          p_purpose: payload.purpose,
-          p_link: payload.link
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getLiveLocations": {
-        const { data, error } = await sbClient.rpc('get_live_locations');
-        if (error) throw error;
-        return data;
-      }
-      case "addUser": {
-        const { data, error } = await sbClient.rpc('add_user', {
-          p_employee_id: payload.employeeId,
-          p_email: payload.email,
-          p_role: payload.role,
-          p_password: payload.password
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "updateUser": {
-        const { data, error } = await sbClient.rpc('update_user', {
-          p_employee_id: payload.employeeId,
-          p_email: payload.email,
-          p_role: payload.role,
-          p_status: payload.status
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getUsers": {
-        const { data, error } = await sbClient.rpc('get_users');
-        if (error) throw error;
-        return data;
-      }
-      case "getDashboardMetrics": {
-        const { data, error } = await sbClient.rpc('get_dashboard_metrics', {
-          p_employee_id: payload.employeeId,
-          p_date: payload.date
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getDashboardCharts": {
-        const { data, error } = await sbClient.rpc('get_dashboard_charts', {
-          p_employee_id: payload.employeeId,
-          p_date: payload.date
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getOverallMetrics": {
-        const { data, error } = await sbClient.rpc('get_overall_metrics', {
-          p_date: payload.date
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getOverallCharts": {
-        const { data, error } = await sbClient.rpc('get_overall_charts', {
-          p_date: payload.date
-        });
-        if (error) throw error;
-        return data;
-      }
-      case "getAuditLogs": {
-        const { data, error } = await sbClient.rpc('get_audit_logs');
-        if (error) throw error;
-        return data;
-      }
-      case "getEmployeeNames": {
-        const { data, error } = await sbClient.rpc('get_employee_names');
-        if (error) throw error;
-        return data;
-      }
-      case "getTodayAttendance": {
-        const { data, error } = await sbClient.rpc('get_today_attendance', {
-          p_employee_id: payload.employeeId
-        });
-        if (error) throw error;
-        return data;
-      }
-      default:
-        console.warn("Unknown RPC action:", action);
-        return null;
+    // --- Auth calls (no token needed) ---
+    if (action === 'login') {
+      const { data, error } = await sbClient.rpc('app_login', {
+        p_employee_id: payload.employeeId,
+        p_password: payload.password
+      });
+      if (error) throw error;
+      return data;
     }
+    if (action === 'whoami') {
+      const { data, error } = await sbClient.rpc('app_whoami', { p_token: payload.token });
+      if (error) throw error;
+      return data;
+    }
+    if (action === 'logout') {
+      const { error } = await sbClient.rpc('app_logout', { p_token: payload.token });
+      if (error) throw error;
+      return true;
+    }
+
+    const build = RPC_MAP[action];
+    if (!build) {
+      console.warn("Unknown RPC action:", action);
+      return null;
+    }
+    const [fn, args] = build(payload);
+    const { data, error } = await sbClient.rpc(fn, { p_token: getSessionToken(), ...args });
+    if (error) throw error;
+
+    // Only attach a selfie once the punch itself actually succeeded.
+    if ((action === 'clockIn' || action === 'clockOut') &&
+        data && data.status === 'SUCCESS' && payload.gps && payload.gps.selfieBase64) {
+      data._selfieAttached = await uploadSelfie(
+        payload.employeeId, payload.gps.selfieBase64, action === 'clockIn' ? 'clockin' : 'clockout');
+    }
+    return data;
   } catch (err) {
     console.error(`Error executing RPC action [${action}]:`, err);
+    if (isSessionError(err) && CURRENT_USER) {
+      alert('Your session has expired. Please sign in again.');
+      handleLogout();
+    }
     throw err;
   }
 }
@@ -535,7 +408,7 @@ async function uploadSelfie(employeeId, base64, eventType = 'clockin') {
     // 1. Upload the file to Supabase Storage.
     const { error: uploadError } = await sbClient.storage
       .from('attendance-media')
-      .upload(fileName, blob, { upsert: true, contentType: 'image/webp' });
+      .upload(fileName, blob, { upsert: false, contentType: 'image/webp' });
 
     if (uploadError) {
       console.error("Selfie upload error:", uploadError);
@@ -557,7 +430,7 @@ async function uploadSelfie(employeeId, base64, eventType = 'clockin') {
     // as a SECURITY DEFINER function for this call to succeed.
     if (publicUrl) {
       const { data: isAttached, error: rpcError } = await sbClient.rpc('attach_attendance_photo', {
-        p_employee_id: employeeId,
+        p_token: getSessionToken(),
         p_work_date: dateStr,
         p_photo_url: publicUrl,
         p_event_type: eventType
@@ -744,32 +617,50 @@ function applySessionAndRenderApp(user, persist) {
 async function restoreSessionFromStorage() {
   try {
     const stored = localStorage.getItem(SESSION_STORAGE_KEY);
-    if (!stored) {
+    const saved = stored ? JSON.parse(stored) : null;
+    if (!saved || !saved.token) {
+      // No token = old-style session from before the security update.
+      localStorage.removeItem(SESSION_STORAGE_KEY);
       applySessionUI(false);
       return;
     }
-    const user = JSON.parse(stored);
-    if (user && (user.employeeId || user.employee_id)) {
-       const empId = user.employeeId || user.employee_id;
 
-      // Check if session belongs to a completed shift via centralized callAPI
-      const attData = await callAPI("getTodayAttendance", { employeeId: empId });
-      if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
-        localStorage.removeItem(SESSION_STORAGE_KEY);
-        applySessionUI(false);
-        const errorDiv = document.getElementById('loginError');
-        if (errorDiv) {
-          errorDiv.textContent = 'Your shift for today is completed. Login is restricted until tomorrow.';
-          errorDiv.style.display = 'block';
-        }
-        return;
-      }
-
-      applySessionAndRenderApp(user, false);
-    } else {
+    // Ask the server who this token belongs to. Name/role come from the
+    // server, so editing localStorage can't grant Admin anymore.
+    const who = await callAPI("whoami", { token: saved.token });
+    if (!who || who.status !== 'SUCCESS') {
       localStorage.removeItem(SESSION_STORAGE_KEY);
       applySessionUI(false);
+      return;
     }
+
+    const user = {
+      employeeId: who.employee_id,
+      employee_id: who.employee_id,
+      name: who.employee_name,
+      fullName: who.employee_name,
+      role: who.role,
+      token: saved.token
+    };
+    CURRENT_USER = user;
+    window.CURRENT_USER = user;
+
+    const attData = await callAPI("getTodayAttendance");
+    if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
+      await callAPI("logout", { token: user.token }).catch(() => {});
+      CURRENT_USER = null;
+      window.CURRENT_USER = null;
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      applySessionUI(false);
+      const errorDiv = document.getElementById('loginError');
+      if (errorDiv) {
+        errorDiv.textContent = 'Your shift for today is completed. Login is restricted until tomorrow.';
+        errorDiv.style.display = 'block';
+      }
+      return;
+    }
+
+    applySessionAndRenderApp(user, true);
   } catch (e) {
     console.warn("Could not restore session:", e);
     localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -777,40 +668,39 @@ async function restoreSessionFromStorage() {
   }
 }
 
-// Single-field password login: authenticates against login_with_password.
-// The password itself is the lookup key - no separate Employee ID field
-// exists anywhere in this flow. The RPC resolves employee_id/employee_name
-// server-side and matches case-insensitively on its own, so nothing needs
-// to be transformed here before sending it.
+// Employee ID + password login via app_login(). The server checks the
+// bcrypt hash, locks the ID for 15 min after 5 wrong tries, and returns a
+// session token that every other RPC must send.
 async function handlePasswordLogin(e) {
   if (e && e.preventDefault) e.preventDefault();
 
+  const idInput = document.getElementById('loginEmployeeId');
   const passwordInput = document.getElementById('loginPasswordOnly');
   const errorDiv = document.getElementById('loginError');
+  const showError = (msg) => {
+    if (errorDiv) { errorDiv.textContent = msg; errorDiv.style.display = 'block'; }
+  };
   if (errorDiv) errorDiv.style.display = 'none';
+  if (!idInput || !passwordInput) return;
 
-  if (!passwordInput) return;
-  const enteredValue = passwordInput.value; // sent as-is, no trim/lowercase
+  const employeeId = idInput.value.trim();
+  const password = passwordInput.value; // sent as-is - passwords are case-sensitive now
 
-  if (!enteredValue) {
-    if (errorDiv) {
-      errorDiv.textContent = 'Please enter your password.';
-      errorDiv.style.display = 'block';
-    }
+  if (!employeeId || !password) {
+    showError('Please enter your Employee ID and password.');
     return;
   }
 
   try {
-    const data = await callAPI("loginWithPassword", { password: enteredValue });
+    const data = await callAPI("login", { employeeId, password });
 
     if (!data || data.status !== 'SUCCESS') {
-      // INVALID_PASSWORD - clear the field so they can immediately retype,
-      // no other detail revealed about why it failed.
       passwordInput.value = '';
       passwordInput.focus();
-      if (errorDiv) {
-        errorDiv.textContent = 'Incorrect password, try again.';
-        errorDiv.style.display = 'block';
+      if (data && data.status === 'LOCKED') {
+        showError(`Too many wrong attempts. Try again in ${data.retry_after_minutes || 15} minutes.`);
+      } else {
+        showError('Incorrect Employee ID or password.');
       }
       return;
     }
@@ -820,28 +710,28 @@ async function handlePasswordLogin(e) {
       employee_id: data.employee_id,
       name: data.employee_name,
       fullName: data.employee_name,
-      role: data.role
+      role: data.role,
+      token: data.token
     };
+    // Token must be in place before the next RPC call.
+    CURRENT_USER = user;
+    window.CURRENT_USER = user;
 
-    // Same shift-completion safeguard the previous login methods enforced -
-    // block re-entry once today's shift is already fully clocked out.
-    const attData = await callAPI("getTodayAttendance", { employeeId: user.employeeId });
+    // Block re-entry once today's shift is already fully clocked out.
+    const attData = await callAPI("getTodayAttendance");
     if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
-      if (errorDiv) {
-        errorDiv.textContent = 'Your shift for today is completed. Login is restricted until tomorrow.';
-        errorDiv.style.display = 'block';
-      }
+      await callAPI("logout", { token: user.token }).catch(() => {});
+      CURRENT_USER = null;
+      window.CURRENT_USER = null;
+      showError('Your shift for today is completed. Login is restricted until tomorrow.');
       return;
     }
 
     applySessionAndRenderApp(user, true);
     showQuickToast(user.name);
   } catch (err) {
-    console.error("Password login error:", err);
-    if (errorDiv) {
-      errorDiv.textContent = 'Login failed. Connection error.';
-      errorDiv.style.display = 'block';
-    }
+    console.error("Login error:", err);
+    showError('Login failed. Connection error.');
   }
 }
 
@@ -853,11 +743,10 @@ async function handleLogout(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   try {
-    if (sbClient && sbClient.auth) {
-      await sbClient.auth.signOut();
-    }
+    const token = getSessionToken();
+    if (token) await callAPI("logout", { token });
   } catch (err) {
-    console.warn('Supabase signout notice:', err);
+    console.warn('Logout notice:', err);
   }
 
   CURRENT_USER = null;
@@ -2153,15 +2042,15 @@ async function loadDirectory() {
       card.innerHTML = `
         <div class="d-flex align-items-center gap-3">
             <div class="rounded-circle bg-accent text-white fw-bold d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
-                ${(emp.name || 'U').charAt(0)}
+                ${escapeHtml((emp.name || 'U').charAt(0))}
             </div>
             <div>
-                <div class="fw-bold text-white">${emp.name || emp.employee_id}</div>
-                <div class="text-secondary small">${emp.role} • ID: ${emp.employee_id}</div>
+                <div class="fw-bold text-white">${escapeHtml(emp.name || emp.employee_id)}</div>
+                <div class="text-secondary small">${escapeHtml(emp.role)} • ID: ${escapeHtml(emp.employee_id)}</div>
             </div>
         </div>
         <div>
-            <span class="badge bg-dark ${statusClass}">${emp.today_status || 'Absent'}</span>
+            <span class="badge bg-dark ${statusClass}">${escapeHtml(emp.today_status || 'Absent')}</span>
         </div>
       `;
       container.appendChild(card);
@@ -2226,15 +2115,15 @@ function renderLeaveList(list, containerId, isReview = false) {
     div.className = "glass-card p-3";
     div.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-1">
-        <span class="fw-bold text-white">${item.leave_type}</span>
-        <span class="badge bg-${item.status === 'Approved' ? 'success' : item.status === 'Rejected' ? 'danger' : 'warning'}">${item.status}</span>
+        <span class="fw-bold text-white">${escapeHtml(item.leave_type)}</span>
+        <span class="badge bg-${item.status === 'Approved' ? 'success' : item.status === 'Rejected' ? 'danger' : 'warning'}">${escapeHtml(item.status)}</span>
       </div>
-      <div class="small text-secondary mb-2">${item.from_date} to ${item.to_date} (${item.employee_id})</div>
-      <div class="small text-light">${item.reason || 'No reason provided'}</div>
+      <div class="small text-secondary mb-2">${escapeHtml(item.from_date)} to ${escapeHtml(item.to_date)} (${escapeHtml(item.employee_id)})</div>
+      <div class="small text-light">${item.reason ? escapeHtml(item.reason) : 'No reason provided'}</div>
       ${isReview && item.status === 'Pending' ? `
         <div class="d-flex gap-2 mt-3">
-          <button class="btn btn-sm btn-success w-50" onclick="processLeave(${item.id}, 'Approved')">Approve</button>
-          <button class="btn btn-sm btn-danger w-50" onclick="processLeave(${item.id}, 'Rejected')">Reject</button>
+          <button class="btn btn-sm btn-success w-50" onclick="processLeave(${Number(item.id)}, 'Approved')">Approve</button>
+          <button class="btn btn-sm btn-danger w-50" onclick="processLeave(${Number(item.id)}, 'Rejected')">Reject</button>
         </div>
       ` : ''}
     `;
@@ -2349,13 +2238,13 @@ async function loadTrainingData() {
       col.className = "col-md-6";
       col.innerHTML = `
         <div class="glass-card p-3">
-          <span class="badge bg-accent mb-2">${item.department}</span>
-          <h6 class="text-white mb-1">${item.system_title}</h6>
-          <p class="small text-secondary mb-3">${item.purpose}</p>
+          <span class="badge bg-accent mb-2">${escapeHtml(item.department)}</span>
+          <h6 class="text-white mb-1">${escapeHtml(item.system_title)}</h6>
+          <p class="small text-secondary mb-3">${escapeHtml(item.purpose)}</p>
           <div class="d-flex align-items-center justify-content-between">
-            <a href="${item.resource_link}" target="_blank" class="btn btn-sm btn-outline-light"><i class="fas fa-external-link-alt me-1"></i>Open Resource</a>
+            <a href="${escapeHtml(safeUrl(item.resource_link))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-light"><i class="fas fa-external-link-alt me-1"></i>Open Resource</a>
             <div class="form-check">
-              <input class="form-check-input training-progress-check" type="checkbox" data-id="${item.id}" ${item.completed ? 'checked' : ''}>
+              <input class="form-check-input training-progress-check" type="checkbox" data-id="${escapeHtml(item.id)}" ${item.completed ? 'checked' : ''}>
               <label class="form-check-label small text-secondary">Completed</label>
             </div>
           </div>
@@ -2428,7 +2317,7 @@ async function refreshLiveMapLocations() {
         liveMapMarkers[loc.employee_id].setLatLng([loc.lat, loc.lng]);
       } else {
         const marker = L.marker([loc.lat, loc.lng]).addTo(liveMapInstance)
-          .bindPopup(`<b>${loc.name || loc.employee_id}</b><br>Last ping: ${loc.ping_time}`);
+          .bindPopup(`<b>${escapeHtml(loc.name || loc.employee_id)}</b><br>Last ping: ${escapeHtml(loc.ping_time)}`);
         liveMapMarkers[loc.employee_id] = marker;
       }
     });
@@ -2456,18 +2345,19 @@ async function loadUserManagement() {
     tbody.innerHTML = "";
     if (!users) return;
 
-    users.forEach(u => {
+    window.USERS_CACHE = users;
+    users.forEach((u, idx) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${u.employee_id}</td>
-        <td>${u.email}</td>
-        <td><span class="badge bg-secondary">${u.role}</span></td>
-        <td><span class="badge bg-${u.status === 'Active' ? 'success' : 'danger'}">${u.status}</span></td>
+        <td>${escapeHtml(u.employee_id)}</td>
+        <td>${escapeHtml(u.email)}</td>
+        <td><span class="badge bg-secondary">${escapeHtml(u.role)}</span></td>
+        <td><span class="badge bg-${u.status === 'Active' ? 'success' : 'danger'}">${escapeHtml(u.status)}</span></td>
         <td>
-          <button class="btn btn-sm btn-outline-light me-1" onclick='openEditUserModal(${JSON.stringify(u)})'>
+          <button class="btn btn-sm btn-outline-light me-1" onclick="openEditUserModal(window.USERS_CACHE[${idx}])">
             <i class="fas fa-edit"></i>
           </button>
-          <button class="btn btn-sm btn-outline-warning" onclick="toggleUserStatus('${u.employee_id}', '${u.status}')">
+          <button class="btn btn-sm btn-outline-warning" onclick="toggleUserStatus(window.USERS_CACHE[${idx}].employee_id, window.USERS_CACHE[${idx}].status)">
             <i class="fas fa-power-off"></i>
           </button>
         </td>
