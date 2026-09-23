@@ -1374,7 +1374,10 @@ async function handleClockOut() {
       // different, more specific message than clock-in's generic
       // out-of-geofence alert, since ops wants employees to see the exact
       // clock-out phrasing (it explains the 9-hour shift consequence too).
-      alert(res.message || `You're outside the office geofence. Please move within range of DDC Safdarjung HQ before punching out.`);
+      const distanceInfo = (res.distance_m !== undefined && res.distance_m !== null)
+        ? ` You are approximately ${Math.round(res.distance_m)} meters from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m).`
+        : '';
+      alert(`${res.message || `You're outside the office geofence. Please move within range of DDC Safdarjung HQ before punching out.`}${distanceInfo}`);
     } else if (res.status === 'NO_CLOCK_IN') {
       alert("You haven't clocked in yet today. Please clock in before attempting to clock out.");
     } else if (res.status === 'ALREADY_CLOCKED_OUT') {
