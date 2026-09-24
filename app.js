@@ -1050,6 +1050,44 @@ async function callPasskeyFunction(body) {
   return data;
 }
 
+// Fingerprint animation states: idle | scanning | success | fail.
+// The phone's own sensor popup can't report progress, so we animate while
+// waiting for it and then show a clear success / failure result.
+function setFpVisual(state) {
+  const v = document.getElementById('fpVisual');
+  if (v) {
+    v.dataset.state = state;
+    if (state === 'fail') { v.classList.remove('fp-shake'); void v.offsetWidth; v.classList.add('fp-shake'); }
+  }
+  const icon = document.querySelector('#fingerprintLoginBtn .fingerprint-icon');
+  if (icon) {
+    icon.dataset.state = state;
+    if (state === 'fail') { icon.classList.remove('fp-shake'); void icon.offsetWidth; icon.classList.add('fp-shake'); }
+  }
+}
+
+// Human message for why the fingerprint step failed.
+function fingerprintErrorMessage(e, forLogin) {
+  const what = detectPlatform() === 'desktop' ? 'Passkey' : 'Fingerprint';
+  const name = e && e.name;
+  if (name === 'NotAllowedError' || name === 'AbortError') {
+    return `${what} was cancelled or timed out. ${forLogin ? 'Try again or use your PIN.' : 'Tap the button to try again.'}`;
+  }
+  if (name === 'InvalidStateError') {
+    return `This ${detectPlatform() === 'desktop' ? 'computer' : 'phone'} already has a Staffly passkey. Use it to log in, or reset from Fingerprint & PIN.`;
+  }
+  if (name === 'NotSupportedError' || name === 'SecurityError') {
+    return `This device can't use ${what.toLowerCase()} login for Staffly. Use your PIN instead.`;
+  }
+  if (e && e.code === 'SESSION_INVALID') return 'Your session expired. Please log in again.';
+  if (e && /Failed to fetch|NetworkError|FAILED/.test(e.message || e.code || '')) {
+    return `Couldn't reach the server. Check your internet and try again.`;
+  }
+  return forLogin
+    ? `${what} didn't match. Try again or use your PIN.`
+    : `${what} registration failed. Please try again.`;
+}
+
 async function enableFingerprint(device) {
   const { options } = await callPasskeyFunction({
     action: 'register-options', token: getSessionToken(), device_secret: device.secret
@@ -1058,7 +1096,9 @@ async function enableFingerprint(device) {
     ...options,
     challenge: b64uToBuf(options.challenge),
     user: { ...options.user, id: b64uToBuf(options.user.id) },
-    excludeCredentials: (options.excludeCredentials || []).map(c => ({ ...c, id: b64uToBuf(c.id) }))
+    // Not excluding existing keys: "Set up again" must be able to replace
+    // this phone's passkey (the server keeps only one per phone).
+    excludeCredentials: []
   };
   const cred = await navigator.credentials.create({ publicKey });
   const r = cred.response;
@@ -1088,6 +1128,7 @@ async function loginWithFingerprint() {
   const btn = document.getElementById('fingerprintLoginBtn');
   if (err) err.style.display = 'none';
   if (btn) btn.disabled = true;
+  setFpVisual('scanning');
   try {
     const { options } = await callPasskeyFunction({ action: 'login-options', device_secret: device.secret });
     const publicKey = {
@@ -1114,7 +1155,10 @@ async function loginWithFingerprint() {
       }
     });
     if (!data || data.status !== 'SUCCESS') throw new Error((data && data.status) || 'FAILED');
+    setFpVisual('success');
+    await new Promise(r => setTimeout(r, 450)); // let the ✓ show
     await finishLogin(data, showQuickError);
+    setTimeout(() => setFpVisual('idle'), 800);
   } catch (e) {
     console.warn('Fingerprint login:', e);
     if (e && (e.code === 'NO_FINGERPRINT' || e.code === 'FINGERPRINT_NOT_REGISTERED')) {
@@ -1123,7 +1167,9 @@ async function loginWithFingerprint() {
       renderQuickLogin(device);
     }
     // Cancelled / wrong finger / no sensor: PIN is right there.
-    showQuickError(`${detectPlatform() === 'desktop' ? 'Passkey' : 'Fingerprint'} didn't work. Use your 4-digit Staffly PIN below.`);
+    setFpVisual('fail');
+    setTimeout(() => setFpVisual('idle'), 1800);
+    showQuickError(fingerprintErrorMessage(e, true));
     const pin = document.getElementById('quickPinInput');
     if (pin) pin.focus();
   } finally {
@@ -1252,6 +1298,10 @@ function openQuickSetup(step) {
     if (fpBtn) fpBtn.textContent = `Enable ${lbl.name}`;
   }
   if (fpIcon) fpIcon.textContent = lbl.icon;
+  if (step === 'fp') {
+    setFpVisual('idle');
+    if (fpBtn) fpBtn.style.display = '';
+  }
   document.getElementById('quickSetupPinStep').style.display = step === 'pin' ? '' : 'none';
   document.getElementById('quickSetupFpStep').style.display = step === 'fp' ? '' : 'none';
   const settingsStep = document.getElementById('quickSetupSettingsStep');
@@ -1342,16 +1392,23 @@ async function setupFingerprintNow() {
   if (!device) return closeQuickSetup();
   const btn = document.getElementById('quickSetupFpBtn');
   if (btn) btn.disabled = true;
-  setQuickSetupStatus(detectPlatform() === 'desktop' ? 'Follow the Windows / Chrome prompt…' : 'Touch your fingerprint sensor…');
+  setFpVisual('scanning');
+  setQuickSetupStatus(detectPlatform() === 'desktop'
+    ? 'Follow the Windows / Chrome prompt…'
+    : 'Touch your fingerprint sensor when your phone asks…');
   try {
     await enableFingerprint(device);
+    setFpVisual('success');
     setQuickSetupStatus(detectPlatform() === 'desktop'
-      ? '✅ Passkey login is ON for this computer.'
-      : '✅ Fingerprint login is ON. Next time just touch the sensor.', 'ok');
-    setTimeout(closeQuickSetup, 1600);
+      ? '✅ Passkey registered! Next time just use Windows Hello.'
+      : '✅ Fingerprint registered! Next time just touch the sensor.', 'ok');
+    if (btn) btn.style.display = 'none';
+    setTimeout(closeQuickSetup, 2200);
   } catch (e) {
     console.warn('Enable fingerprint:', e);
-    setQuickSetupStatus("Fingerprint wasn't saved. You can still use your PIN. Try again or skip.", 'bad');
+    setFpVisual('fail');
+    setQuickSetupStatus('❌ ' + fingerprintErrorMessage(e, false) + ' Your PIN still works.', 'bad');
+    if (btn) btn.textContent = 'Try again';
   } finally {
     if (btn) btn.disabled = false;
   }

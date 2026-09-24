@@ -1920,3 +1920,64 @@ body::before {
 .quick-pin-input::placeholder { letter-spacing: 0.3em; font-size: 1rem; color: var(--text-muted); }
 .quick-login-switch { display: block; width: 100%; background: none; border: 0; color: var(--purple-accent); font-size: 0.85rem; padding: 10px; margin-top: 4px; cursor: pointer; text-decoration: underline; }
 .quick-setup-hint { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 12px; }
+
+/* ===== Fingerprint animation ===== */
+.fp-visual {
+  position: relative; width: 112px; height: 112px; margin: 4px auto 14px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: #fff; color: var(--coral-primary);
+  box-shadow: 0 8px 22px rgba(238, 132, 120, 0.25);
+  transition: color .3s, box-shadow .3s, background .3s;
+}
+.fp-svg { width: 62px; height: 62px; position: relative; z-index: 2; }
+.fp-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid var(--coral-primary); opacity: 0; pointer-events: none;
+}
+.fp-scanline {
+  position: absolute; left: 22%; right: 22%; height: 3px; top: 24%;
+  border-radius: 3px; background: var(--coral-primary);
+  box-shadow: 0 0 10px var(--coral-primary); opacity: 0; z-index: 3;
+}
+.fp-badge {
+  position: absolute; right: -2px; bottom: -2px; z-index: 4;
+  width: 34px; height: 34px; border-radius: 50%; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.1rem; transform: scale(0);
+  transition: transform .3s cubic-bezier(.34, 1.56, .64, 1);
+}
+.fp-badge-ok { background: var(--mint-green); }
+.fp-badge-bad { background: #e05a4c; }
+
+/* scanning: pulsing rings + moving scan line */
+.fp-visual[data-state="scanning"] .fp-ring { animation: fpPulse 1.6s ease-out infinite; }
+.fp-visual[data-state="scanning"] .fp-ring-2 { animation-delay: .8s; }
+.fp-visual[data-state="scanning"] .fp-scanline { animation: fpScan 1.4s ease-in-out infinite; }
+.fp-visual[data-state="scanning"] .fp-svg { animation: fpGlow 1.4s ease-in-out infinite; }
+
+/* success: green, lines redraw, check pops in */
+.fp-visual[data-state="success"] { color: var(--mint-green); background: #f1fbf9; box-shadow: 0 8px 26px rgba(71, 198, 176, 0.45); }
+.fp-visual[data-state="success"] .fp-badge-ok { transform: scale(1); }
+.fp-visual[data-state="success"] .fp-svg path { stroke-dasharray: 60; animation: fpDraw .7s ease-out both; }
+
+/* fail: red, shake, cross */
+.fp-visual[data-state="fail"] { color: #e05a4c; background: #fff5f4; box-shadow: 0 8px 22px rgba(224, 90, 76, 0.35); }
+.fp-visual[data-state="fail"] .fp-badge-bad { transform: scale(1); }
+.fp-shake { animation: fpShake .45s ease-in-out; }
+
+/* same states on the login button's icon */
+.fingerprint-icon { position: relative; transition: color .3s, box-shadow .3s; }
+.fingerprint-icon[data-state="scanning"] { animation: fpBtnPulse 1.2s ease-in-out infinite; }
+.fingerprint-icon[data-state="success"] { color: var(--mint-green); box-shadow: 0 0 0 4px rgba(71, 198, 176, 0.35); }
+.fingerprint-icon[data-state="fail"] { color: #e05a4c; box-shadow: 0 0 0 4px rgba(224, 90, 76, 0.3); }
+
+@keyframes fpPulse { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(1.55); opacity: 0; } }
+@keyframes fpScan { 0% { top: 24%; opacity: 0; } 15% { opacity: 1; } 50% { top: 72%; opacity: 1; } 85% { opacity: 1; } 100% { top: 24%; opacity: 0; } }
+@keyframes fpGlow { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+@keyframes fpDraw { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
+@keyframes fpShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+@keyframes fpBtnPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(238, 132, 120, .45); } 50% { box-shadow: 0 0 0 12px rgba(238, 132, 120, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-visual, .fp-visual *, .fingerprint-icon { animation: none !important; transition: none !important; }
+}
