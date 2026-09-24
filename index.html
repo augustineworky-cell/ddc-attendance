@@ -479,32 +479,123 @@
       </section>
 
       <section id="dashboardView" class="app-view fade-in-up">
-        <div class="view-header"><h2>Executive Analytics</h2><p>Live workforce activity breakdown.</p></div>
+        <div class="view-header"><h2>Analytics</h2><p id="analyticsScope">Attendance at a glance.</p></div>
+        <div id="dashboardMetrics" class="kpi-grid"></div>
+        <div class="chart-grid">
+          <div class="card chart-card chart-wide"><h3 class="card-title">This week</h3><div class="chart-box"><canvas id="weeklyChart" aria-label="Attendance this week"></canvas></div></div>
+          <div class="card chart-card"><h3 class="card-title">Today's status</h3><div class="chart-box"><canvas id="statusChart" aria-label="Today's attendance status"></canvas></div></div>
+          <div class="card chart-card chart-wide"><h3 class="card-title">This month</h3><div class="chart-box"><canvas id="monthlyChart" aria-label="Attendance this month"></canvas></div></div>
+        </div>
+        <div id="chartsEmpty" class="card" hidden>
+          <div class="empty-state"><div class="empty-icon"><i class="fas fa-chart-line" aria-hidden="true"></i></div><p class="empty-title">No chart data yet</p><p class="empty-text">Charts fill in as attendance is recorded.</p></div>
+        </div>
       </section>
 
       <section id="directoryView" class="app-view fade-in-up">
-        <div class="view-header"><h2>Staff Directory</h2><p>Employee directory and status roster.</p></div>
-        <div id="directoryList" class="directory-grid"></div>
+        <div class="view-header"><h2>Staff Directory</h2><p id="directorySummary">Who's in today.</p></div>
+        <div class="toolbar">
+          <label class="search-field">
+            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="dirSearchInput" placeholder="Search by name or ID" oninput="filterDirectory()" aria-label="Search staff">
+          </label>
+          <div class="chip-row" id="dirFilterChips" role="group" aria-label="Filter by status">
+            <button type="button" class="chip on" aria-pressed="true" onclick="setDirFilter('all', this)">All</button>
+            <button type="button" class="chip" aria-pressed="false" onclick="setDirFilter('present', this)">Present</button>
+            <button type="button" class="chip" aria-pressed="false" onclick="setDirFilter('absent', this)">Absent</button>
+          </div>
+        </div>
+        <div id="directoryList" class="card list-card"></div>
+        <p id="directoryNoMatch" class="muted center-note" hidden>No one matches that search.</p>
       </section>
 
       <section id="leaveView" class="app-view fade-in-up">
-        <div class="view-header"><h2>Leave Portal</h2><p>Submit and review leave applications.</p></div>
+        <div class="view-header view-header-row">
+          <div><h2>Leave</h2><p>Request time off and track approvals.</p></div>
+          <button type="button" class="btn btn-primary" onclick="openApplyLeave()"><i class="fas fa-plus" aria-hidden="true"></i> Apply for leave</button>
+        </div>
+        <div class="seg admin-only" id="leaveTabs" role="tablist" aria-label="Leave lists">
+          <button type="button" class="seg-btn on" role="tab" aria-selected="true" data-tab="mine" onclick="switchLeaveView('mine')">My requests</button>
+          <button type="button" class="seg-btn" role="tab" aria-selected="false" data-tab="review" onclick="switchLeaveView('review')">To review <span id="leaveReviewCount" class="count-badge" hidden>0</span></button>
+        </div>
+        <div id="leaveHistoryList" class="stack"></div>
+        <div id="leaveReviewList" class="stack" hidden></div>
       </section>
 
       <section id="salaryView" class="app-view fade-in-up">
-        <div class="view-header"><h2>Payroll Management</h2><p>Monthly statements and disbursement.</p></div>
+        <div class="view-header"><h2>Payroll</h2><p>Monthly attendance and payout.</p></div>
+        <div class="card form-card">
+          <div class="form-grid">
+            <label class="field admin-only"><span class="field-label">Employee</span>
+              <select id="salaryEmpId" class="field-input" onchange="calculateSalary()"><option value="">Me</option></select>
+            </label>
+            <label class="field"><span class="field-label">Month</span>
+              <input type="month" id="salaryMonth" class="field-input" onchange="calculateSalary()">
+            </label>
+          </div>
+          <div class="admin-only rate-row">
+            <label class="field"><span class="field-label">Per-day rate (₹)</span>
+              <input type="number" id="salaryPerDay" class="field-input" min="0" step="1" inputmode="numeric" placeholder="e.g. 800">
+            </label>
+            <button type="button" class="btn btn-ghost" onclick="saveSalaryConfig(this)"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Save rate</button>
+          </div>
+        </div>
+
+        <div id="salaryResult" class="card salary-result">
+          <h3 class="card-title" id="salaryWho">Your payroll</h3>
+          <div class="kpi-grid kpi-grid-3">
+            <div class="kpi"><span class="kpi-val" id="sal-totalDays">0</span><span class="kpi-lbl">Working days</span></div>
+            <div class="kpi"><span class="kpi-val" id="sal-payable">0</span><span class="kpi-lbl">Payable days</span></div>
+            <div class="kpi kpi-accent"><span class="kpi-val" id="sal-amount">₹0</span><span class="kpi-lbl">Payout</span></div>
+          </div>
+          <div id="salaryCalendar" class="cal-grid" aria-label="Attendance calendar"></div>
+          <div id="salaryLegend" class="legend"></div>
+        </div>
       </section>
 
       <section id="trainingView" class="app-view fade-in-up">
-        <div class="view-header"><h2>Training Modules</h2><p>Onboarding and compliance guides.</p></div>
+        <div class="view-header view-header-row">
+          <div><h2>Training</h2><p>Guides for the systems you use every day.</p></div>
+          <button type="button" class="btn btn-primary admin-only" onclick="openSheet('addTrainingModal')"><i class="fas fa-plus" aria-hidden="true"></i> Add module</button>
+        </div>
+        <div id="trainingProgress" class="progress" hidden>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+          <span class="progress-text"></span>
+        </div>
+        <div id="trainingFilters" class="chip-row"></div>
+        <div id="trainingContainer" class="training-grid"></div>
       </section>
 
       <section id="fieldMapView" class="app-view fade-in-up">
-        <div class="view-header"><h2>Live Field Map</h2><p>GPS tracking for field officers.</p></div>
+        <div class="view-header view-header-row">
+          <div><h2>Live Map</h2><p id="liveMapUpdated">Where your team is right now.</p></div>
+          <button type="button" class="btn btn-ghost" onclick="fitAllLiveMarkers()"><i class="fas fa-expand" aria-hidden="true"></i> Show everyone</button>
+        </div>
+        <div class="live-map-layout">
+          <div class="card map-card"><div id="liveMapContainer" class="live-map" role="application" aria-label="Team location map"></div>
+            <div class="legend map-legend">
+              <span class="legend-item"><span class="fresh-dot fresh-fresh"></span>Active (under 5 min)</span>
+              <span class="legend-item"><span class="fresh-dot fresh-recent"></span>Recent (under 30 min)</span>
+              <span class="legend-item"><span class="fresh-dot fresh-stale"></span>Older</span>
+            </div>
+          </div>
+          <div class="card list-card map-list"><h3 class="card-title">Team</h3><div id="liveMapList"></div></div>
+        </div>
       </section>
 
       <section id="userMgmtView" class="app-view fade-in-up">
-        <div class="view-header"><h2>System Settings</h2><p>Manage accounts and portal permissions.</p></div>
+        <div class="view-header"><h2>System Settings</h2><p>Team accounts, office Wi-Fi and login resets.</p></div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h3 class="card-title">Team accounts</h3><p class="muted small-note" id="userCount"></p></div>
+            <button type="button" class="btn btn-primary" onclick="openAddUser()"><i class="fas fa-user-plus" aria-hidden="true"></i> Add account</button>
+          </div>
+          <label class="search-field">
+            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="userSearch" placeholder="Search by name, ID, email or role" oninput="renderUsers()" aria-label="Search accounts">
+          </label>
+          <div id="usersTableBody" class="list-plain"></div>
+        </div>
 
         <div class="office-net-card" id="officeNetworksCard">
           <h3 class="office-net-title">📶 Office Wi-Fi Networks</h3>
@@ -529,6 +620,7 @@
   </div>
 
   <script src="app.js" defer></script>
+  <script src="pages.js" defer></script>
 
   <!-- PWA: service worker registration + install prompt + update detection -->
   <script>
@@ -654,6 +746,77 @@
       if (btn) btn.style.display = 'none';
     });
   </script>
+
+
+  <!-- Apply for leave -->
+  <div id="applyLeaveModal" class="loc-check-modal sheet-modal" role="dialog" aria-modal="true" aria-labelledby="applyLeaveTitle" aria-hidden="true">
+    <div class="loc-check-card sheet-card">
+      <h3 id="applyLeaveTitle">Apply for leave</h3>
+      <label class="field"><span class="field-label">Type</span>
+        <select id="leaveType" class="field-input">
+          <option>Casual</option><option>Sick</option><option>Earned</option><option>Half Day</option><option>Unpaid</option>
+        </select>
+      </label>
+      <div class="form-grid">
+        <label class="field"><span class="field-label">From</span><input type="date" id="fromDate" class="field-input" onchange="updateLeaveDays()"></label>
+        <label class="field"><span class="field-label">To</span><input type="date" id="toDate" class="field-input" onchange="updateLeaveDays()"></label>
+      </div>
+      <p id="leaveDaysHint" class="field-hint"></p>
+      <label class="field"><span class="field-label">Reason</span>
+        <textarea id="leaveReason" class="field-input" rows="3" maxlength="500" placeholder="e.g. Family function in Jaipur"></textarea>
+      </label>
+      <button type="button" class="loc-check-primary" onclick="handleApplyLeave(this)">Send request</button>
+      <button type="button" class="loc-check-secondary" onclick="closeSheet('applyLeaveModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Add training module -->
+  <div id="addTrainingModal" class="loc-check-modal sheet-modal" role="dialog" aria-modal="true" aria-labelledby="addTrainingTitle" aria-hidden="true">
+    <div class="loc-check-card sheet-card">
+      <h3 id="addTrainingTitle">Add training module</h3>
+      <label class="field"><span class="field-label">Department</span><input type="text" id="trainDept" class="field-input" maxlength="40" placeholder="e.g. Dispatch"></label>
+      <label class="field"><span class="field-label">Title</span><input type="text" id="trainSystem" class="field-input" maxlength="80" placeholder="e.g. Creating an e-way bill"></label>
+      <label class="field"><span class="field-label">What it covers</span><textarea id="trainPurpose" class="field-input" rows="2" maxlength="300"></textarea></label>
+      <label class="field"><span class="field-label">Link to the guide</span><input type="url" id="trainLink" class="field-input" placeholder="https://"></label>
+      <button type="button" class="loc-check-primary" onclick="handleSaveTraining(this)">Add module</button>
+      <button type="button" class="loc-check-secondary" onclick="closeSheet('addTrainingModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Add account -->
+  <div id="addUserModal" class="loc-check-modal sheet-modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle" aria-hidden="true">
+    <div class="loc-check-card sheet-card">
+      <h3 id="addUserTitle">Add account</h3>
+      <label class="field"><span class="field-label">Employee ID</span><input type="text" id="newUserId" class="field-input" autocapitalize="characters" spellcheck="false" placeholder="e.g. EMP112"></label>
+      <label class="field"><span class="field-label">Email</span><input type="email" id="newUserEmail" class="field-input" autocomplete="off"></label>
+      <label class="field"><span class="field-label">Role</span>
+        <select id="newUserRole" class="field-input"><option>Employee</option><option>HR</option><option>Admin</option><option>Dev</option></select>
+      </label>
+      <label class="field"><span class="field-label">Temporary password</span><input type="password" id="newUserPass" class="field-input" autocomplete="new-password" placeholder="At least 8 characters"></label>
+      <button type="button" class="loc-check-primary" onclick="handleAddUser(this)">Create account</button>
+      <button type="button" class="loc-check-secondary" onclick="closeSheet('addUserModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Edit account -->
+  <div id="editUserModal" class="loc-check-modal sheet-modal" role="dialog" aria-modal="true" aria-labelledby="editUserTitle" aria-hidden="true">
+    <div class="loc-check-card sheet-card">
+      <h3 id="editUserTitle">Edit account</h3>
+      <p class="loc-check-text" id="editUserIdLabel"></p>
+      <input type="hidden" id="editUserId">
+      <label class="field"><span class="field-label">Email</span><input type="email" id="editUserEmail" class="field-input"></label>
+      <div class="form-grid">
+        <label class="field"><span class="field-label">Role</span>
+          <select id="editUserRole" class="field-input"><option>Employee</option><option>HR</option><option>Admin</option><option>Dev</option></select>
+        </label>
+        <label class="field"><span class="field-label">Status</span>
+          <select id="editUserStatus" class="field-input"><option>Active</option><option>Inactive</option></select>
+        </label>
+      </div>
+      <button type="button" class="loc-check-primary" onclick="handleUpdateUser(this)">Save changes</button>
+      <button type="button" class="loc-check-secondary" onclick="closeSheet('editUserModal')">Cancel</button>
+    </div>
+  </div>
 
   <!-- Precise location check (shown when the phone only shares approximate location) -->
   <div id="locCheckModal" class="loc-check-modal" role="dialog" aria-modal="true" aria-labelledby="locCheckTitle" aria-hidden="true">

@@ -149,8 +149,22 @@ const GPS_ROUGH_ACCURACY_M = 150;   // worse than this = not real GPS, warn the 
 let GPS_WARM_WATCH_ID = null;
 let GPS_LAST_FIX = null;            // GeolocationPosition
 
+// Move the "my location" dot on every fresh GPS fix while the home screen
+// is open (the full status card still refreshes every 20s).
+let LAST_LIVE_DOT_AT = 0;
+function onLiveFix(pos) {
+  if (Date.now() - LAST_LIVE_DOT_AT < 3000) return;
+  const home = document.getElementById('homeView');
+  if (!home || !home.classList.contains('active') || !myLocationMapInstance) return;
+  LAST_LIVE_DOT_AT = Date.now();
+  const { latitude, longitude, accuracy } = pos.coords;
+  const dist = calculateDistance(latitude, longitude, OFFICE_LAT, OFFICE_LNG);
+  updateMyLocationMap(latitude, longitude, accuracy, dist, false);
+}
+
 function rememberFix(pos) {
   if (!pos || !pos.coords) return;
+  try { onLiveFix(pos); } catch (e) {}
   const prev = GPS_LAST_FIX;
   const prevAge = prev ? Date.now() - prev.timestamp : Infinity;
   // Prefer the newer fix unless it's much worse than a still-fresh one.
@@ -848,6 +862,7 @@ function applySessionAndRenderApp(user, persist) {
   // also the default active view right after login, so start polling.
   startGeofencePolling();
   startGpsWarmup();
+  if (typeof loadHomeStats === 'function') loadHomeStats();
 
   // Proactively ask for Location + Camera access right after login/session
   // restore, every single time the app opens - not just once ever. This is
@@ -2468,7 +2483,7 @@ function initMyLocationMap() {
     .bindPopup('DDC Safdarjung HQ');
 }
 
-function updateMyLocationMap(lat, lng, accuracy, distanceM) {
+function updateMyLocationMap(lat, lng, accuracy, distanceM, refit = true) {
   const container = document.getElementById('myLocationMapContainer');
   if (!container || typeof L === 'undefined') return;
   if (!myLocationMapInstance) initMyLocationMap();
@@ -2477,6 +2492,19 @@ function updateMyLocationMap(lat, lng, accuracy, distanceM) {
   const latLng = [lat, lng];
   const isInside = getEffectiveGeofenceDistance(distanceM, accuracy) <= MAX_GEOFENCE_RADIUS_METERS;
   const dotColor = isInside ? '#2f9e44' : '#e8590c';
+
+  // Soft pulsing halo under the dot = "this is live".
+  if (!window.myLocationHalo) {
+    window.myLocationHalo = L.marker(latLng, {
+      interactive: false,
+      keyboard: false,
+      icon: L.divIcon({ className: 'live-dot-halo', html: '<span></span>', iconSize: [34, 34] })
+    }).addTo(myLocationMapInstance);
+  } else {
+    window.myLocationHalo.setLatLng(latLng);
+  }
+  const haloEl = window.myLocationHalo.getElement && window.myLocationHalo.getElement();
+  if (haloEl) haloEl.classList.toggle('outside', !isInside);
 
   if (!myLocationMarker) {
     myLocationMarker = L.circleMarker(latLng, {
@@ -2512,8 +2540,10 @@ function updateMyLocationMap(lat, lng, accuracy, distanceM) {
 
   // Fit both the geofence circle and the employee's own accuracy circle
   // in view, so it's visually obvious whether/how much they overlap.
-  const bounds = L.latLngBounds([[OFFICE_LAT, OFFICE_LNG], latLng]);
-  myLocationMapInstance.fitBounds(bounds.pad(0.6), { maxZoom: 18 });
+  if (refit) {
+    const bounds = L.latLngBounds([[OFFICE_LAT, OFFICE_LNG], latLng]);
+    myLocationMapInstance.fitBounds(bounds.pad(0.6), { maxZoom: 18 });
+  }
 }
 
 // Keeps the geofence badge + live map genuinely "live" while the employee
@@ -2616,6 +2646,7 @@ function initNavigation() {
       if (targetViewId === 'salaryView') loadSalaryData();
       if (targetViewId === 'trainingView') loadTrainingData();
       if (targetViewId === 'fieldMapView') initLiveMap();
+      else stopLiveMapRefresh();
       if (targetViewId === 'userMgmtView') { loadUserManagement(); loadOfficeNetworks(); }
       // Only poll this employee's own live location while they're actually
       // looking at the punch-in screen - no point burning battery/GPS
@@ -2768,388 +2799,18 @@ function updateHomeUI(isClockedIn, isCompleted = false) {
 // ==========================================================================
 // DASHBOARD MODULE
 // ==========================================================================
-async function loadDashboardData() {
-  if (!CURRENT_USER) return;
-  const dateStr = getLocalDateString();
-
-  showDashboardSkeletons();
-
-  try {
-    const isAdmin = ['Admin', 'HR', 'Dev'].includes(CURRENT_USER.role);
-    const metrics = isAdmin
-      ? await callAPI("getOverallMetrics", { date: dateStr })
-      : await callAPI("getDashboardMetrics", { employeeId: CURRENT_USER.employeeId, date: dateStr });
-
-    if (metrics) {
-      const presentCountEl = document.getElementById('presentCount');
-      if (presentCountEl && metrics.present_count !== undefined) {
-        presentCountEl.innerText = metrics.present_count;
-      }
-    }
-
-    const charts = isAdmin
-      ? await callAPI("getOverallCharts", { date: dateStr })
-      : await callAPI("getDashboardCharts", { employeeId: CURRENT_USER.employeeId, date: dateStr });
-
-    renderDashboardCharts(charts);
-  } catch (e) {
-    console.error("Dashboard load error:", e);
-  } finally {
-    hideAllDashboardSkeletons();
-  }
-}
-
-function renderDashboardCharts(charts) {
-  if (!charts || typeof Chart === 'undefined') return;
-
-  const weeklyCanvas = document.getElementById('weeklyChart');
-  if (weeklyCanvas && charts.weekly) {
-    if (weeklyChartObj) weeklyChartObj.destroy();
-    weeklyChartObj = new Chart(weeklyCanvas, {
-      type: 'bar',
-      data: charts.weekly
-    });
-  }
-
-  const statusCanvas = document.getElementById('statusChart');
-  if (statusCanvas && charts.status) {
-    if (statusChartObj) statusChartObj.destroy();
-    statusChartObj = new Chart(statusCanvas, {
-      type: 'doughnut',
-      data: charts.status
-    });
-  }
-
-  const monthlyCanvas = document.getElementById('monthlyChart');
-  if (monthlyCanvas && charts.monthly) {
-    if (monthlyChartObj) monthlyChartObj.destroy();
-    monthlyChartObj = new Chart(monthlyCanvas, {
-      type: 'line',
-      data: charts.monthly
-    });
-  }
-}
-
 // ==========================================================================
 // DIRECTORY MODULE
 // ==========================================================================
-async function loadDirectory() {
-  const container = document.getElementById('directoryList') || document.getElementById('directory-container');
-  if (!container) return;
-
-  showDirectorySkeletons();
-
-  try {
-    const list = await callAPI("getEmployeesDirectory");
-    EMPLOYEE_LIST = list || [];
-    container.innerHTML = "";
-    if (!list || list.length === 0) {
-      container.innerHTML = `<div class="text-secondary small p-3 text-center">No active employees found.</div>`;
-      return;
-    }
-
-    list.forEach(emp => {
-      const statusClass = emp.today_status === 'Present' ? 'text-success' : 'text-danger';
-      const card = document.createElement('div');
-      card.className = "glass-card p-3 d-flex align-items-center justify-content-between dir-item fade-in-up";
-      card.dataset.status = emp.today_status ? emp.today_status.toLowerCase() : 'absent';
-      card.dataset.name = (emp.name || '').toLowerCase();
-      card.dataset.id = (emp.employee_id || '').toLowerCase();
-
-      card.innerHTML = `
-        <div class="d-flex align-items-center gap-3">
-            <div class="rounded-circle bg-accent text-white fw-bold d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
-                ${escapeHtml((emp.name || 'U').charAt(0))}
-            </div>
-            <div>
-                <div class="fw-bold text-white">${escapeHtml(emp.name || emp.employee_id)}</div>
-                <div class="text-secondary small">${escapeHtml(emp.role)} • ID: ${escapeHtml(emp.employee_id)}</div>
-            </div>
-        </div>
-        <div>
-            <span class="badge bg-dark ${statusClass}">${escapeHtml(emp.today_status || 'Absent')}</span>
-        </div>
-      `;
-      container.appendChild(card);
-      setTimeout(() => card.classList.remove('fade-in-up'), 350);
-    });
-  } catch (e) {
-    console.error(e);
-  } finally {
-    delete container.dataset.skeletonActive;
-  }
-}
-
-function filterDirectory() {
-  const search = document.getElementById('dirSearchInput').value.toLowerCase();
-  document.querySelectorAll('.dir-item').forEach(item => {
-    const name = item.dataset.name;
-    const id = item.dataset.id;
-    const status = item.dataset.status;
-
-    const matchesSearch = name.includes(search) || id.includes(search);
-    const matchesFilter = dirFilterState === 'all' || status === dirFilterState;
-
-    item.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
-  });
-}
-
-function setDirFilter(filter, btn) {
-  dirFilterState = filter;
-  document.querySelectorAll('#dirFilterChips .chip').forEach(c => c.classList.remove('on'));
-  if (btn) btn.classList.add('on');
-  filterDirectory();
-}
-
 // ==========================================================================
 // LEAVE PORTAL MODULE
 // ==========================================================================
-async function loadLeaveData() {
-  if (!CURRENT_USER) return;
-  try {
-    const myLeaves = await callAPI("getEmployeeLeaves", { employeeId: CURRENT_USER.employeeId });
-    renderLeaveList(myLeaves, 'leaveHistoryList');
-
-    if (['Admin', 'HR', 'Dev'].includes(CURRENT_USER.role)) {
-      const pendingLeaves = await callAPI("getAllPendingLeaves");
-      renderLeaveList(pendingLeaves, 'leaveReviewList', true);
-    }
-  } catch (e) { console.error(e); }
-}
-
-function renderLeaveList(list, containerId, isReview = false) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  container.innerHTML = "";
-
-  if (!list || list.length === 0) {
-    container.innerHTML = `<div class="text-secondary small p-3 text-center">No leave requests.</div>`;
-    return;
-  }
-
-  list.forEach(item => {
-    const div = document.createElement('div');
-    div.className = "glass-card p-3";
-    div.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <span class="fw-bold text-white">${escapeHtml(item.leave_type)}</span>
-        <span class="badge bg-${item.status === 'Approved' ? 'success' : item.status === 'Rejected' ? 'danger' : 'warning'}">${escapeHtml(item.status)}</span>
-      </div>
-      <div class="small text-secondary mb-2">${escapeHtml(item.from_date)} to ${escapeHtml(item.to_date)} (${escapeHtml(item.employee_id)})</div>
-      <div class="small text-light">${item.reason ? escapeHtml(item.reason) : 'No reason provided'}</div>
-      ${isReview && item.status === 'Pending' ? `
-        <div class="d-flex gap-2 mt-3">
-          <button class="btn btn-sm btn-success w-50" onclick="processLeave(${Number(item.id)}, 'Approved')">Approve</button>
-          <button class="btn btn-sm btn-danger w-50" onclick="processLeave(${Number(item.id)}, 'Rejected')">Reject</button>
-        </div>
-      ` : ''}
-    `;
-    container.appendChild(div);
-  });
-}
-
-async function handleApplyLeave() {
-  const type = document.getElementById('leaveType').value;
-  const from = document.getElementById('fromDate').value;
-  const to = document.getElementById('toDate').value;
-  const reason = document.getElementById('leaveReason').value;
-
-  try {
-    await callAPI("applyLeave", {
-      employeeId: CURRENT_USER.employeeId,
-      leaveType: type,
-      fromDate: from,
-      toDate: to,
-      reason: reason
-    });
-    alert("Leave request submitted successfully.");
-    bootstrap.Modal.getInstance(document.getElementById('applyLeaveModal')).hide();
-    loadLeaveData();
-  } catch (e) { alert("Failed to submit leave request."); }
-}
-
-async function processLeave(leaveId, status) {
-  try {
-    await callAPI("updateLeaveStatus", { leaveId: leaveId, status: status, hrComment: "Processed" });
-    loadLeaveData();
-  } catch (e) { alert("Error updating leave."); }
-}
-
-function switchLeaveView(view, btn) {
-  document.querySelectorAll('#hr-review-tabs .nav-link').forEach(l => l.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  document.getElementById('leaveHistoryList').style.display = view === 'mine' ? 'flex' : 'none';
-  document.getElementById('leaveReviewList').style.display = view === 'review' ? 'flex' : 'none';
-}
-
 // ==========================================================================
 // SALARY & PAYROLL MODULE
 // ==========================================================================
-async function loadSalaryData() {
-  const monthInput = document.getElementById('salaryMonth');
-  if (monthInput && !monthInput.value) {
-    const d = new Date();
-    monthInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  }
-}
-
-async function saveSalaryConfig() {
-  const empId = document.getElementById('salaryEmpId').value || CURRENT_USER.employeeId;
-  const monthStr = document.getElementById('salaryMonth').value;
-  const amount = parseFloat(document.getElementById('salaryPerDay').value);
-
-  if (!empId || !monthStr || isNaN(amount)) {
-    alert("Please enter Employee ID, Month, and Base Amount.");
-    return;
-  }
-
-  try {
-    await callAPI("saveSalaryConfig", { employeeId: empId, monthStr: monthStr, amount: amount });
-    document.getElementById('salaryMsg').innerHTML = `<span class="text-success">Salary saved successfully!</span>`;
-  } catch (e) { alert("Failed to save salary config."); }
-}
-
-async function calculateSalary() {
-  const empId = document.getElementById('salaryEmpId').value || CURRENT_USER.employeeId;
-  const monthStr = document.getElementById('salaryMonth').value;
-
-  try {
-    const res = await callAPI("getSalaryDetails", { employeeId: empId, monthStr: monthStr });
-    if (res) {
-      document.getElementById('sal-totalDays').innerText = res.total_days || 0;
-      document.getElementById('sal-payable').innerText = res.payable_days || 0;
-      document.getElementById('sal-amount').innerText = `₹${res.calculated_payout || 0}`;
-
-      // Calendar grid render
-      const grid = document.getElementById('salaryCalendar');
-      grid.innerHTML = "";
-      if (res.daily_colors) {
-        res.daily_colors.forEach(item => {
-          const dayBox = document.createElement('div');
-          dayBox.className = `calendar-day color-${item.color}`;
-          dayBox.innerText = item.day;
-          grid.appendChild(dayBox);
-        });
-      }
-    }
-  } catch (e) { alert("Error calculating salary."); }
-}
-
 // ==========================================================================
 // TRAINING & LIVE MAP MODULES
 // ==========================================================================
-async function loadTrainingData() {
-  const container = document.getElementById('trainingContainer');
-  if (!container) return;
-
-  try {
-    const list = await callAPI("getTrainingList");
-    container.innerHTML = "";
-    if (!list || list.length === 0) {
-      container.innerHTML = `<div class="text-secondary small p-3 text-center">No training resources found.</div>`;
-      return;
-    }
-
-    list.forEach(item => {
-      const col = document.createElement('div');
-      col.className = "col-md-6";
-      col.innerHTML = `
-        <div class="glass-card p-3">
-          <span class="badge bg-accent mb-2">${escapeHtml(item.department)}</span>
-          <h6 class="text-white mb-1">${escapeHtml(item.system_title)}</h6>
-          <p class="small text-secondary mb-3">${escapeHtml(item.purpose)}</p>
-          <div class="d-flex align-items-center justify-content-between">
-            <a href="${escapeHtml(safeUrl(item.resource_link))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-light"><i class="fas fa-external-link-alt me-1"></i>Open Resource</a>
-            <div class="form-check">
-              <input class="form-check-input training-progress-check" type="checkbox" data-id="${escapeHtml(item.id)}" ${item.completed ? 'checked' : ''}>
-              <label class="form-check-label small text-secondary">Completed</label>
-            </div>
-          </div>
-        </div>
-      `;
-      container.appendChild(col);
-    });
-
-    document.querySelectorAll('.training-progress-check').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        // Progress state tracked client-side; persisted server-side once a
-        // dedicated RPC for training completion is exposed.
-        console.log(`Training ${e.target.dataset.id} marked completed: ${e.target.checked}`);
-      });
-    });
-  } catch (e) { console.error(e); }
-}
-
-async function handleSaveTraining() {
-  const dept = document.getElementById('trainDept').value;
-  const title = document.getElementById('trainSystem').value;
-  const purpose = document.getElementById('trainPurpose').value;
-  const link = document.getElementById('trainLink').value;
-
-  try {
-    await callAPI("addTraining", { dept: dept, system: title, purpose: purpose, link: link });
-    alert("Training resource added.");
-    bootstrap.Modal.getInstance(document.getElementById('addTrainingModal')).hide();
-    loadTrainingData();
-  } catch (e) { alert("Failed to add resource."); }
-}
-
-async function initLiveMap() {
-  const mapContainer = document.getElementById('liveMapContainer');
-  if (!mapContainer) return;
-
-  const viewer = document.getElementById('liveMapViewer');
-  if (viewer) viewer.style.display = 'block';
-
-  if (!liveMapInstance) {
-    liveMapInstance = L.map('liveMapContainer').setView([OFFICE_LAT, OFFICE_LNG], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
-    }).addTo(liveMapInstance);
-
-    // Geofence radius overlay around HQ
-    liveMapGeofenceCircle = L.circle([OFFICE_LAT, OFFICE_LNG], {
-      radius: OFFICE_RADIUS_M,
-      color: '#2563eb',
-      fillColor: '#3b82f6',
-      fillOpacity: 0.15
-    }).addTo(liveMapInstance);
-
-    L.marker([OFFICE_LAT, OFFICE_LNG], {
-      icon: L.divIcon({ className: 'hq-marker', html: '🏢', iconSize: [24, 24] })
-    }).addTo(liveMapInstance).bindPopup('DDC Safdarjung HQ');
-  }
-
-  refreshLiveMapLocations();
-  if (!liveMapInterval) liveMapInterval = setInterval(refreshLiveMapLocations, 15000);
-}
-
-async function refreshLiveMapLocations() {
-  try {
-    const locations = await callAPI("getLiveLocations");
-    if (!locations) return;
-
-    locations.forEach(loc => {
-      if (liveMapMarkers[loc.employee_id]) {
-        liveMapMarkers[loc.employee_id].setLatLng([loc.lat, loc.lng]);
-      } else {
-        const marker = L.marker([loc.lat, loc.lng]).addTo(liveMapInstance)
-          .bindPopup(`<b>${escapeHtml(loc.name || loc.employee_id)}</b><br>Last ping: ${escapeHtml(loc.ping_time)}`);
-        liveMapMarkers[loc.employee_id] = marker;
-      }
-    });
-  } catch (e) { console.error(e); }
-}
-
-function stopLiveMapRefresh() {
-  if (liveMapInterval) {
-    clearInterval(liveMapInterval);
-    liveMapInterval = null;
-  }
-  const viewer = document.getElementById('liveMapViewer');
-  if (viewer) viewer.style.display = 'none';
-}
-
 // ==========================================================================
 // USER MANAGEMENT MODULE (ADMIN CRUD)
 // ==========================================================================
@@ -3222,93 +2883,6 @@ async function removeOfficeNetwork(id) {
   } catch (e) {
     alert('Could not remove the network.');
   }
-}
-
-async function loadUserManagement() {
-  const tbody = document.getElementById('usersTableBody');
-  if (!tbody) return;
-
-  try {
-    const users = await callAPI("getUsers");
-    tbody.innerHTML = "";
-    if (!users) return;
-
-    window.USERS_CACHE = users;
-    users.forEach((u, idx) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escapeHtml(u.employee_id)}</td>
-        <td>${escapeHtml(u.email)}</td>
-        <td><span class="badge bg-secondary">${escapeHtml(u.role)}</span></td>
-        <td><span class="badge bg-${u.status === 'Active' ? 'success' : 'danger'}">${escapeHtml(u.status)}</span></td>
-        <td>
-          <button class="btn btn-sm btn-outline-light me-1" onclick="openEditUserModal(window.USERS_CACHE[${idx}])">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-warning" onclick="toggleUserStatus(window.USERS_CACHE[${idx}].employee_id, window.USERS_CACHE[${idx}].status)">
-            <i class="fas fa-power-off"></i>
-          </button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (e) { console.error(e); }
-}
-
-async function handleAddUser() {
-  const id = document.getElementById('newUserId').value;
-  const email = document.getElementById('newUserEmail').value;
-  const role = document.getElementById('newUserRole').value;
-  const pass = document.getElementById('newUserPass').value;
-
-  try {
-    await callAPI("addUser", { employeeId: id, email: email, role: role, password: pass });
-    alert("User account created.");
-    loadUserManagement();
-  } catch (e) { alert("Failed to create user."); }
-}
-
-function openEditUserModal(user) {
-  const idField = document.getElementById('editUserId');
-  const emailField = document.getElementById('editUserEmail');
-  const roleField = document.getElementById('editUserRole');
-  const statusField = document.getElementById('editUserStatus');
-
-  if (idField) idField.value = user.employee_id;
-  if (emailField) emailField.value = user.email;
-  if (roleField) roleField.value = user.role;
-  if (statusField) statusField.value = user.status;
-
-  const modalEl = document.getElementById('editUserModal');
-  if (modalEl && window.bootstrap) {
-    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-    modal.show();
-  }
-}
-
-async function handleUpdateUser() {
-  const id = document.getElementById('editUserId').value;
-  const email = document.getElementById('editUserEmail').value;
-  const role = document.getElementById('editUserRole').value;
-  const status = document.getElementById('editUserStatus').value;
-
-  try {
-    await callAPI("updateUser", { employeeId: id, email: email, role: role, status: status });
-    alert("User updated successfully.");
-    const modalEl = document.getElementById('editUserModal');
-    if (modalEl && window.bootstrap) {
-      bootstrap.Modal.getInstance(modalEl).hide();
-    }
-    loadUserManagement();
-  } catch (e) { alert("Failed to update user."); }
-}
-
-async function toggleUserStatus(employeeId, currentStatus) {
-  const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-  try {
-    await callAPI("updateUser", { employeeId: employeeId, status: newStatus });
-    loadUserManagement();
-  } catch (e) { alert("Failed to change user status."); }
 }
 
 // ==========================================================================
