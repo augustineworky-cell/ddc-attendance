@@ -1254,6 +1254,8 @@ function openQuickSetup(step) {
   if (fpIcon) fpIcon.textContent = lbl.icon;
   document.getElementById('quickSetupPinStep').style.display = step === 'pin' ? '' : 'none';
   document.getElementById('quickSetupFpStep').style.display = step === 'fp' ? '' : 'none';
+  const settingsStep = document.getElementById('quickSetupSettingsStep');
+  if (settingsStep) settingsStep.style.display = step === 'settings' ? '' : 'none';
   const st = document.getElementById('quickSetupStatus');
   if (st) { st.textContent = ''; st.className = 'loc-check-status'; }
   modal.classList.add('open');
@@ -1353,6 +1355,46 @@ async function setupFingerprintNow() {
   } finally {
     if (btn) btn.disabled = false;
   }
+}
+
+// Menu item "Fingerprint & PIN": lets the user turn fingerprint on later
+// (e.g. after tapping "Skip" the first time) or change their PIN.
+async function openLoginSettings() {
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.querySelector('.sidebar-backdrop');
+  if (sidebar) sidebar.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('active');
+  if (!CURRENT_USER) return;
+
+  const device = getQuickDevice();
+  const mine = device && device.employee_id === CURRENT_USER.employeeId ? device : null;
+  if (!mine) { openQuickSetup('pin'); return; }  // no PIN on this device yet
+
+  let hasFp = !!mine.has_fingerprint;
+  try {
+    const info = await callAPI('deviceInfo', { secret: mine.secret });
+    if (!info || info.status !== 'OK' || info.pin_locked) { openQuickSetup('pin'); return; }
+    hasFp = !!info.has_fingerprint;
+    saveQuickDevice({ ...mine, has_fingerprint: hasFp });
+  } catch (e) {}
+
+  const supported = await fingerprintSupported();
+  const lbl = biometricLabel();
+  const info = document.getElementById('quickSettingsInfo');
+  const fpBtn = document.getElementById('quickSettingsFpBtn');
+  const onThis = detectPlatform() === 'desktop' ? 'this computer' : 'this phone';
+  if (info) {
+    info.textContent = !supported
+      ? `✅ PIN login is ON for ${onThis}. This device doesn't support ${lbl.name} login.`
+      : hasFp
+        ? `✅ PIN and ${lbl.name} login are both ON for ${onThis}.`
+        : `✅ PIN login is ON for ${onThis}. ${lbl.name.charAt(0).toUpperCase() + lbl.name.slice(1)} login is OFF.`;
+  }
+  if (fpBtn) {
+    fpBtn.style.display = supported ? '' : 'none';
+    fpBtn.textContent = hasFp ? `Set up ${lbl.name} again` : `Enable ${lbl.name}`;
+  }
+  openQuickSetup('settings');
 }
 
 function skipQuickSetup(which) {

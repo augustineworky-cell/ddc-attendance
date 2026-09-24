@@ -412,6 +412,13 @@
           <span class="nav-label">Install App</span>
         </a>
 
+        <a href="javascript:void(0)" id="loginSettingsBtn" class="nav-item" onclick="openLoginSettings()">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.5-1 6.5-2.5 8.5M8.5 7.5A5 5 0 0117 11c0 1.5-.1 3-.4 4.4M6 10a6 6 0 01.8-3M4.5 16c.6-1.5 1-3.2 1-5a6.5 6.5 0 0111-4.7"/>
+          </svg>
+          <span class="nav-label">Fingerprint &amp; PIN</span>
+        </a>
+
         <a href="javascript:void(0)" id="logoutBtn" class="nav-item logout">
           <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -674,6 +681,14 @@
         <p class="quick-setup-hint">Avoid easy PINs like 1234 or 0000.</p>
         <button type="button" id="quickSetupSaveBtn" class="loc-check-primary" onclick="saveQuickPin()">Save PIN</button>
         <button type="button" class="loc-check-secondary" onclick="skipQuickSetup('pin')">Not now</button>
+      </div>
+      <div id="quickSetupSettingsStep" style="display:none;">
+        <div class="loc-check-icon">🔐</div>
+        <h3>Fingerprint &amp; PIN</h3>
+        <p class="loc-check-text" id="quickSettingsInfo"></p>
+        <button type="button" id="quickSettingsFpBtn" class="loc-check-primary" onclick="openQuickSetup('fp')">Enable fingerprint</button>
+        <button type="button" class="loc-check-secondary quick-settings-alt" onclick="openQuickSetup('pin')">Change my PIN</button>
+        <button type="button" class="loc-check-secondary" onclick="closeQuickSetup()">Close</button>
       </div>
       <div id="quickSetupFpStep" style="display:none;">
         <div class="loc-check-icon" id="quickSetupFpIcon">👆</div>
