@@ -98,7 +98,7 @@ function escapeHtml(v) {
 // Short success messages become a toast; everything else a small card with
 // an OK button. Non-blocking; messages queue if several arrive at once.
 const DIALOG_QUEUE = [];
-function showDialog(message, kind) {
+function showDialog(message, kind, onClose) {
   const text = String(message ?? '');
   if (!kind) {
     kind = /success|uploaded|saved|done\b|reactivated|created/i.test(text) ? 'ok'
@@ -109,7 +109,7 @@ function showDialog(message, kind) {
     notify(text, 'ok');
     return;
   }
-  DIALOG_QUEUE.push({ text, kind });
+  DIALOG_QUEUE.push({ text, kind, onClose });
   if (DIALOG_QUEUE.length === 1) renderDialog();
 }
 
@@ -144,7 +144,8 @@ function renderDialog() {
 function closeDialog() {
   const m = document.getElementById('appDialog');
   if (m) m.classList.remove('open');
-  DIALOG_QUEUE.shift();
+  const done = DIALOG_QUEUE.shift();
+  if (done && typeof done.onClose === 'function') setTimeout(done.onClose, 180);
   if (DIALOG_QUEUE.length) setTimeout(renderDialog, 120);
 }
 
@@ -413,6 +414,96 @@ function getGpsPosition(timeoutMs = 10000) {
       { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs }
     );
   });
+}
+
+// ==========================================================================
+// PUNCH REJECTED FEEDBACK
+// ==========================================================================
+// After the user taps OK on the "outside the office" message, the home
+// screen itself must show that the punch did NOT go through: the selfie
+// ring turns red with a ✕ and shakes, the button shakes, and a red note
+// stays under the button until they punch successfully or walk into range.
+function formatDistance(m) {
+  const v = Number(m);
+  if (isNaN(v)) return '';
+  return v >= 1000 ? `${(v / 1000).toFixed(1)} km` : `${Math.round(v)} m`;
+}
+
+function showPunchRejected(action, reason, distanceM) {
+  const frame = document.querySelector('.selfie-frame');
+  const btn = document.getElementById('punchInBtn');
+  const card = document.querySelector('.geofence-status-card');
+  const note = document.getElementById('punchRejectNote');
+
+  const replay = (el, cls) => {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth; // restart the animation
+    el.classList.add(cls);
+  };
+
+  if (frame) {
+    frame.classList.add('rejected');
+    if (!frame.querySelector('.selfie-reject-badge')) {
+      const b = document.createElement('span');
+      b.className = 'selfie-reject-badge';
+      b.setAttribute('aria-hidden', 'true');
+      b.textContent = '✕';
+      frame.appendChild(b);
+    }
+    replay(frame, 'reject-shake');
+  }
+  replay(btn, 'reject-shake');
+  replay(card, 'reject-flash');
+  try { if (navigator.vibrate) navigator.vibrate([90, 60, 90]); } catch (e) {}
+
+  if (note) {
+    const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const detail = reason === 'NO_LOCATION'
+      ? "We couldn't get your location. Turn on precise location or connect to the office Wi-Fi."
+      : `You're ${formatDistance(distanceM)} from DDC Safdarjung HQ. Allowed: ${OFFICE_RADIUS_M} m. Move to the office or connect to the office Wi-Fi.`;
+    note.innerHTML = `
+      <span class="punch-reject-icon" aria-hidden="true">✕</span>
+      <span class="punch-reject-body">
+        <strong>${escapeHtml(action)} not recorded</strong>
+        <span>${escapeHtml(detail)}</span>
+        <small>Tried at ${escapeHtml(time)}</small>
+      </span>`;
+    note.classList.remove('ready');
+    note.hidden = false;
+    replay(note, 'reject-in');
+  }
+}
+
+// The person walked into range after a rejection: turn the red note into
+// a green "try again" hint instead of leaving the old error up.
+function markPunchRetryReady() {
+  const note = document.getElementById('punchRejectNote');
+  if (!note || note.hidden || note.classList.contains('ready')) return;
+  const frame = document.querySelector('.selfie-frame');
+  if (frame) {
+    frame.classList.remove('rejected', 'reject-shake');
+    const b = frame.querySelector('.selfie-reject-badge');
+    if (b) b.remove();
+  }
+  note.classList.add('ready');
+  note.innerHTML = `
+    <span class="punch-reject-icon" aria-hidden="true">✓</span>
+    <span class="punch-reject-body">
+      <strong>You're inside the office area now</strong>
+      <span>Tap the punch button again.</span>
+    </span>`;
+}
+
+function clearPunchRejected() {
+  const frame = document.querySelector('.selfie-frame');
+  if (frame) {
+    frame.classList.remove('rejected', 'reject-shake');
+    const b = frame.querySelector('.selfie-reject-badge');
+    if (b) b.remove();
+  }
+  const note = document.getElementById('punchRejectNote');
+  if (note) { note.hidden = true; note.classList.remove('ready'); }
 }
 
 // Shown when the server says OUT_OF_RANGE. If the phone's own reported
@@ -1597,6 +1688,7 @@ async function handleLogout(e) {
   stopLiveMapRefresh();
   stopAutoLogoutTimer();
   stopGpsWarmup();
+  clearPunchRejected();
   closePreciseLocationModal();
   closeQuickSetup();
 
@@ -1953,6 +2045,7 @@ async function handleClockIn() {
     }
 
     if (data.status === 'SUCCESS') {
+      clearPunchRejected();
       // Prefer the server's own determination of Present/Late over the
       // wall-clock heuristic computed before we knew the response - the
       // backend is the source of truth for attendance_status.
@@ -1990,9 +2083,11 @@ async function handleClockIn() {
         ATTENDANCE_SELFIE_BASE64 = null;
       }
     } else if (data.status === 'OUT_OF_RANGE') {
-      showDialog(buildOutOfRangeMessage('Punch In', data.distance_m, gps.accuracy));
+      showDialog(buildOutOfRangeMessage('Punch In', data.distance_m, gps.accuracy), 'warn',
+        () => showPunchRejected('Punch In', 'OUT_OF_RANGE', data.distance_m));
     } else if (data.status === 'NO_LOCATION') {
-      showDialog("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch In again.");
+      showDialog("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch In again.", 'warn',
+        () => showPunchRejected('Punch In', 'NO_LOCATION'));
     } else if (data.status === 'ERROR') {
       showDialog(data.message || "Error clocking in. Please try again.");
     } else if (data.status === 'ALREADY_CLOCKED_IN') {
@@ -2132,6 +2227,7 @@ async function handleClockOut() {
     }
 
     if (res.status === 'SUCCESS') {
+      clearPunchRejected();
       stopLocationPinging();
       CURRENT_SHIFT_CLOCK_IN_TIME = null;
 
@@ -2174,9 +2270,11 @@ async function handleClockOut() {
 
     } else if (res.status === 'OUT_OF_RANGE') {
       // Early punch-out IS allowed - the only thing that blocks it is location.
-      showDialog(buildOutOfRangeMessage('Punch Out', res.distance_m, gps.accuracy));
+      showDialog(buildOutOfRangeMessage('Punch Out', res.distance_m, gps.accuracy), 'warn',
+        () => showPunchRejected('Punch Out', 'OUT_OF_RANGE', res.distance_m));
     } else if (res.status === 'NO_LOCATION') {
-      showDialog("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch Out again.");
+      showDialog("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch Out again.", 'warn',
+        () => showPunchRejected('Punch Out', 'NO_LOCATION'));
     } else if (res.status === 'NO_CLOCK_IN') {
       showDialog("You haven't clocked in yet today. Please clock in before attempting to clock out.");
     } else if (res.status === 'ALREADY_CLOCKED_OUT') {
@@ -2464,6 +2562,7 @@ async function checkGeofence() {
     if (effectiveDist <= MAX_GEOFENCE_RADIUS_METERS) {
       if (icon) icon.textContent = lowAccuracy ? "⚠️" : "✅";
       if (title) title.textContent = lowAccuracy ? "Inside Geofence (weak signal)" : "Inside Geofence";
+      markPunchRetryReady();
       if (subtitle) {
         subtitle.textContent = lowAccuracy
           ? `${Math.round(dist)}m away, but your GPS signal is weak (±${Math.round(currentAccuracy)}m). Move near a window or open sky for a more reliable reading.`
