@@ -2281,3 +2281,38 @@ textarea.field-input { resize: vertical; min-height: 72px; }
   .row-skeleton, .kpi-skeleton, .live-dot-halo span, .btn-spinner, .sheet-modal.open .sheet-card { animation: none !important; }
   .toast, .leave-card, .progress-fill { transition: none !important; }
 }
+
+/* ===== Focus: no black box on mouse/touch clicks, clear ring for keyboard ===== */
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible),
+.nav-item:focus:not(:focus-visible),
+.bottom-nav-item:focus:not(:focus-visible) { outline: none; }
+.nav-item:focus-visible,
+.bottom-nav-item:focus-visible,
+.support-link:focus-visible,
+.quick-login-switch:focus-visible,
+.fingerprint-btn:focus-visible,
+.loc-check-primary:focus-visible,
+.loc-check-secondary:focus-visible {
+  outline: 3px solid rgba(123, 111, 168, 0.55);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/* ===== In-app dialog (replaces browser alerts) ===== */
+.app-dialog { z-index: 10001; }
+.app-dialog-card { max-width: 400px; }
+.app-dialog.open .app-dialog-card { animation: sheetUp .26s cubic-bezier(0.16, 1, 0.3, 1); }
+.app-dialog-icon {
+  width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.35rem;
+  background: rgba(123, 111, 168, 0.12); color: var(--purple-accent);
+}
+.app-dialog[data-kind="warn"] .app-dialog-icon { background: rgba(240, 198, 96, 0.25); color: #9a6b08; }
+.app-dialog[data-kind="ok"] .app-dialog-icon { background: rgba(71, 198, 176, 0.18); color: #17725f; }
+.app-dialog-text {
+  white-space: pre-line; text-align: left; font-size: 0.93rem; line-height: 1.55;
+  color: var(--navy-text); margin: 0 0 16px;
+}
+.muted-soft { color: #b4b0c8; font-style: italic; }
+@media (prefers-reduced-motion: reduce) { .app-dialog.open .app-dialog-card { animation: none; } }

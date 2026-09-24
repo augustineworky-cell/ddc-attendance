@@ -94,6 +94,60 @@ function escapeHtml(v) {
   }[c]));
 }
 
+// In-app message dialog (replaces the browser's grey showDialog() box).
+// Short success messages become a toast; everything else a small card with
+// an OK button. Non-blocking; messages queue if several arrive at once.
+const DIALOG_QUEUE = [];
+function showDialog(message, kind) {
+  const text = String(message ?? '');
+  if (!kind) {
+    kind = /success|uploaded|saved|done\b|reactivated|created/i.test(text) ? 'ok'
+      : /error|fail|denied|unable|blocked|required|outside|far |rough|couldn't|cannot|can't|not |already|expired|needs|please/i.test(text) ? 'warn'
+      : 'info';
+  }
+  if (kind === 'ok' && text.length < 90 && !text.includes('\n') && typeof notify === 'function') {
+    notify(text, 'ok');
+    return;
+  }
+  DIALOG_QUEUE.push({ text, kind });
+  if (DIALOG_QUEUE.length === 1) renderDialog();
+}
+
+function renderDialog() {
+  const item = DIALOG_QUEUE[0];
+  if (!item) return;
+  let m = document.getElementById('appDialog');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'appDialog';
+    m.className = 'loc-check-modal app-dialog';
+    m.setAttribute('role', 'alertdialog');
+    m.setAttribute('aria-modal', 'true');
+    m.setAttribute('aria-labelledby', 'appDialogText');
+    m.innerHTML = `<div class="loc-check-card app-dialog-card">
+        <div class="app-dialog-icon" id="appDialogIcon" aria-hidden="true"></div>
+        <p id="appDialogText" class="app-dialog-text"></p>
+        <button type="button" class="loc-check-primary" id="appDialogOk">OK</button>
+      </div>`;
+    document.body.appendChild(m);
+    m.querySelector('#appDialogOk').addEventListener('click', closeDialog);
+    m.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDialog(); });
+  }
+  const icons = { warn: 'fa-triangle-exclamation', ok: 'fa-circle-check', info: 'fa-circle-info' };
+  m.dataset.kind = item.kind;
+  m.querySelector('#appDialogIcon').innerHTML = `<i class="fas ${icons[item.kind] || icons.info}"></i>`;
+  m.querySelector('#appDialogText').textContent = item.text;
+  m.classList.add('open');
+  setTimeout(() => m.querySelector('#appDialogOk').focus(), 30);
+}
+
+function closeDialog() {
+  const m = document.getElementById('appDialog');
+  if (m) m.classList.remove('open');
+  DIALOG_QUEUE.shift();
+  if (DIALOG_QUEUE.length) setTimeout(renderDialog, 120);
+}
+
 // Utility: only allow http(s) links (blocks javascript: URLs in training).
 function safeUrl(u) {
   try {
@@ -474,7 +528,7 @@ function renderPermissionBanner() {
 async function retryEssentialPermissions() {
   await primeEssentialPermissions();
   if (!hasEssentialPermissions()) {
-    alert("Your browser has blocked this permanently. Please open your phone's Settings (or the browser's site settings for this app) and manually allow Location and Camera access for DDC Portal.");
+    showDialog("Your browser has blocked this permanently. Please open your phone's Settings (or the browser's site settings for this app) and manually allow Location and Camera access for DDC Portal.");
   }
 }
 
@@ -640,7 +694,7 @@ async function callAPI(action, payload = {}) {
   } catch (err) {
     console.error(`Error executing RPC action [${action}]:`, err);
     if (isSessionError(err) && CURRENT_USER) {
-      alert('Your session has expired. Please sign in again.');
+      showDialog('Your session has expired. Please sign in again.');
       handleLogout();
     }
     throw err;
@@ -738,13 +792,13 @@ async function retrySelfiePhotoAttach() {
   if (attached) {
     PENDING_SELFIE_RETRY = null;
     if (btn) btn.style.display = 'none';
-    alert("Photo uploaded successfully.");
+    showDialog("Photo uploaded successfully.");
   } else {
     if (btn) {
       btn.disabled = false;
       btn.textContent = `⚠️ Retry ${eventType === 'clockout' ? 'Clock-Out' : 'Clock-In'} Photo Upload`;
     }
-    alert("Photo upload failed again. Your Punch " + (eventType === 'clockout' ? 'Out' : 'In') + " time was still recorded correctly - only the photo is missing. Please try the retry button again, or contact admin if it keeps failing.");
+    showDialog("Photo upload failed again. Your Punch " + (eventType === 'clockout' ? 'Out' : 'In') + " time was still recorded correctly - only the photo is missing. Please try the retry button again, or contact admin if it keeps failing.");
   }
 }
 
@@ -1831,12 +1885,12 @@ async function handleClockIn() {
   // late failure instead of a clear upfront one.
   if (!hasEssentialPermissions()) {
     renderPermissionBanner();
-    alert("Punch In needs both Location and Camera access. Please tap 'Enable Now' in the banner at the top of the screen, then try again.");
+    showDialog("Punch In needs both Location and Camera access. Please tap 'Enable Now' in the banner at the top of the screen, then try again.");
     return;
   }
 
   if (!ATTENDANCE_SELFIE_BASE64) {
-    alert("Please capture verification selfie first.");
+    showDialog("Please capture verification selfie first.");
     highlightSelfieCaptureCard();
     return;
   }
@@ -1894,7 +1948,7 @@ async function handleClockIn() {
     });
 
     if (!data) {
-      alert("Error clocking in. Please try again.");
+      showDialog("Error clocking in. Please try again.");
       return;
     }
 
@@ -1931,31 +1985,31 @@ async function handleClockIn() {
       // otherwise a retry would silently upload an unwatermarked photo.
       if (data._selfieAttached === false) {
         renderSelfieRetryPrompt(id, watermarkedSelfie, 'clockin');
-        alert("Punch In was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
+        showDialog("Punch In was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
       } else {
         ATTENDANCE_SELFIE_BASE64 = null;
       }
     } else if (data.status === 'OUT_OF_RANGE') {
-      alert(buildOutOfRangeMessage('Punch In', data.distance_m, gps.accuracy));
+      showDialog(buildOutOfRangeMessage('Punch In', data.distance_m, gps.accuracy));
     } else if (data.status === 'NO_LOCATION') {
-      alert("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch In again.");
+      showDialog("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch In again.");
     } else if (data.status === 'ERROR') {
-      alert(data.message || "Error clocking in. Please try again.");
+      showDialog(data.message || "Error clocking in. Please try again.");
     } else if (data.status === 'ALREADY_CLOCKED_IN') {
-      alert("You have already clocked in today.");
+      showDialog("You have already clocked in today.");
     } else if (data.status === 'ALREADY_CLOCKED_OUT') {
       // Retained in case this status is ever reintroduced server-side;
       // not part of the current documented response set.
-      alert("You have already completed your attendance for today (clocked in and out). You cannot clock in again.");
+      showDialog("You have already completed your attendance for today (clocked in and out). You cannot clock in again.");
     } else if (data.status) {
       // Any other status string the RPC returns - surfaced verbatim so
       // nothing silently fails, but framed clearly as a server message.
-      alert(`Unable to clock in: ${data.status}`);
+      showDialog(`Unable to clock in: ${data.status}`);
     } else {
-      alert("Error clocking in. Please try again.");
+      showDialog("Error clocking in. Please try again.");
     }
   } catch (e) {
-    alert("Location permission required to clock in.");
+    showDialog("Location permission required to clock in.");
   } finally {
     btn.classList.remove('loading');
     if (btnLabel) btnLabel.textContent = 'Punch In Now';
@@ -1990,12 +2044,12 @@ async function handleClockOut() {
 
   if (!hasEssentialPermissions()) {
     renderPermissionBanner();
-    alert("Punch Out needs both Location and Camera access. Please tap 'Enable Now' in the banner at the top of the screen, then try again.");
+    showDialog("Punch Out needs both Location and Camera access. Please tap 'Enable Now' in the banner at the top of the screen, then try again.");
     return;
   }
 
   if (!ATTENDANCE_SELFIE_BASE64) {
-    alert("Please capture verification selfie before clocking out.");
+    showDialog("Please capture verification selfie before clocking out.");
     highlightSelfieCaptureCard();
     return;
   }
@@ -2073,7 +2127,7 @@ async function handleClockOut() {
     });
 
     if (!res) {
-      alert("Error clocking out. Please try again.");
+      showDialog("Error clocking out. Please try again.");
       return;
     }
 
@@ -2104,7 +2158,7 @@ async function handleClockOut() {
       // the raw capture.
       if (res._selfieAttached === false) {
         renderSelfieRetryPrompt(id, watermarkedSelfie, 'clockout');
-        alert("Punch Out was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
+        showDialog("Punch Out was recorded, but your selfie photo failed to upload. Please tap 'Retry Photo Upload' below to try again.");
       } else {
         ATTENDANCE_SELFIE_BASE64 = null;
       }
@@ -2120,19 +2174,19 @@ async function handleClockOut() {
 
     } else if (res.status === 'OUT_OF_RANGE') {
       // Early punch-out IS allowed - the only thing that blocks it is location.
-      alert(buildOutOfRangeMessage('Punch Out', res.distance_m, gps.accuracy));
+      showDialog(buildOutOfRangeMessage('Punch Out', res.distance_m, gps.accuracy));
     } else if (res.status === 'NO_LOCATION') {
-      alert("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch Out again.");
+      showDialog("Couldn't get your GPS location. Turn on Location (Precise) for Chrome, or connect to the OFFICE Wi-Fi, then try Punch Out again.");
     } else if (res.status === 'NO_CLOCK_IN') {
-      alert("You haven't clocked in yet today. Please clock in before attempting to clock out.");
+      showDialog("You haven't clocked in yet today. Please clock in before attempting to clock out.");
     } else if (res.status === 'ALREADY_CLOCKED_OUT') {
-      alert("You have already clocked out for today.");
+      showDialog("You have already clocked out for today.");
     } else {
-      alert(`Unable to clock out: ${res.status || 'Unknown error'}`);
+      showDialog(`Unable to clock out: ${res.status || 'Unknown error'}`);
     }
   } catch (e) {
     console.error("Clock out error:", e);
-    alert("Location permission required or error occurred during clock out.");
+    showDialog("Location permission required or error occurred during clock out.");
   } finally {
     btn.classList.remove('loading');
   }
@@ -2481,6 +2535,28 @@ function initMyLocationMap() {
 
   L.marker([OFFICE_LAT, OFFICE_LNG]).addTo(myLocationMapInstance)
     .bindPopup('DDC Safdarjung HQ');
+
+  // The map can be created while Home is still hidden behind the login
+  // screen (0px wide). Re-measure whenever the box changes size, otherwise
+  // Leaflet shows a grey box / the wrong part of the world.
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => {
+      if (!myLocationMapInstance || container.offsetWidth === 0) return;
+      myLocationMapInstance.invalidateSize({ pan: false });
+      if (!window.MY_MAP_FITTED && myLocationMarker) {
+        fitMyLocationMap(myLocationMarker.getLatLng());
+      }
+    }).observe(container);
+  }
+}
+
+function fitMyLocationMap(latLng) {
+  const container = document.getElementById('myLocationMapContainer');
+  if (!myLocationMapInstance || !container || container.offsetWidth === 0) return;
+  myLocationMapInstance.invalidateSize({ pan: false });
+  const bounds = L.latLngBounds([[OFFICE_LAT, OFFICE_LNG], latLng]);
+  myLocationMapInstance.fitBounds(bounds.pad(0.6), { maxZoom: 18 });
+  window.MY_MAP_FITTED = true;
 }
 
 function updateMyLocationMap(lat, lng, accuracy, distanceM, refit = true) {
@@ -2540,10 +2616,7 @@ function updateMyLocationMap(lat, lng, accuracy, distanceM, refit = true) {
 
   // Fit both the geofence circle and the employee's own accuracy circle
   // in view, so it's visually obvious whether/how much they overlap.
-  if (refit) {
-    const bounds = L.latLngBounds([[OFFICE_LAT, OFFICE_LNG], latLng]);
-    myLocationMapInstance.fitBounds(bounds.pad(0.6), { maxZoom: 18 });
-  }
+  if (refit || !window.MY_MAP_FITTED) fitMyLocationMap(latLng);
 }
 
 // Keeps the geofence badge + live map genuinely "live" while the employee
@@ -2651,7 +2724,11 @@ function initNavigation() {
       // Only poll this employee's own live location while they're actually
       // looking at the punch-in screen - no point burning battery/GPS
       // requests on views where the map isn't even visible.
-      if (targetViewId === 'homeView') startGeofencePolling();
+      if (targetViewId === 'homeView') {
+        window.MY_MAP_FITTED = false;
+        if (myLocationMapInstance) setTimeout(() => myLocationMapInstance.invalidateSize({ pan: false }), 60);
+        startGeofencePolling();
+      }
       else stopGeofencePolling();
 
       if (sidebar) sidebar.classList.remove('open');
@@ -2820,14 +2897,14 @@ function updateHomeUI(isClockedIn, isCompleted = false) {
 async function resetQuickLoginForEmployee() {
   const el = document.getElementById('resetQuickLoginId');
   const id = el ? el.value.trim() : '';
-  if (!id) return alert('Enter the Employee ID first.');
+  if (!id) return showDialog('Enter the Employee ID first.');
   if (!confirm(`Reset fingerprint & PIN login for ${id}?\n\nThey will need to log in once with ID + password and set a new PIN.`)) return;
   try {
     const r = await callAPI('resetQuickLogin', { employeeId: id });
-    alert(r && r.success ? `Done. ${r.devices_revoked} phone(s) reset for ${id}.` : 'Could not reset.');
+    showDialog(r && r.success ? `Done. ${r.devices_revoked} phone(s) reset for ${id}.` : 'Could not reset.');
     if (el) el.value = '';
   } catch (e) {
-    alert('Could not reset quick login.');
+    showDialog('Could not reset quick login.');
   }
 }
 
@@ -2855,7 +2932,10 @@ async function loadOfficeNetworks() {
     box.innerHTML = status + rows;
     window.OFFICE_NET_DEBUG = r.headers_seen; // for troubleshooting in console
   } catch (e) {
-    box.innerHTML = '<div class="office-net-status err">Could not load office networks.</div>';
+    const missing = e && (e.code === 'PGRST202' || /Could not find the function|does not exist/i.test(e.message || ''));
+    box.innerHTML = missing
+      ? '<div class="office-net-status err">Office Wi-Fi isn\'t set up on the server yet. Apply <b>staffly_office_wifi.sql</b> in Supabase, then reopen this page.</div>'
+      : '<div class="office-net-status err">Could not load office networks. Check your connection and reopen this page.</div>';
   }
 }
 
@@ -2865,12 +2945,12 @@ async function addCurrentOfficeNetwork() {
   if (!confirm("Save the internet connection you are on RIGHT NOW as office Wi-Fi?\n\nOnly do this while connected to the office Wi-Fi (not mobile data).")) return;
   try {
     const r = await callAPI("addCurrentNetwork", { label: label || 'Office Wi-Fi' });
-    alert(r && r.success ? `Saved office network (${r.ip}).` : (r && r.message) || 'Could not save.');
+    showDialog(r && r.success ? `Saved office network (${r.ip}).` : (r && r.message) || 'Could not save.');
     if (labelEl) labelEl.value = '';
     OFFICE_NET.checkedAt = 0;
     loadOfficeNetworks();
   } catch (e) {
-    alert('Could not save the network.');
+    showDialog('Could not save the network.');
   }
 }
 
@@ -2881,7 +2961,7 @@ async function removeOfficeNetwork(id) {
     OFFICE_NET.checkedAt = 0;
     loadOfficeNetworks();
   } catch (e) {
-    alert('Could not remove the network.');
+    showDialog('Could not remove the network.');
   }
 }
 
@@ -3141,7 +3221,7 @@ async function handleCaptureSelfie() {
     PENDING_GEOCODE_PROMISE = startGeocodeLookup();
   } catch (err) {
     console.error("Camera access error:", err);
-    alert("Camera permission denied or camera not found. Please allow camera access in your browser settings.");
+    showDialog("Camera permission denied or camera not found. Please allow camera access in your browser settings.");
   }
 }
 

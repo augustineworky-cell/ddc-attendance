@@ -464,8 +464,12 @@ async function calculateSalary() {
       const label = item.status || item.label || PAY_COLOR_LABELS[color] || color;
       return `<div class="cal-day color-${escapeHtml(color)}${dateStr === todayStr ? ' is-today' : ''}" title="${escapeHtml(fmtDate(dateStr) + ': ' + label)}">${day}</div>`;
     }).join('');
+    const noRate = !res || !Number(res.calculated_payout);
     grid.innerHTML = daily.length ? heads + pad + cells
-      : `<div class="cal-empty">${emptyState('fa-calendar-xmark', 'No attendance recorded for this month', '')}</div>`;
+      : `<div class="cal-empty">${emptyState('fa-calendar-xmark', 'No payroll for this month yet',
+          isAdminUser() && noRate
+            ? 'Save a per-day rate above, then the calendar and payout fill in from attendance.'
+            : 'Days appear here once attendance is recorded for this month.')}</div>`;
 
     const legend = document.getElementById('salaryLegend');
     if (legend) {
@@ -822,8 +826,16 @@ async function loadUserManagement() {
   if (!box) return;
   box.innerHTML = listSkeleton(4);
   try {
-    const users = (await callAPI('getUsers')) || [];
-    window.USERS_CACHE = users;
+    const [users, dir] = await Promise.all([
+      callAPI('getUsers'),
+      EMPLOYEE_LIST && EMPLOYEE_LIST.length ? EMPLOYEE_LIST : callAPI('getEmployeesDirectory').catch(() => [])
+    ]);
+    const names = {};
+    (dir || []).forEach(d => { if (d && d.employee_id && d.name) names[d.employee_id] = d.name; });
+    window.USERS_CACHE = (users || []).map(u => ({
+      ...u,
+      name: u.name || (names[u.employee_id] && names[u.employee_id] !== u.employee_id ? names[u.employee_id] : '')
+    }));
     renderUsers();
   } catch (e) {
     box.innerHTML = emptyState('fa-triangle-exclamation', "Couldn't load team accounts", '');
@@ -848,7 +860,7 @@ function renderUsers() {
       <div class="avatar">${escapeHtml(initials(u.name || u.employee_id))}</div>
       <div class="person-main">
         <div class="person-name">${escapeHtml(u.name || u.employee_id)} <span class="muted">${u.name ? escapeHtml(u.employee_id) : ''}</span></div>
-        <div class="person-meta">${escapeHtml(u.email || '')}</div>
+        <div class="person-meta">${u.email ? escapeHtml(u.email) : '<span class="muted-soft">No email added</span>'}</div>
         <div class="pill-row"><span class="pill pill-role">${escapeHtml(u.role)}</span>${statusPill(u.status)}</div>
       </div>
       <div class="row-actions">

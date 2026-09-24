@@ -223,7 +223,7 @@
 
             <div class="login-support-help">
               <span class="support-text"><i class="fas fa-headset text-muted me-1"></i> Having trouble signing in?</span>
-              <a href="javascript:void(0)" onclick="alert('Please contact your HR administrator or supervisor to reset your password.')" class="support-link">Contact IT / HR Support</a>
+              <a href="javascript:void(0)" onclick="showDialog('Forgot your password or PIN? Ask HR or your supervisor. They can reset your login from System Settings.', 'info')" class="support-link">Contact IT / HR Support</a>
             </div>
           </div>
         </div>
@@ -724,7 +724,7 @@
       // instead of a button that would otherwise do nothing.
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
       if (isIOS) {
-        alert("To install this app on iPhone: tap the Share button (square with an arrow) in Safari's toolbar, then choose 'Add to Home Screen'.");
+        showDialog("To install this app on iPhone: tap the Share button (square with an arrow) in Safari's toolbar, then choose 'Add to Home Screen'.");
       }
     }
 
