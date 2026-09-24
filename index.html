@@ -607,5 +607,19 @@
       if (btn) btn.style.display = 'none';
     });
   </script>
+
+  <!-- Precise location check (shown when the phone only shares approximate location) -->
+  <div id="locCheckModal" class="loc-check-modal" role="dialog" aria-modal="true" aria-labelledby="locCheckTitle" aria-hidden="true">
+    <div class="loc-check-card">
+      <div class="loc-check-icon">📍</div>
+      <h3 id="locCheckTitle">Turn on Precise Location</h3>
+      <p id="locCheckAccuracy" class="loc-check-text"></p>
+      <ol id="locCheckSteps" class="loc-check-steps"></ol>
+      <p id="locCheckWifiNote" class="loc-check-wifi" style="display:none">📶 You're on office Wi-Fi, so you can still punch today, but please fix this for next time.</p>
+      <p id="locCheckStatus" class="loc-check-status" aria-live="polite"></p>
+      <button type="button" id="locCheckAgainBtn" class="loc-check-primary" onclick="runPreciseLocationCheck(true)">Check again</button>
+      <button type="button" class="loc-check-secondary" onclick="closePreciseLocationModal()">Skip for now</button>
+    </div>
+  </div>
 </body>
 </html>

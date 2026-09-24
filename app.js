@@ -170,6 +170,119 @@ function startGpsWarmup() {
   } catch (e) { GPS_WARM_WATCH_ID = null; }
 }
 
+// ==========================================================================
+// PRECISE LOCATION CHECK
+// ==========================================================================
+// No website or app can switch Android's "Precise location" on by itself -
+// the user must do it. What we CAN do is detect it: "Approximate" location
+// always reports accuracy of roughly 1-3 km. When we see that, show a
+// step-by-step screen instead of letting the punch fail later.
+const APPROX_LOCATION_THRESHOLD_M = 1000;
+let PRECISE_CHECK_RUNNING = false;
+
+function detectPlatform() {
+  const ua = navigator.userAgent || '';
+  if (/android/i.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+  return 'desktop';
+}
+
+function preciseLocationSteps(platform) {
+  if (platform === 'ios') {
+    return [
+      'Open <b>Settings</b> → <b>Privacy &amp; Security</b> → <b>Location Services</b>.',
+      'Make sure <b>Location Services</b> is ON.',
+      'Tap <b>Safari Websites</b> → choose <b>While Using the App</b>.',
+      'Turn ON <b>Precise Location</b>.',
+      'Come back to Staffly and tap <b>Check again</b>.'
+    ];
+  }
+  if (platform === 'android') {
+    return [
+      '<b>Long-press the Chrome icon</b> on your home screen → tap <b>App info</b> (ⓘ).',
+      'Tap <b>Permissions</b> → <b>Location</b>.',
+      'Choose <b>Allow only while using the app</b> and turn ON <b>Use precise location</b>.',
+      'Open phone <b>Settings</b> → <b>Location</b> → <b>Location services</b> → turn ON <b>Google Location Accuracy</b> (called "Improve accuracy" on some phones).',
+      'Turn OFF <b>Battery Saver</b>, come back to Staffly and tap <b>Check again</b>.'
+    ];
+  }
+  return [
+    'Turn ON location for this computer (Windows: <b>Settings → Privacy &amp; security → Location</b>).',
+    'Make sure <b>Wi-Fi is ON</b> - laptops find their location from nearby Wi-Fi.',
+    'In the browser, click the icon left of the address bar → <b>Location → Allow</b>.',
+    'Tap <b>Check again</b>.'
+  ];
+}
+
+function showPreciseLocationModal(accuracyM) {
+  const modal = document.getElementById('locCheckModal');
+  if (!modal) return;
+  const platform = detectPlatform();
+  const acc = document.getElementById('locCheckAccuracy');
+  const steps = document.getElementById('locCheckSteps');
+  const status = document.getElementById('locCheckStatus');
+  const wifi = document.getElementById('locCheckWifiNote');
+
+  if (acc) acc.textContent = `Your phone is only sharing an approximate location (±${Math.round(accuracyM)} m). Staffly needs your precise location to mark attendance.`;
+  if (steps) steps.innerHTML = preciseLocationSteps(platform).map(t => `<li>${t}</li>`).join('');
+  if (status) { status.textContent = ''; status.className = 'loc-check-status'; }
+  if (wifi) wifi.style.display = OFFICE_NET.onOffice ? 'block' : 'none';
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closePreciseLocationModal() {
+  const modal = document.getElementById('locCheckModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+// force=true when the user taps "Check again" (updates the modal status).
+async function runPreciseLocationCheck(force) {
+  if (PRECISE_CHECK_RUNNING || !CURRENT_USER) return;
+  PRECISE_CHECK_RUNNING = true;
+  const status = document.getElementById('locCheckStatus');
+  const btn = document.getElementById('locCheckAgainBtn');
+  if (force && status) { status.textContent = 'Checking your location… (up to 15 seconds)'; status.className = 'loc-check-status'; }
+  if (force && btn) btn.disabled = true;
+
+  try {
+    if (force) GPS_LAST_FIX = null; // ignore the old rough reading
+    const pos = await getGpsPosition(15000);
+    const accuracy = pos.coords.accuracy;
+    checkOfficeNetwork(); // refresh the Wi-Fi note in the background
+
+    if (accuracy > APPROX_LOCATION_THRESHOLD_M) {
+      if (force && status) {
+        status.textContent = `Still approximate (±${Math.round(accuracy)} m). Please check the steps above, then try again.`;
+        status.className = 'loc-check-status bad';
+      } else {
+        showPreciseLocationModal(accuracy);
+      }
+    } else if (force) {
+      if (status) {
+        status.textContent = `✅ Precise location is ON (±${Math.round(accuracy)} m). You're all set!`;
+        status.className = 'loc-check-status ok';
+      }
+      setTimeout(closePreciseLocationModal, 1800);
+      if (typeof checkGeofence === 'function') checkGeofence();
+    }
+  } catch (err) {
+    // Permission denied is handled by the existing permissions banner.
+    if (force && status) {
+      status.textContent = (err && err.code === 1)
+        ? 'Location is blocked for Staffly. Allow location in the browser, then try again.'
+        : 'Could not get a location yet. Move near a window and try again.';
+      status.className = 'loc-check-status bad';
+    }
+  } finally {
+    PRECISE_CHECK_RUNNING = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
 function stopGpsWarmup() {
   if (GPS_WARM_WATCH_ID !== null && navigator.geolocation) {
     navigator.geolocation.clearWatch(GPS_WARM_WATCH_ID);
@@ -730,6 +843,10 @@ function applySessionAndRenderApp(user, persist) {
   // Punch In button, instead of the punch quietly failing mid-attempt.
   primeEssentialPermissions();
 
+  // Detect "Approximate location" (the ±2 km problem) and walk the user
+  // through turning Precise location on. Runs quietly in the background.
+  setTimeout(() => runPreciseLocationCheck(false), 2500);
+
   // Sync the punch button state (Punch In vs Punch Out) against today's
   // actual attendance row immediately on login/session restore, so a
   // refreshed page or a re-login mid-shift doesn't show the wrong button.
@@ -883,6 +1000,7 @@ async function handleLogout(e) {
   stopLiveMapRefresh();
   stopAutoLogoutTimer();
   stopGpsWarmup();
+  closePreciseLocationModal();
 
   const loginError = document.getElementById('loginError');
   if (loginError) loginError.style.display = 'none';
