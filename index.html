@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Staffly - Workforce Attendance Portal</title>
+  <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Staffly">
+  <link rel="apple-touch-icon" href="icon-180.png">
+
+  <!-- Fonts load in parallel with styles.css instead of nested inside it
+       via @import (which forces a slow sequential fetch-after-fetch). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+
+  <!-- Font Awesome loaded non-blocking: the page paints immediately with
+       system fonts/no icons, then icons pop in a moment later, instead of
+       every visitor waiting on this external CDN before seeing anything. -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Leaflet: powers both the admin Field Map view and the employee-facing
+       "my location" map on the punch-in card. Was referenced (L.map/L.circle)
+       but never actually loaded before - added here. -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+
+  <!-- defer (not a blocking synchronous <script>) so HTML parsing/painting
+       isn't held up waiting for this CDN download. app.js below is also
+       deferred so their relative order is preserved - app.js reads
+       window.supabase at its very top level and needs it defined first. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+</head>
+<body>
+
+  <!-- Real optical refraction for the Liquid Glass effect below: a
+       feDisplacementMap warps/lenses whatever sits behind a glass surface,
+       instead of just blurring it. Applied via backdrop-filter: url(#...).
+       Chrome/Edge/Android support this; Safari/iOS currently ignores SVG
+       filter references in backdrop-filter and falls back to plain blur -
+       still looks like glass, just without the warp. Zero visual footprint
+       on its own (width/height 0, absolutely positioned, display:none-
+       equivalent) - purely a filter definition for other elements to use. -->
+  <svg width="0" height="0" style="position:absolute; overflow:hidden;">
+    <filter id="liquidGlassDistort" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.009 0.014" numOctaves="2" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="16" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </svg>
+
+  <!-- LOADING SPLASH: shown immediately (pure inline SVG/CSS, zero external
+       requests) while fonts/Supabase SDK/app.js finish loading in the
+       background. Generic food shapes (not branded logos) falling in the
+       app's own coral/navy/mint/gold palette. Hidden by app.js once the
+       page is actually ready - see hideLoadingSplash() near the bottom. -->
+  <div id="appLoadingSplash" class="app-loading-splash">
+    <div class="food-rain" aria-hidden="true">
+      <svg class="food-item" style="left:2%; animation-delay:0.1s; animation-duration:2.7s;" viewBox="0 0 64 64"><circle cx="32" cy="20" r="16" fill="#F0C660"/><path d="M20 30 L32 58 L44 30 Z" fill="#F0C660"/></svg>
+      <svg class="food-item" style="left:5.5%; animation-delay:1.5s; animation-duration:3.5s;" viewBox="0 0 64 64"><path d="M16 42 L20 58 L44 58 L48 42 Z" fill="#EE8478"/><path d="M16 42 Q32 14 48 42 Z" fill="#EE8478"/></svg>
+      <svg class="food-item" style="left:7.2%; animation-delay:0.2s; animation-duration:2.6s;" viewBox="0 0 64 64"><path d="M12 34 Q12 54 32 54 Q52 54 52 34 Q52 20 44 16 Q40 26 32 16 Q24 26 20 16 Q12 20 12 34Z" fill="#F5B8A8"/></svg>
+      <svg class="food-item" style="left:13.9%; animation-delay:1.6s; animation-duration:3.2s;" viewBox="0 0 64 64"><circle cx="32" cy="20" r="16" fill="#7B6FA8"/><path d="M20 30 L32 58 L44 30 Z" fill="#7B6FA8"/></svg>
+      <svg class="food-item" style="left:18.0%; animation-delay:0.6s; animation-duration:3.4s;" viewBox="0 0 64 64"><path d="M16 42 L20 58 L44 58 L48 42 Z" fill="#F0C660"/><path d="M16 42 Q32 14 48 42 Z" fill="#F0C660"/></svg>
+      <svg class="food-item" style="left:22.1%; animation-delay:0.3s; animation-duration:3.5s;" viewBox="0 0 64 64"><path d="M12 34 Q12 54 32 54 Q52 54 52 34 Q52 20 44 16 Q40 26 32 16 Q24 26 20 16 Q12 20 12 34Z" fill="#47C6B0"/></svg>
+      <svg class="food-item" style="left:25.6%; animation-delay:0.2s; animation-duration:3.4s;" viewBox="0 0 64 64"><circle cx="32" cy="30" r="20" fill="#F5B8A8"/><circle cx="32" cy="30" r="8" fill="#F7E7D3"/></svg>
+      <svg class="food-item" style="left:33.0%; animation-delay:1.6s; animation-duration:3.0s;" viewBox="0 0 64 64"><path d="M12 34 Q12 54 32 54 Q52 54 52 34 Q52 20 44 16 Q40 26 32 16 Q24 26 20 16 Q12 20 12 34Z" fill="#7B6FA8"/></svg>
+      <svg class="food-item" style="left:36.6%; animation-delay:1.8s; animation-duration:3.1s;" viewBox="0 0 64 64"><circle cx="32" cy="20" r="16" fill="#47C6B0"/><path d="M20 30 L32 58 L44 30 Z" fill="#47C6B0"/></svg>
+      <svg class="food-item" style="left:41.7%; animation-delay:0.1s; animation-duration:2.6s;" viewBox="0 0 64 64"><path d="M12 34 Q12 54 32 54 Q52 54 52 34 Q52 20 44 16 Q40 26 32 16 Q24 26 20 16 Q12 20 12 34Z" fill="#47C6B0"/></svg>
+      <svg class="food-item" style="left:46.9%; animation-delay:1.9s; animation-duration:2.8s;" viewBox="0 0 64 64"><circle cx="32" cy="30" r="20" fill="#7B6FA8"/><circle cx="32" cy="30" r="8" fill="#F7E7D3"/></svg>
+      <svg class="food-item" style="left:48.7%; animation-delay:0.8s; animation-duration:3.2s;" viewBox="0 0 64 64"><circle cx="32" cy="20" r="16" fill="#EE8478"/><path d="M20 30 L32 58 L44 30 Z" fill="#EE8478"/></svg>
+      <svg class="food-item" style="left:54.7%; animation-delay:0.5s; animation-duration:2.9s;" viewBox="0 0 64 64"><circle cx="32" cy="20" r="16" fill="#47C6B0"/><path d="M20 30 L32 58 L44 30 Z" fill="#47C6B0"/></svg>
+      <svg class="food-item" style="left:59.8%; animation-delay:1.9s; animation-duration:3.3s;" viewBox="0 0 64 64"><path d="M12 34 Q12 54 32 54 Q52 54 52 34 Q52 20 44 16 Q40 26 32 16 Q24 26 20 16 Q12 20 12 34Z" fill="#F0C660"/></svg>
+      <svg class="food-item" style="left:64.9%; animation-delay:0.9s; animation-duration:2.4s;" viewBox="0 0 64 64"><circle cx="32" cy="30" r="20" fill="#F5B8A8"/><circle cx="32" cy="30" r="8" fill="#F7E7D3"/></svg>
+      <svg class="food-item" style="left:67.0%; animation-delay:1.1s; animation-duration:3.5s;" viewBox="0 0 64 64"><circle cx="32" cy="20" r="16" fill="#7B6FA8"/><path d="M20 30 L32 58 L44 30 Z" fill="#7B6FA8"/></svg>
+      <svg class="food-item" style="left:71.8%; animation-delay:0.5s; animation-duration:3.0s;" viewBox="0 0 64 64"><path d="M16 42 L20 58 L44 58 L48 42 Z" fill="#47C6B0"/><path d="M16 42 Q32 14 48 42 Z" fill="#47C6B0"/></svg>
+      <svg class="food-item" style="left:78.9%; animation-delay:0.9s; animation-duration:2.6s;" viewBox="0 0 64 64"><path d="M16 42 L20 58 L44 58 L48 42 Z" fill="#F0C660"/><path d="M16 42 Q32 14 48 42 Z" fill="#F0C660"/></svg>
+      <svg class="food-item" style="left:80.2%; animation-delay:0.1s; animation-duration:2.4s;" viewBox="0 0 64 64"><path d="M16 42 L20 58 L44 58 L48 42 Z" fill="#EE8478"/><path d="M16 42 Q32 14 48 42 Z" fill="#EE8478"/></svg>
+      <svg class="food-item" style="left:86.7%; animation-delay:0.8s; animation-duration:3.1s;" viewBox="0 0 64 64"><circle cx="32" cy="30" r="20" fill="#7B6FA8"/><circle cx="32" cy="30" r="8" fill="#F7E7D3"/></svg>
+      <svg class="food-item" style="left:92.8%; animation-delay:1.9s; animation-duration:2.3s;" viewBox="0 0 64 64"><circle cx="32" cy="30" r="20" fill="#EE8478"/><circle cx="32" cy="30" r="8" fill="#F7E7D3"/></svg>
+      <svg class="food-item" style="left:96%; animation-delay:0.7s; animation-duration:2.7s;" viewBox="0 0 64 64"><path d="M16 42 L20 58 L44 58 L48 42 Z" fill="#47C6B0"/><path d="M16 42 Q32 14 48 42 Z" fill="#47C6B0"/></svg>
+
+    </div>
+    <div class="loading-splash-brand">
+      <img src="icon-192.png" alt="Staffly" class="loading-splash-logo">
+      <span class="loading-splash-word">STAFFLY</span>
+      <span class="loading-splash-sub">Loading your workspace...</span>
+    </div>
+  </div>
+
+  <!-- Hides the loading splash - deliberately standalone and NOT dependent
+       on app.js or the Supabase SDK finishing, so it can never get stuck
+       waiting on something else. Runs immediately (no defer). Shows the
+       full 3s animation on every single app open, every time. -->
+  <script>
+    (function () {
+      var MIN_SPLASH_MS = 3000; // show the food-rain animation for at least 3s
+      var SAFETY_NET_MS = 8000; // never block the app forever
+      var start = Date.now();
+      var hidden = false;
+
+      function hideSplash() {
+        if (hidden) return;
+        hidden = true;
+        var el = document.getElementById('appLoadingSplash');
+        if (!el) return;
+        var wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - start));
+        setTimeout(function () {
+          el.classList.add('splash-hidden');
+          setTimeout(function () { el.remove(); }, 500);
+        }, wait);
+      }
+
+      window.addEventListener('load', hideSplash);
+      setTimeout(hideSplash, SAFETY_NET_MS);
+    })();
+  </script>
+
+  <!-- TOP BANNER STACK: PWA update + permission warnings live here so they
+       never overlap each other; height is measured live by JS to push the
+       app's fixed header/sidebar down by exactly the right amount. -->
+  <div id="topBannerStack" class="top-banner-stack">
+    <div id="pwaUpdateBanner" class="pwa-update-banner" style="display:none;">
+      <span class="pwa-update-text">
+        <i class="fas fa-circle-arrow-up"></i> A new version of Staffly is available.
+      </span>
+      <button type="button" class="pwa-update-btn" onclick="applyPwaUpdate()">Update Now</button>
+    </div>
+
+    <div id="permissionBanner" class="permission-banner" style="display:none;">
+      <span class="permission-banner-text">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span id="permissionBannerText">Location & Camera access is blocked - Punch In/Out will fail until enabled.</span>
+      </span>
+      <button type="button" class="permission-banner-btn" onclick="retryEssentialPermissions()">Enable Now</button>
+    </div>
+  </div>
+
+  <!-- ==================== SPLIT MOBILE LOGIN VIEW ==================== -->
+  <div id="loginView" class="view active">
+    <div class="mobile-login-wrapper">
+
+      <div class="login-header-banner">
+        <svg class="login-leaf-cluster" viewBox="0 0 420 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M300 -20 C360 -25 400 20 375 65 C350 105 295 95 292 55 C289 20 275 -15 300 -20 Z" fill="var(--mint-green)" opacity="0.5"/>
+          <path d="M370 20 C420 25 440 75 405 105 C378 128 335 110 342 75 C348 45 348 15 370 20 Z" fill="var(--coral-primary)" opacity="0.55"/>
+          <path d="M20 40 C-25 35 -40 85 -10 115 C15 140 55 120 48 85 C42 55 42 45 20 40 Z" fill="var(--coral-light)" opacity="0.4"/>
+        </svg>
+        <span class="login-header-blob" aria-hidden="true"></span>
+        <div class="brand-icon-wrapper"><img src="icon-192.png" alt="Staffly Logo" class="brand-icon-img"></div>
+        <h2 class="brand-title">DCC Supply Chain</h2>
+        <p class="brand-subtitle">Workforce &amp; Logistics Management</p>
+      </div>
+
+      <div class="login-card-container">
+        <div class="login-card">
+          <!-- QUICK LOGIN (phone already registered): fingerprint first, PIN backup -->
+          <div id="quickLoginPanel" class="quick-login-panel" style="display:none;">
+            <p class="quick-login-welcome">👋 Welcome back</p>
+            <p class="quick-login-name"><span id="quickLoginName"></span></p>
+            <p class="quick-login-id">Employee ID: <span id="quickLoginId"></span></p>
+
+            <button type="button" id="fingerprintLoginBtn" class="fingerprint-btn" onclick="loginWithFingerprint()" style="display:none;">
+              <span class="fingerprint-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 11c0 3.5-1 6.5-2.5 8.5"/><path d="M8.5 7.5A5 5 0 0 1 17 11c0 1.5-.1 3-.4 4.4"/>
+                  <path d="M6 10a6 6 0 0 1 .8-3"/><path d="M15.2 18.5c-.4 1-.9 2-1.5 2.8"/>
+                  <path d="M4.5 16c.6-1.5 1-3.2 1-5a6.5 6.5 0 0 1 11-4.7"/><path d="M12 11c0 2.4-.4 4.6-1.2 6.5"/>
+                  <path d="M19.5 13.5c-.1 1.6-.4 3.1-.9 4.5"/>
+                </svg>
+              </span>
+              <span id="fingerprintBtnText">Login with Fingerprint</span>
+            </button>
+
+            <label for="quickPinInput" id="quickPinLabel" class="quick-pin-label">Enter your 4-digit PIN</label>
+            <input type="password" id="quickPinInput" class="quick-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••" aria-label="4-digit PIN">
+
+            <div id="quickLoginError" class="error-msg" style="display:none;"></div>
+
+            <button type="button" class="quick-login-switch" onclick="showPasswordLogin()">Not you? Log in with ID &amp; password</button>
+          </div>
+
+          <!-- PASSWORD LOGIN -->
+          <div id="passwordLoginPanel">
+            <p class="password-login-instructions">Enter your Employee ID and password</p>
+
+            <div class="input-group">
+              <i class="fas fa-id-badge input-icon"></i>
+              <input type="text" id="loginEmployeeId" placeholder="Employee ID" autocomplete="username" autocapitalize="characters" spellcheck="false" autofocus>
+            </div>
+
+            <div class="input-group">
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="loginPasswordOnly" placeholder="Password" autocomplete="current-password">
+              <button type="button" id="togglePasswordVisibility" class="password-toggle-btn" aria-label="Show password">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+
+            <div id="loginError" class="error-msg" style="display:none;"></div>
+
+            <button type="button" id="loginBtn" class="btn-primary-mobile">
+              Sign In to Portal <i class="fas fa-arrow-right ms-2"></i>
+            </button>
+
+            <button type="button" id="backToQuickLogin" class="quick-login-switch" onclick="refreshLoginMode()" style="display:none;">← Back to fingerprint / PIN login</button>
+          </div>
+
+          <!-- SECURITY BADGES & HELPDESK -->
+          <div class="login-card-footer-info">
+            <div class="security-badges-row">
+              <span class="badge-pill"><i class="fas fa-map-marker-alt text-success"></i> GPS Geofenced</span>
+              <span class="badge-pill"><i class="fas fa-shield-alt text-primary"></i> 256-Bit Encrypted</span>
+            </div>
+
+            <div class="login-support-help">
+              <span class="support-text"><i class="fas fa-headset text-muted me-1"></i> Having trouble signing in?</span>
+              <a href="javascript:void(0)" onclick="showDialog('Forgot your password or PIN? Ask HR or your supervisor. They can reset your login from System Settings.', 'info')" class="support-link">Contact IT / HR Support</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="portal-legal-footer">
+          DCC Supply Chain &amp; Distribution LLP • Secured Portal
+        </div>
+      </div>
+
+      <!-- Fills the remaining space below the login card on tall phone
+           screens (previously blank white space) with a decorative leaf
+           flourish + product branding, instead of leaving a dead gap. -->
+      <div class="login-fill-space">
+        <svg class="login-fill-leaf" viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M150 20 C210 10 260 50 240 100 C222 145 155 150 145 105 C136 65 105 30 150 20 Z" fill="var(--mint-green)" opacity="0.28"/>
+          <path d="M90 70 C40 60 10 105 35 145 C58 180 110 165 105 125 C101 92 130 78 90 70 Z" fill="var(--coral-primary)" opacity="0.22"/>
+          <path d="M210 110 C255 115 270 155 240 180 C213 202 175 182 185 150 C193 125 180 106 210 110 Z" fill="var(--purple-accent)" opacity="0.2"/>
+        </svg>
+        <div class="login-fill-brand">
+          <span class="login-fill-powered">POWERED BY</span>
+          <span class="login-fill-staffly">⚡ STAFFLY</span>
+          <span class="login-fill-tagline">Smart Workforce Attendance</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MAIN SAAS APP LAYOUT ==================== -->
+  <div id="appLayout" class="app-layout" style="display:none;">
+
+    <!-- Mobile Navigation Topbar -->
+    <header class="mobile-top-bar">
+      <button id="menuToggleBtn" class="menu-toggle-btn">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <div class="mobile-brand-title">STAFFLY</div>
+      <div class="top-actions">
+      <button type="button" class="notif-bell" onclick="toggleNotifPanel()" aria-label="Notifications" aria-haspopup="dialog" aria-controls="notifPanel">
+        <i class="fas fa-bell" aria-hidden="true"></i><span class="notif-badge" hidden>0</span>
+      </button>
+      <div class="mobile-user-avatar" id="mobileUserAvatar">D</div>
+      </div>
+    </header>
+
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR (hidden on desktop) -->
+    <nav class="bottom-nav" id="bottomNav">
+      <a href="javascript:void(0)" class="bottom-nav-item active" data-view="homeView">
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        <span class="bottom-nav-label">Home</span>
+      </a>
+
+      <a href="javascript:void(0)" class="bottom-nav-item" data-view="leaveView">
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <span class="bottom-nav-label">Leave</span>
+      </a>
+
+      <a href="javascript:void(0)" class="bottom-nav-item" data-view="trainingView">
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+        </svg>
+        <span class="bottom-nav-label">Training</span>
+      </a>
+
+      <a href="javascript:void(0)" class="bottom-nav-item" id="bottomMoreBtn">
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+        <span class="bottom-nav-label">More</span>
+      </a>
+    </nav>
+
+    <!-- MODERN SAAS SIDEBAR -->
+    <aside id="sidebar" class="sidebar">
+
+      <!-- Coral header block: brand + profile, with a leaf-cluster
+           illustration bleeding behind it, per the botanical design system. -->
+      <div class="sidebar-coral-header">
+        <svg class="sidebar-leaf-cluster" viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M40 10 C90 0 140 30 130 80 C120 130 60 130 40 90 C25 60 15 20 40 10 Z" fill="var(--navy-dark)" opacity="0.55"/>
+          <path d="M160 -10 C220 -5 250 40 220 90 C195 130 140 120 135 75 C130 35 130 -5 160 -10 Z" fill="var(--mint-green)" opacity="0.5"/>
+          <path d="M200 60 C245 70 260 120 225 150 C195 175 155 150 165 115 C173 85 175 55 200 60 Z" fill="var(--coral-light)" opacity="0.55"/>
+          <path d="M10 100 C55 95 75 140 50 175 C28 205 -10 190 -5 150 C-2 125 -15 105 10 100 Z" fill="var(--navy-dark)" opacity="0.4"/>
+        </svg>
+        <span class="sidebar-blob" aria-hidden="true"></span>
+
+        <!-- Brand Logo Header -->
+        <div class="sidebar-brand">
+          <div class="brand-logo">
+            <img src="icon-192.png" alt="Staffly Logo" class="brand-logo-img">
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">Staffly</span>
+            <span class="brand-tag">Enterprise v2.4</span>
+          </div>
+        </div>
+
+        <!-- User Profile Card -->
+        <div class="sidebar-user-card">
+          <div class="user-avatar-wrapper">
+            <div class="user-avatar" id="userAvatar">KR</div>
+            <span class="status-indicator"></span>
+          </div>
+          <div class="user-details">
+            <h4 id="userNameDisplay" class="user-name">Khayali Ram</h4>
+            <span id="userRoleBadge" class="role-pill">Employee</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Links with Vector Icons -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">CORE MENU</div>
+
+        <a href="javascript:void(0)" class="nav-item active" data-view="homeView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          <span class="nav-label">Home & Punch</span>
+        </a>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="dashboardView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <span class="nav-label">Analytics</span>
+        </a>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="directoryView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <span class="nav-label">Staff Directory</span>
+        </a>
+
+        <a href="javascript:void(0)" class="nav-item" data-view="leaveView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <span class="nav-label">Leave Portal</span>
+        </a>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="salaryView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+          <span class="nav-label">Payroll & Compensation</span>
+        </a>
+
+        <a href="javascript:void(0)" class="nav-item" data-view="trainingView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+          </svg>
+          <span class="nav-label">Training Modules</span>
+        </a>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="fieldMapView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span class="nav-label">Live GPS Map</span>
+        </a>
+
+        <div class="nav-section-label">ADMINISTRATION</div>
+
+        <a href="javascript:void(0)" class="nav-item admin-only" data-view="userMgmtView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span class="nav-label">System Settings</span>
+        </a>
+
+        <a href="javascript:void(0)" id="installAppBtn" class="nav-item" style="display:none;" onclick="triggerPwaInstall()">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
+          </svg>
+          <span class="nav-label">Install App</span>
+        </a>
+
+        <a href="javascript:void(0)" id="loginSettingsBtn" class="nav-item" onclick="openLoginSettings()">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.5-1 6.5-2.5 8.5M8.5 7.5A5 5 0 0117 11c0 1.5-.1 3-.4 4.4M6 10a6 6 0 01.8-3M4.5 16c.6-1.5 1-3.2 1-5a6.5 6.5 0 0111-4.7"/>
+          </svg>
+          <span class="nav-label">Fingerprint &amp; PIN</span>
+        </a>
+
+        <a href="javascript:void(0)" id="logoutBtn" class="nav-item logout">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          <span class="nav-label">Sign Out</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Content Area -->
+    <div class="notif-bell-desktop">
+      <button type="button" class="notif-bell" onclick="toggleNotifPanel()" aria-label="Notifications" aria-haspopup="dialog" aria-controls="notifPanel">
+        <i class="fas fa-bell" aria-hidden="true"></i><span class="notif-badge" hidden>0</span>
+      </button>
+    </div>
+
+    <!-- Notifications panel -->
+    <div id="notifPanel" class="notif-panel" role="dialog" aria-label="Notifications" aria-hidden="true">
+      <div class="notif-head">
+        <h3>Notifications</h3>
+        <div class="notif-head-actions">
+          <button type="button" class="icon-btn" id="notifSoundBtn" onclick="toggleNotifSound()" aria-label="Sound on" title="Sound on"><i class="fas fa-volume-high" aria-hidden="true"></i></button>
+          <button type="button" class="icon-btn" onclick="toggleNotifPanel(false)" aria-label="Close notifications"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <button type="button" class="notif-markall" onclick="markAllNotificationsRead()">Mark all as read</button>
+      <div id="notifList" class="notif-list"></div>
+    </div>
+    <div id="notifBackdrop" class="notif-backdrop" onclick="toggleNotifPanel(false)"></div>
+
+    <main class="main-content">
+      <section id="homeView" class="app-view active fade-in-up">
+        <div class="punch-card-wrapper">
+          <!-- Botanical background decoration: leaf cluster + soft coral
+               circle blob, tucked behind the card corners per the design
+               system. Purely decorative - non-interactive, sits behind
+               all real content. -->
+          <svg class="punch-card-leaf-deco" viewBox="0 0 420 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M320 -20 C380 -15 410 30 380 75 C355 110 300 100 295 60 C290 25 290 -15 320 -20 Z" fill="var(--mint-green)" opacity="0.22"/>
+            <path d="M370 10 C420 20 430 65 400 95 C375 118 340 100 348 68 C355 40 350 5 370 10 Z" fill="var(--navy-dark)" opacity="0.15"/>
+            <path d="M20 140 C-25 150 -35 195 5 215 C35 232 70 210 60 178 C52 152 45 135 20 140 Z" fill="var(--coral-primary)" opacity="0.16"/>
+          </svg>
+          <span class="punch-card-blob" aria-hidden="true"></span>
+
+          <div class="geofence-status-card">
+            <div class="geofence-icon-badge" id="geofenceIcon">📍</div>
+            <h3 id="geofenceTitle" class="status-heading">Checking Location...</h3>
+            <p id="geofenceSubtitle" class="status-subheading">Calculating distance to DDC Safdarjung HQ</p>
+            <!-- Live map: shows the employee's own GPS dot, their device's
+                 accuracy radius, and the HQ geofence circle, so it's
+                 visually obvious why a punch is (or isn't) being blocked
+                 instead of just a flat text message. -->
+            <div id="myLocationMapContainer" class="my-location-map"></div>
+          </div>
+
+          <div class="camera-verification-card">
+            <div class="selfie-frame">
+              <video id="webcam" autoplay playsinline style="display:none;"></video>
+              <canvas id="canvas" style="display:none;"></canvas>
+              <img id="selfiePreview" src="default-avatar.svg" alt="Selfie Verification">
+            </div>
+            <button type="button" id="captureBtn" class="btn-action-outline"><span class="btn-icon">📷</span> Capture Selfie</button>
+          </div>
+
+          <button type="button" id="punchInBtn" class="btn-punch-action">
+            <span id="punchBtnText">Punch In Now</span>
+          </button>
+
+          <div id="punchRejectNote" class="punch-reject" role="alert" hidden></div>
+          <div id="shiftStatusBadge" class="shift-status-badge" style="display:none;"></div>
+          <button type="button" id="retryPhotoUploadBtn" class="btn-retry-photo" style="display:none;" onclick="retrySelfiePhotoAttach()">⚠️ Retry Photo Upload</button>
+
+          <div class="stats-counter-grid">
+            <div class="stat-card"><span class="stat-val" id="presentCount">0</span><span class="stat-lbl">Present</span></div>
+            <div class="stat-card"><span class="stat-val" id="halfDayCount">0</span><span class="stat-lbl">Half Day</span></div>
+            <div class="stat-card"><span class="stat-val" id="leaveCount">0</span><span class="stat-lbl">Leaves</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="dashboardView" class="app-view fade-in-up">
+        <div class="view-header"><h2>Analytics</h2><p id="analyticsScope">Attendance at a glance.</p></div>
+        <div id="dashboardMetrics" class="kpi-grid"></div>
+        <div class="chart-grid">
+          <div class="card chart-card chart-wide"><h3 class="card-title">This week</h3><div class="chart-box"><canvas id="weeklyChart" aria-label="Attendance this week"></canvas></div></div>
+          <div class="card chart-card"><h3 class="card-title">Today's status</h3><div class="chart-box"><canvas id="statusChart" aria-label="Today's attendance status"></canvas></div></div>
+          <div class="card chart-card chart-wide"><h3 class="card-title">This month</h3><div class="chart-box"><canvas id="monthlyChart" aria-label="Attendance this month"></canvas></div></div>
+        </div>
+        <div id="chartsEmpty" class="card" hidden>
+          <div class="empty-state"><div class="empty-icon"><i class="fas fa-chart-line" aria-hidden="true"></i></div><p class="empty-title">No chart data yet</p><p class="empty-text">Charts fill in as attendance is recorded.</p></div>
+        </div>
+      </section>
+
+      <section id="directoryView" class="app-view fade-in-up">
+        <div class="view-header"><h2>Staff Directory</h2><p id="directorySummary">Who's in today.</p></div>
+        <div class="toolbar">
+          <label class="search-field">
+            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="dirSearchInput" placeholder="Search by name or ID" oninput="filterDirectory()" aria-label="Search staff">
+          </label>
+          <div class="chip-row" id="dirFilterChips" role="group" aria-label="Filter by status">
+            <button type="button" class="chip on" aria-pressed="true" onclick="setDirFilter('all', this)">All</button>
+            <button type="button" class="chip" aria-pressed="false" onclick="setDirFilter('present', this)">Present</button>
+            <button type="button" class="chip" aria-pressed="false" onclick="setDirFilter('absent', this)">Absent</button>
+          </div>
+        </div>
+        <div id="directoryList" class="card list-card"></div>
+        <p id="directoryNoMatch" class="muted center-note" hidden>No one matches that search.</p>
+      </section>
+
+      <section id="leaveView" class="app-view fade-in-up">
+        <div class="view-header view-header-row">
+          <div><h2>Leave</h2><p>Request time off and track approvals.</p></div>
+          <button type="button" class="btn btn-primary" onclick="openApplyLeave()"><i class="fas fa-plus" aria-hidden="true"></i> Apply for leave</button>
+        </div>
+        <div class="seg admin-only" id="leaveTabs" role="tablist" aria-label="Leave lists">
+          <button type="button" class="seg-btn on" role="tab" aria-selected="true" data-tab="mine" onclick="switchLeaveView('mine')">My requests</button>
+          <button type="button" class="seg-btn" role="tab" aria-selected="false" data-tab="review" onclick="switchLeaveView('review')">To review <span id="leaveReviewCount" class="count-badge" hidden>0</span></button>
+        </div>
+        <div id="leaveHistoryList" class="stack"></div>
+        <div id="leaveReviewList" class="stack" hidden></div>
+      </section>
+
+      <section id="salaryView" class="app-view fade-in-up">
+        <div class="view-header"><h2>Payroll</h2><p>Monthly attendance and payout.</p></div>
+        <div class="card form-card">
+          <div class="form-grid">
+            <label class="field admin-only"><span class="field-label">Employee</span>
+              <select id="salaryEmpId" class="field-input" onchange="calculateSalary()"><option value="">Me</option></select>
+            </label>
+            <label class="field"><span class="field-label">Month</span>
+              <input type="month" id="salaryMonth" class="field-input" onchange="calculateSalary()">
+            </label>
+          </div>
+          <div class="admin-only rate-row">
+            <label class="field"><span class="field-label">Per-day rate (₹)</span>
+              <input type="number" id="salaryPerDay" class="field-input" min="0" step="1" inputmode="numeric" placeholder="e.g. 800">
+            </label>
+            <button type="button" class="btn btn-ghost" onclick="saveSalaryConfig(this)"><i class="fas fa-floppy-disk" aria-hidden="true"></i> Save rate</button>
+          </div>
+        </div>
+
+        <div id="salaryResult" class="card salary-result">
+          <h3 class="card-title" id="salaryWho">Your payroll</h3>
+          <div class="kpi-grid kpi-grid-3">
+            <div class="kpi"><span class="kpi-val" id="sal-totalDays">0</span><span class="kpi-lbl">Working days</span></div>
+            <div class="kpi"><span class="kpi-val" id="sal-payable">0</span><span class="kpi-lbl">Payable days</span></div>
+            <div class="kpi kpi-accent"><span class="kpi-val" id="sal-amount">₹0</span><span class="kpi-lbl">Payout</span></div>
+          </div>
+          <div id="salaryCalendar" class="cal-grid" aria-label="Attendance calendar"></div>
+          <div id="salaryLegend" class="legend"></div>
+        </div>
+      </section>
+
+      <section id="trainingView" class="app-view fade-in-up">
+        <div class="view-header view-header-row">
+          <div><h2>Training</h2><p>Guides for the systems you use every day.</p></div>
+          <button type="button" class="btn btn-primary admin-only" onclick="openSheet('addTrainingModal')"><i class="fas fa-plus" aria-hidden="true"></i> Add module</button>
+        </div>
+        <div id="trainingProgress" class="progress" hidden>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+          <span class="progress-text"></span>
+        </div>
+        <div id="trainingFilters" class="chip-row"></div>
+        <div id="trainingContainer" class="training-grid"></div>
+      </section>
+
+      <section id="fieldMapView" class="app-view fade-in-up">
+        <div class="view-header view-header-row">
+          <div><h2>Live Map</h2><p id="liveMapUpdated">Where your team is right now.</p></div>
+          <button type="button" class="btn btn-ghost" onclick="fitAllLiveMarkers()"><i class="fas fa-expand" aria-hidden="true"></i> Show everyone</button>
+        </div>
+        <div class="live-map-layout">
+          <div class="card map-card"><div id="liveMapContainer" class="live-map" role="application" aria-label="Team location map"></div>
+            <div class="legend map-legend">
+              <span class="legend-item"><span class="fresh-dot fresh-fresh"></span>Active (under 5 min)</span>
+              <span class="legend-item"><span class="fresh-dot fresh-recent"></span>Recent (under 30 min)</span>
+              <span class="legend-item"><span class="fresh-dot fresh-stale"></span>Older</span>
+            </div>
+          </div>
+          <div class="card list-card map-list"><h3 class="card-title">Team</h3><div id="liveMapList"></div></div>
+        </div>
+      </section>
+
+      <section id="userMgmtView" class="app-view fade-in-up">
+        <div class="view-header"><h2>System Settings</h2><p>Team accounts, office Wi-Fi and login resets.</p></div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h3 class="card-title">Team accounts</h3><p class="muted small-note" id="userCount"></p></div>
+            <button type="button" class="btn btn-primary" onclick="openAddUser()"><i class="fas fa-user-plus" aria-hidden="true"></i> Add account</button>
+          </div>
+          <label class="search-field">
+            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="userSearch" placeholder="Search by name, ID, email or role" oninput="renderUsers()" aria-label="Search accounts">
+          </label>
+          <div id="usersTableBody" class="list-plain"></div>
+        </div>
+
+        <div class="office-net-card" id="officeNetworksCard">
+          <h3 class="office-net-title">📶 Office Wi-Fi Networks</h3>
+          <p class="office-net-help">Phones on these networks can punch even when GPS is weak. Connect this device to the office Wi-Fi, then tap "Add this network".</p>
+          <div id="officeNetworksBox"></div>
+          <div class="office-net-add">
+            <input type="text" id="officeNetworkLabel" placeholder="Label, e.g. DDC 1st floor Wi-Fi" maxlength="60">
+            <button type="button" onclick="addCurrentOfficeNetwork()">Add this network</button>
+          </div>
+        </div>
+
+        <div class="office-net-card">
+          <h3 class="office-net-title">🔐 Reset Fingerprint / PIN Login</h3>
+          <p class="office-net-help">Use when an employee loses their phone, gets a new one, or forgets their PIN. They'll log in once with ID + password and set a new PIN.</p>
+          <div class="office-net-add">
+            <input type="text" id="resetQuickLoginId" placeholder="Employee ID" autocapitalize="characters" spellcheck="false">
+            <button type="button" onclick="resetQuickLoginForEmployee()">Reset</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js" defer></script>
+  <script src="pages.js" defer></script>
+
+  <!-- PWA: service worker registration + install prompt + update detection -->
+  <script>
+    // Keep fixed headers/sidebars offset correctly below however many
+    // banners (PWA update, permission warning) are currently showing.
+    (function initBannerStackObserver() {
+      const stack = document.getElementById('topBannerStack');
+      if (!stack) return;
+      const applyHeight = () => {
+        document.documentElement.style.setProperty('--banners-h', stack.offsetHeight + 'px');
+      };
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(applyHeight).observe(stack);
+      } else {
+        // Fallback for older browsers without ResizeObserver support
+        window.addEventListener('resize', applyHeight);
+        setInterval(applyHeight, 1000);
+      }
+      applyHeight();
+    })();
+
+    let pwaWaitingWorker = null;
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').then((reg) => {
+
+          // Case 1: a new worker starts installing after this registration
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              // "installed" + an existing controller means this is an UPDATE,
+              // not the very first install on this device.
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                pwaWaitingWorker = newWorker;
+                showPwaUpdateBanner();
+              }
+            });
+          });
+
+          // Case 2: a waiting worker already exists from a previous visit
+          if (reg.waiting && navigator.serviceWorker.controller) {
+            pwaWaitingWorker = reg.waiting;
+            showPwaUpdateBanner();
+          }
+
+          // Actively check for a new version: on load, and every 30 minutes
+          // (useful since this is a long-lived single-page app).
+          reg.update();
+          setInterval(() => reg.update(), 30 * 60 * 1000);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') reg.update();
+          });
+
+        }).catch((err) => console.warn('Service worker registration failed:', err));
+
+        // Reload once the new worker takes control, so the fresh version loads.
+        let reloadedAfterUpdate = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (reloadedAfterUpdate) return;
+          reloadedAfterUpdate = true;
+          window.location.reload();
+        });
+      });
+    }
+
+    function showPwaUpdateBanner() {
+      const banner = document.getElementById('pwaUpdateBanner');
+      if (banner) banner.style.display = 'flex';
+    }
+
+    function applyPwaUpdate() {
+      if (pwaWaitingWorker) {
+        pwaWaitingWorker.postMessage({ type: 'SKIP_WAITING' });
+      }
+      const banner = document.getElementById('pwaUpdateBanner');
+      if (banner) banner.style.display = 'none';
+    }
+
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('installAppBtn');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    function triggerPwaInstall() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.finally(() => {
+          deferredInstallPrompt = null;
+          const btn = document.getElementById('installAppBtn');
+          if (btn) btn.style.display = 'none';
+        });
+        return;
+      }
+      // iOS Safari never fires beforeinstallprompt - there is no
+      // programmatic install API there, so give manual instructions
+      // instead of a button that would otherwise do nothing.
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS) {
+        showDialog("To install this app on iPhone: tap the Share button (square with an arrow) in Safari's toolbar, then choose 'Add to Home Screen'.");
+      }
+    }
+
+    // iOS gets no beforeinstallprompt event at all, so the Install button
+    // must be shown manually there (pointing to Share > Add to Home
+    // Screen) rather than staying hidden forever waiting for an event
+    // that will never fire.
+    (function showInstallButtonOnIOS() {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isStandalone = window.navigator.standalone === true;
+      if (isIOS && !isStandalone) {
+        const btn = document.getElementById('installAppBtn');
+        if (btn) btn.style.display = 'inline-flex';
+      }
+    })();
+
+    window.addEventListener('appinstalled', () => {
+      const btn = document.getElementById('installAppBtn');
+      if (btn) btn.style.display = 'none';
+    });
+  </script>
+
+
+  <!-- Apply for leave -->
+  <div id="applyLeaveModal" class="loc-check-modal sheet-modal" role="dialog" aria-modal="true" aria-labelledby="applyLeaveTitle" aria-hidden="true">
+    <div class="loc-check-card sheet-card">
+      <h3 id="applyLeaveTitle">Apply for leave</h3>
+      <label class="field"><span class="field-label">Type</span>
+        <select id="leaveType" class="field-input">
+          <option>Casual</option><option>Sick</option><option>Earned</option><option>Half Day</option><option>Unpaid</option>
+        </select>
+      </label>
+      <div class="form-grid">
+        <label class="field"><span class="field-label">From</span><input type="date" id="fromDate" class="field-input" onchange="updateLeaveDays()"></label>
+        <label class="field"><span class="field-label">To</span><input type="date" id="toDate" class="field-input" onchange="updateLeaveDays()"></label>
+      </div>
+      <p id="leaveDaysHint" class="field-hint"></p>
+      <label class="field"><span class="field-label">Reason</span>
+        <textarea id="leaveReason" class="field-input" rows="3" maxlength="500" placeholder="e.g. Family function in Jaipur"></textarea>
+      </label>
+      <button type="button" class="loc-check-primary" onclick="handleApplyLeave(this)">Send request</button>
+      <button type="button" class="loc-check-secondary" onclick="closeSheet('applyLeaveModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Add training module -->
+  <div id="addTrainingModal" class="loc-check-modal sheet-modal" role="dialog" aria-modal="true" aria-labelledby="addTrainingTitle" aria-hidden="true">
+    <div class="loc-check-card sheet-card">
+      <h3 id="addTrainingTitle">Add training module</h3>
+      <label class="field"><span class="field-label">Department</span><input type="text" id="trainDept" class="field-input" maxlength="40" placeholder="e.g. Dispatch"></label>
+      <label class="field"><span class="field-label">Title</span><input type="text" id="trainSystem" class="field-input" maxlength="80" placeholder="e.g. Creating an e-way bill"></label>
+      <label class="field"><span class="field-label">What it covers</span><textarea id="trainPurpose" class="field-input" rows="2" maxlength="300"></textarea></label>
+      <label class="field"><span class="field-label">Link to the guide</span><input type="url" id="trainLink" class="field-input" placeholder="https://"></label>
+      <button type="button" class="loc-check-primary" onclick="handleSaveTraining(this)">Add module</button>
+      <button type="button" class="loc-check-secondary" onclick="closeSheet('addTrainingModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Add account -->
+  <div id="addUserModal" class="loc-check-modal sheet-modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle" aria-hidden="true">
+    <div class="loc-check-card sheet-card">
+      <h3 id="addUserTitle">Add account</h3>
+      <label class="field"><span class="field-label">Employee ID</span><input type="text" id="newUserId" class="field-input" autocapitalize="characters" spellcheck="false" placeholder="e.g. EMP112"></label>
+      <label class="field"><span class="field-label">Email</span><input type="email" id="newUserEmail" class="field-input" autocomplete="off"></label>
+      <label class="field"><span class="field-label">Role</span>
+        <select id="newUserRole" class="field-input"><option>Employee</option><option>HR</option><option>Admin</option><option>Dev</option></select>
+      </label>
+      <label class="field"><span class="field-label">Temporary password</span><input type="password" id="newUserPass" class="field-input" autocomplete="new-password" placeholder="At least 8 characters"></label>
+      <button type="button" class="loc-check-primary" onclick="handleAddUser(this)">Create account</button>
+      <button type="button" class="loc-check-secondary" onclick="closeSheet('addUserModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Edit account -->
+  <div id="editUserModal" class="loc-check-modal sheet-modal" role="dialog" aria-modal="true" aria-labelledby="editUserTitle" aria-hidden="true">
+    <div class="loc-check-card sheet-card">
+      <h3 id="editUserTitle">Edit account</h3>
+      <p class="loc-check-text" id="editUserIdLabel"></p>
+      <input type="hidden" id="editUserId">
+      <label class="field"><span class="field-label">Email</span><input type="email" id="editUserEmail" class="field-input"></label>
+      <div class="form-grid">
+        <label class="field"><span class="field-label">Role</span>
+          <select id="editUserRole" class="field-input"><option>Employee</option><option>HR</option><option>Admin</option><option>Dev</option></select>
+        </label>
+        <label class="field"><span class="field-label">Status</span>
+          <select id="editUserStatus" class="field-input"><option>Active</option><option>Inactive</option></select>
+        </label>
+      </div>
+      <button type="button" class="loc-check-primary" onclick="handleUpdateUser(this)">Save changes</button>
+      <button type="button" class="loc-check-secondary" onclick="closeSheet('editUserModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Precise location check (shown when the phone only shares approximate location) -->
+  <div id="locCheckModal" class="loc-check-modal" role="dialog" aria-modal="true" aria-labelledby="locCheckTitle" aria-hidden="true">
+    <div class="loc-check-card">
+      <div class="loc-check-icon">📍</div>
+      <h3 id="locCheckTitle">Turn on Precise Location</h3>
+      <p id="locCheckAccuracy" class="loc-check-text"></p>
+      <ol id="locCheckSteps" class="loc-check-steps"></ol>
+      <p id="locCheckWifiNote" class="loc-check-wifi" style="display:none">📶 You're on office Wi-Fi, so you can still punch today, but please fix this for next time.</p>
+      <p id="locCheckStatus" class="loc-check-status" aria-live="polite"></p>
+      <button type="button" id="locCheckAgainBtn" class="loc-check-primary" onclick="runPreciseLocationCheck(true)">Check again</button>
+      <button type="button" class="loc-check-secondary" onclick="closePreciseLocationModal()">Skip for now</button>
+    </div>
+  </div>
+
+  <!-- Quick login setup (after a password login) -->
+  <div id="quickSetupModal" class="loc-check-modal" role="dialog" aria-modal="true" aria-labelledby="quickSetupTitle" aria-hidden="true">
+    <div class="loc-check-card">
+      <div id="quickSetupPinStep">
+        <div class="loc-check-icon">🔢</div>
+        <h3 id="quickSetupTitle">Faster login next time</h3>
+        <p class="loc-check-text">Set a 4-digit PIN for this phone. Next time, just enter the PIN (or use your fingerprint) instead of your ID and password.</p>
+        <input type="password" id="quickSetupPin" class="quick-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="New PIN" aria-label="New 4-digit PIN">
+        <input type="password" id="quickSetupPin2" class="quick-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="Repeat PIN" aria-label="Repeat PIN">
+        <p class="quick-setup-hint">Avoid easy PINs like 1234 or 0000.</p>
+        <button type="button" id="quickSetupSaveBtn" class="loc-check-primary" onclick="saveQuickPin()">Save PIN</button>
+        <button type="button" class="loc-check-secondary" onclick="skipQuickSetup('pin')">Not now</button>
+      </div>
+      <div id="quickSetupSettingsStep" style="display:none;">
+        <div class="loc-check-icon">🔐</div>
+        <h3>Fingerprint &amp; PIN</h3>
+        <p class="loc-check-text" id="quickSettingsInfo"></p>
+        <button type="button" id="quickSettingsFpBtn" class="loc-check-primary" onclick="openQuickSetup('fp')">Enable fingerprint</button>
+        <button type="button" class="loc-check-secondary quick-settings-alt" onclick="openQuickSetup('pin')">Change my PIN</button>
+        <button type="button" class="loc-check-secondary" onclick="closeQuickSetup()">Close</button>
+      </div>
+      <div id="quickSetupFpStep" style="display:none;">
+        <div id="fpVisual" class="fp-visual" data-state="idle" aria-hidden="true">
+          <span class="fp-ring"></span><span class="fp-ring fp-ring-2"></span>
+          <svg class="fp-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 11c0 3.5-1 6.5-2.5 8.5"/><path d="M8.5 7.5A5 5 0 0 1 17 11c0 1.5-.1 3-.4 4.4"/>
+            <path d="M6 10a6 6 0 0 1 .8-3"/><path d="M15.2 18.5c-.4 1-.9 2-1.5 2.8"/>
+            <path d="M4.5 16c.6-1.5 1-3.2 1-5a6.5 6.5 0 0 1 11-4.7"/><path d="M12 11c0 2.4-.4 4.6-1.2 6.5"/>
+            <path d="M19.5 13.5c-.1 1.6-.4 3.1-.9 4.5"/>
+          </svg>
+          <span class="fp-scanline"></span>
+          <span class="fp-badge fp-badge-ok">✓</span>
+          <span class="fp-badge fp-badge-bad">✕</span>
+        </div>
+        <h3 id="quickSetupFpTitle">Use your fingerprint?</h3>
+        <p class="loc-check-text" id="quickSetupFpText">Log in with one touch using the same fingerprint (or face) you use to unlock this phone. Your fingerprint stays on your phone - Staffly never sees or stores it.</p>
+        <button type="button" id="quickSetupFpBtn" class="loc-check-primary" onclick="setupFingerprintNow()">Enable fingerprint</button>
+        <button type="button" class="loc-check-secondary" onclick="skipQuickSetup('fp')">Skip, I'll use my PIN</button>
+      </div>
+      <p id="quickSetupStatus" class="loc-check-status" aria-live="polite"></p>
+    </div>
+  </div>
+</body>
+</html>
