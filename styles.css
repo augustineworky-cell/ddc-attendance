@@ -1893,3 +1893,30 @@ body::before {
   width: 100%; border: 0; background: transparent; color: var(--text-muted);
   padding: 12px; margin-top: 4px; font-size: 0.9rem; cursor: pointer;
 }
+
+
+/* ===== Quick login (fingerprint + PIN) ===== */
+.quick-login-panel { text-align: center; }
+.quick-login-welcome { margin: 0; font-size: 0.95rem; color: var(--text-muted); }
+.quick-login-name { margin: 4px 0 0; font-size: 1.35rem; font-weight: 700; color: var(--navy-dark); }
+.quick-login-id { margin: 2px 0 18px; font-size: 0.85rem; color: var(--text-muted); }
+.fingerprint-btn {
+  width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  border: 2px solid var(--coral-light); background: rgba(238, 132, 120, 0.08);
+  color: var(--coral-primary); border-radius: 20px; padding: 18px 12px;
+  font-weight: 700; font-size: 1rem; cursor: pointer; margin-bottom: 14px;
+  transition: transform 0.15s var(--ease-snap), background 0.15s;
+}
+.fingerprint-btn:active { transform: scale(0.97); background: rgba(238, 132, 120, 0.16); }
+.fingerprint-btn:disabled { opacity: 0.6; }
+.fingerprint-icon { display: inline-flex; width: 64px; height: 64px; border-radius: 50%; align-items: center; justify-content: center; background: #fff; box-shadow: 0 6px 16px rgba(238, 132, 120, 0.25); }
+.quick-pin-label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+.quick-pin-input {
+  width: 100%; max-width: 220px; margin: 0 auto 10px; display: block; box-sizing: border-box;
+  text-align: center; font-size: 1.8rem; letter-spacing: 0.6em; padding: 10px 0 10px 0.6em;
+  border: 1.5px solid rgba(46, 42, 92, 0.15); border-radius: 14px; background: #fff; color: var(--navy-dark);
+}
+.quick-pin-input:focus { outline: none; border-color: var(--coral-primary); box-shadow: 0 0 0 3px rgba(238, 132, 120, 0.2); }
+.quick-pin-input::placeholder { letter-spacing: 0.3em; font-size: 1rem; color: var(--text-muted); }
+.quick-login-switch { display: block; width: 100%; background: none; border: 0; color: var(--purple-accent); font-size: 0.85rem; padding: 10px; margin-top: 4px; cursor: pointer; text-decoration: underline; }
+.quick-setup-hint { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 12px; }

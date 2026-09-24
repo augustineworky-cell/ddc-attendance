@@ -543,7 +543,9 @@ const RPC_MAP = {
   networkCheck:       () => ['app_network_check', {}],
   listOfficeNetworks: () => ['admin_list_office_networks', {}],
   addCurrentNetwork:  p => ['admin_add_current_network', { p_label: p.label }],
-  removeOfficeNetwork:p => ['admin_remove_office_network', { p_id: p.id }]
+  removeOfficeNetwork:p => ['admin_remove_office_network', { p_id: p.id }],
+  registerDevice:     p => ['app_register_device', { p_pin: p.pin, p_label: p.label || null }],
+  resetQuickLogin:    p => ['admin_reset_quick_login', { p_employee_id: p.employeeId }]
 };
 
 // ==========================================================================
@@ -593,6 +595,16 @@ async function callAPI(action, payload = {}) {
       const { error } = await sbClient.rpc('app_logout', { p_token: payload.token });
       if (error) throw error;
       return true;
+    }
+    if (action === 'deviceInfo') {
+      const { data, error } = await sbClient.rpc('app_device_info', { p_device_secret: payload.secret });
+      if (error) throw error;
+      return data;
+    }
+    if (action === 'loginPin') {
+      const { data, error } = await sbClient.rpc('app_login_pin', { p_device_secret: payload.secret, p_pin: payload.pin });
+      if (error) throw error;
+      return data;
     }
 
     const build = RPC_MAP[action];
@@ -777,6 +789,7 @@ function applySessionUI(isLoggedIn) {
       appLayout.classList.remove('active');
       appLayout.style.setProperty('display', 'none', 'important');
     }
+    refreshLoginMode();
     if (loginView) {
       loginView.classList.add('active');
       // Clear the forced inline value so the stylesheet's flexbox
@@ -913,6 +926,412 @@ async function restoreSessionFromStorage() {
 // Employee ID + password login via app_login(). The server checks the
 // bcrypt hash, locks the ID for 15 min after 5 wrong tries, and returns a
 // session token that every other RPC must send.
+// Small "Welcome, <name>" toast after login. (It was called before but never
+// defined - the resulting error was silently swallowed after every login.)
+function showQuickToast(name) {
+  try {
+    let t = document.getElementById('welcomeToast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'welcomeToast';
+      t.setAttribute('role', 'status');
+      t.style.cssText = 'position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);' +
+        'background:var(--navy-dark,#2E2A5C);color:#fff;padding:10px 18px;border-radius:999px;font-size:0.9rem;' +
+        'box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:9000;opacity:0;transition:opacity .25s;pointer-events:none;';
+      document.body.appendChild(t);
+    }
+    t.textContent = `👋 Welcome, ${name || ''}`.trim();
+    t.style.opacity = '1';
+    clearTimeout(t._hide);
+    t._hide = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+  } catch (e) {}
+}
+
+// Shared by password, PIN and fingerprint login: install the session,
+// enforce "shift already completed today", and open the app.
+// Returns true if the user is now logged in.
+async function finishLogin(data, showError) {
+  const user = {
+    employeeId: data.employee_id,
+    employee_id: data.employee_id,
+    name: data.employee_name,
+    fullName: data.employee_name,
+    role: data.role,
+    token: data.token
+  };
+  // Token must be in place before the next RPC call.
+  CURRENT_USER = user;
+  window.CURRENT_USER = user;
+
+  // Block re-entry once today's shift is already fully clocked out.
+  const attData = await callAPI("getTodayAttendance");
+  if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
+    await callAPI("logout", { token: user.token }).catch(() => {});
+    CURRENT_USER = null;
+    window.CURRENT_USER = null;
+    showError('Your shift for today is completed. Login is restricted until tomorrow.');
+    return false;
+  }
+
+  applySessionAndRenderApp(user, true);
+  showQuickToast(user.name);
+  return true;
+}
+
+// ==========================================================================
+// QUICK LOGIN: FINGERPRINT + 4-DIGIT PIN
+// ==========================================================================
+// After a normal ID+password login, the phone is registered to that
+// employee (random device secret, only its hash on the server) and a PIN is
+// set. Next time the login screen shows "Welcome back, <name>" with
+// fingerprint first and PIN as backup. The PIN only works together with
+// this phone's secret, so it's useless on any other phone.
+const QUICK_DEVICE_KEY = 'STAFFLY_DEVICE';
+const QUICK_SKIP_KEY = 'STAFFLY_QUICK_SKIP';
+// Fingerprint keys are tied to this exact web address. On any other
+// address (preview links, localhost) we just hide the fingerprint button.
+const FINGERPRINT_RP_ID = 'toliflow.vercel.app';
+
+function getQuickDevice() {
+  try {
+    const d = JSON.parse(localStorage.getItem(QUICK_DEVICE_KEY) || 'null');
+    return d && d.secret ? d : null;
+  } catch (e) { return null; }
+}
+function saveQuickDevice(d) {
+  try { localStorage.setItem(QUICK_DEVICE_KEY, JSON.stringify(d)); } catch (e) {}
+}
+function clearQuickDevice() {
+  try { localStorage.removeItem(QUICK_DEVICE_KEY); } catch (e) {}
+}
+
+async function fingerprintSupported() {
+  try {
+    return location.hostname === FINGERPRINT_RP_ID &&
+      !!window.PublicKeyCredential &&
+      await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  } catch (e) { return false; }
+}
+
+// --- base64url <-> ArrayBuffer for WebAuthn
+function b64uToBuf(s) {
+  const b = String(s).replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(b + '==='.slice((b.length + 3) % 4));
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u.buffer;
+}
+function bufToB64u(buf) {
+  const u = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < u.length; i++) bin += String.fromCharCode(u[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function callPasskeyFunction(body) {
+  const { data, error } = await sbClient.functions.invoke('staffly-passkey', { body });
+  if (error) {
+    let code = 'FAILED';
+    try { const j = await error.context.json(); code = j.code || code; } catch (e) {}
+    const err = new Error(code);
+    err.code = code;
+    throw err;
+  }
+  return data;
+}
+
+async function enableFingerprint(device) {
+  const { options } = await callPasskeyFunction({
+    action: 'register-options', token: getSessionToken(), device_secret: device.secret
+  });
+  const publicKey = {
+    ...options,
+    challenge: b64uToBuf(options.challenge),
+    user: { ...options.user, id: b64uToBuf(options.user.id) },
+    excludeCredentials: (options.excludeCredentials || []).map(c => ({ ...c, id: b64uToBuf(c.id) }))
+  };
+  const cred = await navigator.credentials.create({ publicKey });
+  const r = cred.response;
+  await callPasskeyFunction({
+    action: 'register-verify',
+    response: {
+      id: cred.id,
+      rawId: bufToB64u(cred.rawId),
+      type: cred.type,
+      authenticatorAttachment: cred.authenticatorAttachment || undefined,
+      clientExtensionResults: cred.getClientExtensionResults ? cred.getClientExtensionResults() : {},
+      response: {
+        clientDataJSON: bufToB64u(r.clientDataJSON),
+        attestationObject: bufToB64u(r.attestationObject),
+        transports: r.getTransports ? r.getTransports() : undefined
+      }
+    }
+  });
+  device.has_fingerprint = true;
+  saveQuickDevice(device);
+}
+
+async function loginWithFingerprint() {
+  const device = getQuickDevice();
+  if (!device) return;
+  const err = document.getElementById('quickLoginError');
+  const btn = document.getElementById('fingerprintLoginBtn');
+  if (err) err.style.display = 'none';
+  if (btn) btn.disabled = true;
+  try {
+    const { options } = await callPasskeyFunction({ action: 'login-options', device_secret: device.secret });
+    const publicKey = {
+      ...options,
+      challenge: b64uToBuf(options.challenge),
+      allowCredentials: (options.allowCredentials || []).map(c => ({ ...c, id: b64uToBuf(c.id) }))
+    };
+    const cred = await navigator.credentials.get({ publicKey });
+    const r = cred.response;
+    const data = await callPasskeyFunction({
+      action: 'login-verify',
+      response: {
+        id: cred.id,
+        rawId: bufToB64u(cred.rawId),
+        type: cred.type,
+        authenticatorAttachment: cred.authenticatorAttachment || undefined,
+        clientExtensionResults: cred.getClientExtensionResults ? cred.getClientExtensionResults() : {},
+        response: {
+          clientDataJSON: bufToB64u(r.clientDataJSON),
+          authenticatorData: bufToB64u(r.authenticatorData),
+          signature: bufToB64u(r.signature),
+          userHandle: r.userHandle ? bufToB64u(r.userHandle) : null
+        }
+      }
+    });
+    if (!data || data.status !== 'SUCCESS') throw new Error((data && data.status) || 'FAILED');
+    await finishLogin(data, showQuickError);
+  } catch (e) {
+    console.warn('Fingerprint login:', e);
+    if (e && (e.code === 'NO_FINGERPRINT' || e.code === 'FINGERPRINT_NOT_REGISTERED')) {
+      device.has_fingerprint = false;
+      saveQuickDevice(device);
+      renderQuickLogin(device);
+    }
+    // Cancelled / wrong finger / no sensor: PIN is right there.
+    showQuickError("Fingerprint didn't work. Use your 4-digit PIN below.");
+    const pin = document.getElementById('quickPinInput');
+    if (pin) pin.focus();
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function showQuickError(msg) {
+  const el = document.getElementById('quickLoginError');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+async function loginWithPin() {
+  const device = getQuickDevice();
+  const input = document.getElementById('quickPinInput');
+  if (!device || !input) return;
+  const pin = input.value.trim();
+  if (!/^\d{4}$/.test(pin)) return;
+  const errEl = document.getElementById('quickLoginError');
+  if (errEl) errEl.style.display = 'none';
+  input.disabled = true;
+  try {
+    const data = await callAPI('loginPin', { secret: device.secret, pin });
+    if (data && data.status === 'SUCCESS') {
+      input.value = '';
+      await finishLogin(data, showQuickError);
+      return;
+    }
+    input.value = '';
+    if (data && data.status === 'INVALID_PIN') {
+      showQuickError(`Wrong PIN. ${data.attempts_left} ${data.attempts_left === 1 ? 'try' : 'tries'} left.`);
+    } else if (data && data.status === 'PIN_LOCKED') {
+      showPasswordLogin("Too many wrong PINs. Log in with your Employee ID and password to set a new PIN.");
+    } else if (data && data.status === 'INVALID_DEVICE') {
+      clearQuickDevice();
+      showPasswordLogin("Quick login was reset for this phone. Please log in with your Employee ID and password.");
+    } else {
+      showQuickError('Login failed. Please try again.');
+    }
+  } catch (e) {
+    showQuickError('Login failed. Connection error.');
+  } finally {
+    input.disabled = false;
+    if (!CURRENT_USER) input.focus();
+  }
+}
+
+function showPasswordLogin(message) {
+  const quick = document.getElementById('quickLoginPanel');
+  const pwd = document.getElementById('passwordLoginPanel');
+  const back = document.getElementById('backToQuickLogin');
+  if (quick) quick.style.display = 'none';
+  if (pwd) pwd.style.display = '';
+  if (back) back.style.display = getQuickDevice() ? '' : 'none';
+  const err = document.getElementById('loginError');
+  if (err) {
+    if (message) { err.textContent = message; err.style.display = 'block'; }
+    else err.style.display = 'none';
+  }
+  const id = document.getElementById('loginEmployeeId');
+  if (id) setTimeout(() => id.focus(), 50);
+}
+
+async function renderQuickLogin(device) {
+  const quick = document.getElementById('quickLoginPanel');
+  const pwd = document.getElementById('passwordLoginPanel');
+  if (!quick || !pwd) return;
+  quick.style.display = '';
+  pwd.style.display = 'none';
+  const nameEl = document.getElementById('quickLoginName');
+  const idEl = document.getElementById('quickLoginId');
+  if (nameEl) nameEl.textContent = device.employee_name || device.employee_id;
+  if (idEl) idEl.textContent = device.employee_id;
+  const fpBtn = document.getElementById('fingerprintLoginBtn');
+  const showFp = device.has_fingerprint && await fingerprintSupported();
+  if (fpBtn) fpBtn.style.display = showFp ? '' : 'none';
+  const pinLabel = document.getElementById('quickPinLabel');
+  if (pinLabel) pinLabel.textContent = showFp ? 'or enter your 4-digit PIN' : 'Enter your 4-digit PIN';
+  const pin = document.getElementById('quickPinInput');
+  if (pin && !showFp) setTimeout(() => pin.focus(), 50);
+}
+
+// Decide which login screen to show. Called whenever the login view opens.
+async function refreshLoginMode() {
+  const device = getQuickDevice();
+  if (!device) { showPasswordLogin(); return; }
+
+  renderQuickLogin(device); // instant, from cache
+  try {
+    const info = await callAPI('deviceInfo', { secret: device.secret });
+    if (!info || info.status !== 'OK') {
+      clearQuickDevice();
+      showPasswordLogin("Quick login was reset for this phone. Please log in with your Employee ID and password.");
+      return;
+    }
+    if (info.pin_locked) {
+      showPasswordLogin("Your PIN is locked. Log in with your Employee ID and password to set a new PIN.");
+      return;
+    }
+    const fresh = { ...device, employee_id: info.employee_id, employee_name: info.employee_name, has_fingerprint: !!info.has_fingerprint };
+    saveQuickDevice(fresh);
+    renderQuickLogin(fresh);
+  } catch (e) {
+    // Offline: keep the cached quick-login screen.
+  }
+}
+
+// ---- Setup after a password login
+function openQuickSetup(step) {
+  const modal = document.getElementById('quickSetupModal');
+  if (!modal) return;
+  document.getElementById('quickSetupPinStep').style.display = step === 'pin' ? '' : 'none';
+  document.getElementById('quickSetupFpStep').style.display = step === 'fp' ? '' : 'none';
+  const st = document.getElementById('quickSetupStatus');
+  if (st) { st.textContent = ''; st.className = 'loc-check-status'; }
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  if (step === 'pin') setTimeout(() => { const p = document.getElementById('quickSetupPin'); if (p) p.focus(); }, 100);
+}
+function closeQuickSetup() {
+  const modal = document.getElementById('quickSetupModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+function setQuickSetupStatus(msg, kind) {
+  const st = document.getElementById('quickSetupStatus');
+  if (st) { st.textContent = msg; st.className = 'loc-check-status' + (kind ? ' ' + kind : ''); }
+}
+
+async function offerQuickLoginSetup(loginData) {
+  const device = getQuickDevice();
+  if (device && device.employee_id === loginData.employee_id) {
+    // Already registered - but re-offer if the server says it's gone/locked.
+    try {
+      const info = await callAPI('deviceInfo', { secret: device.secret });
+      if (info && info.status === 'OK' && !info.pin_locked) {
+        if (!info.has_fingerprint && await fingerprintSupported() && !skippedRecently('fp_' + loginData.employee_id)) {
+          openQuickSetup('fp');
+        }
+        return;
+      }
+    } catch (e) { return; }
+  }
+  if (skippedRecently('pin_' + loginData.employee_id)) return;
+  openQuickSetup('pin');
+}
+
+function skippedRecently(key) {
+  try {
+    const m = JSON.parse(localStorage.getItem(QUICK_SKIP_KEY) || '{}');
+    return m[key] && Date.now() - m[key] < 7 * 24 * 3600 * 1000;
+  } catch (e) { return false; }
+}
+function rememberSkip(key) {
+  try {
+    const m = JSON.parse(localStorage.getItem(QUICK_SKIP_KEY) || '{}');
+    m[key] = Date.now();
+    localStorage.setItem(QUICK_SKIP_KEY, JSON.stringify(m));
+  } catch (e) {}
+}
+
+async function saveQuickPin() {
+  const pin = (document.getElementById('quickSetupPin').value || '').trim();
+  const pin2 = (document.getElementById('quickSetupPin2').value || '').trim();
+  if (!/^\d{4}$/.test(pin)) return setQuickSetupStatus('PIN must be exactly 4 digits.', 'bad');
+  if (pin !== pin2) return setQuickSetupStatus("PINs don't match. Please type them again.", 'bad');
+
+  const btn = document.getElementById('quickSetupSaveBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await callAPI('registerDevice', { pin, label: navigator.userAgentData && navigator.userAgentData.platform || 'Phone' });
+    if (!r || r.status !== 'SUCCESS') {
+      setQuickSetupStatus((r && r.message) || 'Could not save PIN.', 'bad');
+      return;
+    }
+    const device = { secret: r.device_secret, employee_id: r.employee_id, employee_name: r.employee_name, has_fingerprint: false };
+    saveQuickDevice(device);
+    document.getElementById('quickSetupPin').value = '';
+    document.getElementById('quickSetupPin2').value = '';
+    if (await fingerprintSupported()) {
+      openQuickSetup('fp');
+      setQuickSetupStatus('✅ PIN saved.', 'ok');
+    } else {
+      setQuickSetupStatus('✅ PIN saved. Next time just enter your PIN.', 'ok');
+      setTimeout(closeQuickSetup, 1500);
+    }
+  } catch (e) {
+    setQuickSetupStatus('Could not save PIN. Check your connection.', 'bad');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function setupFingerprintNow() {
+  const device = getQuickDevice();
+  if (!device) return closeQuickSetup();
+  const btn = document.getElementById('quickSetupFpBtn');
+  if (btn) btn.disabled = true;
+  setQuickSetupStatus('Touch your fingerprint sensor…');
+  try {
+    await enableFingerprint(device);
+    setQuickSetupStatus('✅ Fingerprint login is ON. Next time just touch the sensor.', 'ok');
+    setTimeout(closeQuickSetup, 1600);
+  } catch (e) {
+    console.warn('Enable fingerprint:', e);
+    setQuickSetupStatus("Fingerprint wasn't saved. You can still use your PIN. Try again or skip.", 'bad');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function skipQuickSetup(which) {
+  const id = CURRENT_USER && CURRENT_USER.employeeId;
+  if (id) rememberSkip(which + '_' + id);
+  closeQuickSetup();
+}
+
 async function handlePasswordLogin(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -947,30 +1366,11 @@ async function handlePasswordLogin(e) {
       return;
     }
 
-    const user = {
-      employeeId: data.employee_id,
-      employee_id: data.employee_id,
-      name: data.employee_name,
-      fullName: data.employee_name,
-      role: data.role,
-      token: data.token
-    };
-    // Token must be in place before the next RPC call.
-    CURRENT_USER = user;
-    window.CURRENT_USER = user;
-
-    // Block re-entry once today's shift is already fully clocked out.
-    const attData = await callAPI("getTodayAttendance");
-    if (attData && attData.length > 0 && attData[0].clock_in_time && attData[0].clock_out_time) {
-      await callAPI("logout", { token: user.token }).catch(() => {});
-      CURRENT_USER = null;
-      window.CURRENT_USER = null;
-      showError('Your shift for today is completed. Login is restricted until tomorrow.');
-      return;
+    const ok = await finishLogin(data, showError);
+    if (ok) {
+      passwordInput.value = '';
+      offerQuickLoginSetup(data);
     }
-
-    applySessionAndRenderApp(user, true);
-    showQuickToast(user.name);
   } catch (err) {
     console.error("Login error:", err);
     showError('Login failed. Connection error.');
@@ -1001,6 +1401,7 @@ async function handleLogout(e) {
   stopAutoLogoutTimer();
   stopGpsWarmup();
   closePreciseLocationModal();
+  closeQuickSetup();
 
   const loginError = document.getElementById('loginError');
   if (loginError) loginError.style.display = 'none';
@@ -1036,8 +1437,20 @@ function setupAuth() {
     // Instant focus on load - no animation delay before the field is
     // typeable, per the stated performance requirement for a screen shown
     // this often.
-    passwordInput.focus();
+    if (!getQuickDevice()) passwordInput.focus();
   }
+
+  const pinInput = document.getElementById('quickPinInput');
+  if (pinInput) {
+    pinInput.addEventListener('input', () => {
+      pinInput.value = pinInput.value.replace(/\D/g, '').slice(0, 4);
+      if (pinInput.value.length === 4) loginWithPin();
+    });
+  }
+  ['quickSetupPin', 'quickSetupPin2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, '').slice(0, 4); });
+  });
 
   if (toggleBtn && passwordInput) {
     toggleBtn.addEventListener('click', () => {
@@ -2615,6 +3028,20 @@ function stopLiveMapRefresh() {
 // ==========================================================================
 // ADMIN: OFFICE WI-FI NETWORKS
 // ==========================================================================
+async function resetQuickLoginForEmployee() {
+  const el = document.getElementById('resetQuickLoginId');
+  const id = el ? el.value.trim() : '';
+  if (!id) return alert('Enter the Employee ID first.');
+  if (!confirm(`Reset fingerprint & PIN login for ${id}?\n\nThey will need to log in once with ID + password and set a new PIN.`)) return;
+  try {
+    const r = await callAPI('resetQuickLogin', { employeeId: id });
+    alert(r && r.success ? `Done. ${r.devices_revoked} phone(s) reset for ${id}.` : 'Could not reset.');
+    if (el) el.value = '';
+  } catch (e) {
+    alert('Could not reset quick login.');
+  }
+}
+
 async function loadOfficeNetworks() {
   const box = document.getElementById('officeNetworksBox');
   if (!box) return;

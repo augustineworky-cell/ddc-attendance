@@ -162,26 +162,57 @@
 
       <div class="login-card-container">
         <div class="login-card">
-          <p class="password-login-instructions">Enter your Employee ID and password</p>
+          <!-- QUICK LOGIN (phone already registered): fingerprint first, PIN backup -->
+          <div id="quickLoginPanel" class="quick-login-panel" style="display:none;">
+            <p class="quick-login-welcome">👋 Welcome back</p>
+            <p class="quick-login-name"><span id="quickLoginName"></span></p>
+            <p class="quick-login-id">Employee ID: <span id="quickLoginId"></span></p>
 
-          <div class="input-group">
-            <i class="fas fa-id-badge input-icon"></i>
-            <input type="text" id="loginEmployeeId" placeholder="Employee ID" autocomplete="username" autocapitalize="characters" spellcheck="false" autofocus>
-          </div>
-
-          <div class="input-group">
-            <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="loginPasswordOnly" placeholder="Password" autocomplete="current-password">
-            <button type="button" id="togglePasswordVisibility" class="password-toggle-btn" aria-label="Show password">
-              <i class="fas fa-eye"></i>
+            <button type="button" id="fingerprintLoginBtn" class="fingerprint-btn" onclick="loginWithFingerprint()" style="display:none;">
+              <span class="fingerprint-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 11c0 3.5-1 6.5-2.5 8.5"/><path d="M8.5 7.5A5 5 0 0 1 17 11c0 1.5-.1 3-.4 4.4"/>
+                  <path d="M6 10a6 6 0 0 1 .8-3"/><path d="M15.2 18.5c-.4 1-.9 2-1.5 2.8"/>
+                  <path d="M4.5 16c.6-1.5 1-3.2 1-5a6.5 6.5 0 0 1 11-4.7"/><path d="M12 11c0 2.4-.4 4.6-1.2 6.5"/>
+                  <path d="M19.5 13.5c-.1 1.6-.4 3.1-.9 4.5"/>
+                </svg>
+              </span>
+              <span>Login with Fingerprint</span>
             </button>
+
+            <label for="quickPinInput" id="quickPinLabel" class="quick-pin-label">Enter your 4-digit PIN</label>
+            <input type="password" id="quickPinInput" class="quick-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••" aria-label="4-digit PIN">
+
+            <div id="quickLoginError" class="error-msg" style="display:none;"></div>
+
+            <button type="button" class="quick-login-switch" onclick="showPasswordLogin()">Not you? Log in with ID &amp; password</button>
           </div>
 
-          <div id="loginError" class="error-msg" style="display:none;"></div>
+          <!-- PASSWORD LOGIN -->
+          <div id="passwordLoginPanel">
+            <p class="password-login-instructions">Enter your Employee ID and password</p>
 
-          <button type="button" id="loginBtn" class="btn-primary-mobile">
-            Sign In to Portal <i class="fas fa-arrow-right ms-2"></i>
-          </button>
+            <div class="input-group">
+              <i class="fas fa-id-badge input-icon"></i>
+              <input type="text" id="loginEmployeeId" placeholder="Employee ID" autocomplete="username" autocapitalize="characters" spellcheck="false" autofocus>
+            </div>
+
+            <div class="input-group">
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="loginPasswordOnly" placeholder="Password" autocomplete="current-password">
+              <button type="button" id="togglePasswordVisibility" class="password-toggle-btn" aria-label="Show password">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+
+            <div id="loginError" class="error-msg" style="display:none;"></div>
+
+            <button type="button" id="loginBtn" class="btn-primary-mobile">
+              Sign In to Portal <i class="fas fa-arrow-right ms-2"></i>
+            </button>
+
+            <button type="button" id="backToQuickLogin" class="quick-login-switch" onclick="refreshLoginMode()" style="display:none;">← Back to fingerprint / PIN login</button>
+          </div>
 
           <!-- SECURITY BADGES & HELPDESK -->
           <div class="login-card-footer-info">
@@ -477,6 +508,15 @@
             <button type="button" onclick="addCurrentOfficeNetwork()">Add this network</button>
           </div>
         </div>
+
+        <div class="office-net-card">
+          <h3 class="office-net-title">🔐 Reset Fingerprint / PIN Login</h3>
+          <p class="office-net-help">Use when an employee loses their phone, gets a new one, or forgets their PIN. They'll log in once with ID + password and set a new PIN.</p>
+          <div class="office-net-add">
+            <input type="text" id="resetQuickLoginId" placeholder="Employee ID" autocapitalize="characters" spellcheck="false">
+            <button type="button" onclick="resetQuickLoginForEmployee()">Reset</button>
+          </div>
+        </div>
       </section>
     </main>
   </div>
@@ -619,6 +659,30 @@
       <p id="locCheckStatus" class="loc-check-status" aria-live="polite"></p>
       <button type="button" id="locCheckAgainBtn" class="loc-check-primary" onclick="runPreciseLocationCheck(true)">Check again</button>
       <button type="button" class="loc-check-secondary" onclick="closePreciseLocationModal()">Skip for now</button>
+    </div>
+  </div>
+
+  <!-- Quick login setup (after a password login) -->
+  <div id="quickSetupModal" class="loc-check-modal" role="dialog" aria-modal="true" aria-labelledby="quickSetupTitle" aria-hidden="true">
+    <div class="loc-check-card">
+      <div id="quickSetupPinStep">
+        <div class="loc-check-icon">🔢</div>
+        <h3 id="quickSetupTitle">Faster login next time</h3>
+        <p class="loc-check-text">Set a 4-digit PIN for this phone. Next time, just enter the PIN (or use your fingerprint) instead of your ID and password.</p>
+        <input type="password" id="quickSetupPin" class="quick-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="New PIN" aria-label="New 4-digit PIN">
+        <input type="password" id="quickSetupPin2" class="quick-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="Repeat PIN" aria-label="Repeat PIN">
+        <p class="quick-setup-hint">Avoid easy PINs like 1234 or 0000.</p>
+        <button type="button" id="quickSetupSaveBtn" class="loc-check-primary" onclick="saveQuickPin()">Save PIN</button>
+        <button type="button" class="loc-check-secondary" onclick="skipQuickSetup('pin')">Not now</button>
+      </div>
+      <div id="quickSetupFpStep" style="display:none;">
+        <div class="loc-check-icon">👆</div>
+        <h3>Use your fingerprint?</h3>
+        <p class="loc-check-text">Log in with one touch using the same fingerprint (or face) you use to unlock this phone. Your fingerprint stays on your phone - Staffly never sees or stores it.</p>
+        <button type="button" id="quickSetupFpBtn" class="loc-check-primary" onclick="setupFingerprintNow()">Enable fingerprint</button>
+        <button type="button" class="loc-check-secondary" onclick="skipQuickSetup('fp')">Skip, I'll use my PIN</button>
+      </div>
+      <p id="quickSetupStatus" class="loc-check-status" aria-live="polite"></p>
     </div>
   </div>
 </body>
