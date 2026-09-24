@@ -177,7 +177,7 @@
                   <path d="M19.5 13.5c-.1 1.6-.4 3.1-.9 4.5"/>
                 </svg>
               </span>
-              <span>Login with Fingerprint</span>
+              <span id="fingerprintBtnText">Login with Fingerprint</span>
             </button>
 
             <label for="quickPinInput" id="quickPinLabel" class="quick-pin-label">Enter your 4-digit PIN</label>
@@ -676,9 +676,9 @@
         <button type="button" class="loc-check-secondary" onclick="skipQuickSetup('pin')">Not now</button>
       </div>
       <div id="quickSetupFpStep" style="display:none;">
-        <div class="loc-check-icon">👆</div>
-        <h3>Use your fingerprint?</h3>
-        <p class="loc-check-text">Log in with one touch using the same fingerprint (or face) you use to unlock this phone. Your fingerprint stays on your phone - Staffly never sees or stores it.</p>
+        <div class="loc-check-icon" id="quickSetupFpIcon">👆</div>
+        <h3 id="quickSetupFpTitle">Use your fingerprint?</h3>
+        <p class="loc-check-text" id="quickSetupFpText">Log in with one touch using the same fingerprint (or face) you use to unlock this phone. Your fingerprint stays on your phone - Staffly never sees or stores it.</p>
         <button type="button" id="quickSetupFpBtn" class="loc-check-primary" onclick="setupFingerprintNow()">Enable fingerprint</button>
         <button type="button" class="loc-check-secondary" onclick="skipQuickSetup('fp')">Skip, I'll use my PIN</button>
       </div>

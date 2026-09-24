@@ -1005,6 +1005,16 @@ function clearQuickDevice() {
   try { localStorage.removeItem(QUICK_DEVICE_KEY); } catch (e) {}
 }
 
+// Wording for the "fingerprint" option. On a laptop without a sensor, the
+// same passkey is unlocked by Windows Hello (PIN/face) or Chrome's Google
+// Password Manager PIN - so don't call it "fingerprint" there.
+function biometricLabel() {
+  const p = detectPlatform();
+  if (p === 'android') return { button: 'Login with Fingerprint', name: 'fingerprint', icon: '👆' };
+  if (p === 'ios') return { button: 'Login with Face ID / Touch ID', name: 'Face ID / Touch ID', icon: '👆' };
+  return { button: 'Login with Passkey (Windows Hello)', name: 'passkey (Windows Hello / screen lock)', icon: '🔑' };
+}
+
 async function fingerprintSupported() {
   try {
     return location.hostname === FINGERPRINT_RP_ID &&
@@ -1113,7 +1123,7 @@ async function loginWithFingerprint() {
       renderQuickLogin(device);
     }
     // Cancelled / wrong finger / no sensor: PIN is right there.
-    showQuickError("Fingerprint didn't work. Use your 4-digit PIN below.");
+    showQuickError(`${detectPlatform() === 'desktop' ? 'Passkey' : 'Fingerprint'} didn't work. Use your 4-digit Staffly PIN below.`);
     const pin = document.getElementById('quickPinInput');
     if (pin) pin.focus();
   } finally {
@@ -1189,6 +1199,8 @@ async function renderQuickLogin(device) {
   if (idEl) idEl.textContent = device.employee_id;
   const fpBtn = document.getElementById('fingerprintLoginBtn');
   const showFp = device.has_fingerprint && await fingerprintSupported();
+  const fpText = document.getElementById('fingerprintBtnText');
+  if (fpText) fpText.textContent = biometricLabel().button;
   if (fpBtn) fpBtn.style.display = showFp ? '' : 'none';
   const pinLabel = document.getElementById('quickPinLabel');
   if (pinLabel) pinLabel.textContent = showFp ? 'or enter your 4-digit PIN' : 'Enter your 4-digit PIN';
@@ -1225,6 +1237,21 @@ async function refreshLoginMode() {
 function openQuickSetup(step) {
   const modal = document.getElementById('quickSetupModal');
   if (!modal) return;
+  const lbl = biometricLabel();
+  const fpTitle = document.getElementById('quickSetupFpTitle');
+  const fpText = document.getElementById('quickSetupFpText');
+  const fpBtn = document.getElementById('quickSetupFpBtn');
+  const fpIcon = document.getElementById('quickSetupFpIcon');
+  if (detectPlatform() === 'desktop') {
+    if (fpTitle) fpTitle.textContent = 'Use a passkey on this computer?';
+    if (fpText) fpText.textContent = "Log in with Windows Hello (fingerprint, face or your Windows PIN) or Chrome's password manager PIN. Your biometrics stay on this computer - Staffly never sees them.";
+    if (fpBtn) fpBtn.textContent = 'Enable passkey';
+  } else {
+    if (fpTitle) fpTitle.textContent = `Use your ${lbl.name}?`;
+    if (fpText) fpText.textContent = 'Log in with one touch using the same fingerprint (or face) you use to unlock this phone. Your fingerprint stays on your phone - Staffly never sees or stores it.';
+    if (fpBtn) fpBtn.textContent = `Enable ${lbl.name}`;
+  }
+  if (fpIcon) fpIcon.textContent = lbl.icon;
   document.getElementById('quickSetupPinStep').style.display = step === 'pin' ? '' : 'none';
   document.getElementById('quickSetupFpStep').style.display = step === 'fp' ? '' : 'none';
   const st = document.getElementById('quickSetupStatus');
@@ -1313,10 +1340,12 @@ async function setupFingerprintNow() {
   if (!device) return closeQuickSetup();
   const btn = document.getElementById('quickSetupFpBtn');
   if (btn) btn.disabled = true;
-  setQuickSetupStatus('Touch your fingerprint sensor…');
+  setQuickSetupStatus(detectPlatform() === 'desktop' ? 'Follow the Windows / Chrome prompt…' : 'Touch your fingerprint sensor…');
   try {
     await enableFingerprint(device);
-    setQuickSetupStatus('✅ Fingerprint login is ON. Next time just touch the sensor.', 'ok');
+    setQuickSetupStatus(detectPlatform() === 'desktop'
+      ? '✅ Passkey login is ON for this computer.'
+      : '✅ Fingerprint login is ON. Next time just touch the sensor.', 'ok');
     setTimeout(closeQuickSetup, 1600);
   } catch (e) {
     console.warn('Enable fingerprint:', e);
