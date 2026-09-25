@@ -1159,6 +1159,12 @@ function playStafflyJingle() {
     STAFFLY_CLIP.play().catch(() => {});
     return;
   }
+  playStafflyChime();
+  setTimeout(sayStaffly, 380);
+}
+
+// The sparkly rising chime on its own (no voice).
+function playStafflyChime() {
   const ctx = NOTIF_AUDIO_CTX;
   if (ctx && ctx.state === 'running') {
     const t0 = ctx.currentTime + 0.02;
@@ -1181,7 +1187,6 @@ function playStafflyJingle() {
       });
     });
   }
-  setTimeout(sayStaffly, 380);
 }
 
 function sayStaffly() {
@@ -1200,6 +1205,67 @@ function sayStaffly() {
     speechSynthesis.speak(u);
   } catch (e) {}
 }
+// ---- Punch voice -----------------------------------------------------------
+// After a successful Punch In / Punch Out: "Staffly!" (recorded clip or
+// chime) followed by a short spoken confirmation with the employee's first
+// name. Uses the same speaker on/off button as notifications.
+//   kind: 'in' | 'out'
+//   opts: { name, late (in), shiftComplete (out) }
+function sayPunch(kind, opts = {}) {
+  if (!notifSoundOn()) return;
+  unlockNotifAudio();
+  try { if (navigator.vibrate) navigator.vibrate([60, 50, 120]); } catch (e) {}
+
+  const first = String(opts.name || '').trim().split(/\s+/)[0] || '';
+  const who = first ? `, ${first}` : '';
+  const h = Number(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false }));
+  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+
+  let line;
+  if (kind === 'in') {
+    line = opts.late
+      ? `Punch in successful${who}. Marked late today.`
+      : `Punch in successful. ${greet}${who}!`;
+  } else {
+    line = opts.shiftComplete === false
+      ? `Punch out successful${who}. Shift incomplete today.`
+      : `Punch out successful. Thank you${who}, see you tomorrow!`;
+  }
+
+  if (STAFFLY_CLIP) {
+    // Recorded "Staffly!" first, then the sentence once it ends.
+    let spoken = false;
+    const go = () => { if (!spoken) { spoken = true; speakStaffly(line); } };
+    STAFFLY_CLIP.currentTime = 0;
+    STAFFLY_CLIP.onended = go;
+    STAFFLY_CLIP.play().catch(go);
+    setTimeout(go, 1500); // safety net if 'ended' never fires
+  } else {
+    playStafflyChime();
+    setTimeout(() => speakStaffly('Staffly! ' + line), 380);
+  }
+}
+
+// Speaks a sentence in a clear, friendly voice (Indian English preferred).
+function speakStaffly(text) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    const voices = speechSynthesis.getVoices();
+    const female = /female|zira|samantha|susan|karen|moira|tessa|veena|heera|aria|jenny|google uk english female|google us english/i;
+    u.voice = voices.find(v => /^en[-_]IN/i.test(v.lang) && female.test(v.name))
+      || voices.find(v => /^en[-_]IN/i.test(v.lang))
+      || voices.find(v => /^en/i.test(v.lang) && female.test(v.name))
+      || voices.find(v => /^en/i.test(v.lang)) || null;
+    u.lang = (u.voice && u.voice.lang) || 'en-IN';
+    u.pitch = 1.15;
+    u.rate = 1.0;
+    u.volume = 1;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
 // Chrome loads voices asynchronously.
 if ('speechSynthesis' in window) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); } catch (e) {} }
 

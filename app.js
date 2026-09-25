@@ -815,7 +815,11 @@ async function uploadSelfie(employeeId, base64, eventType = 'clockin') {
     const dateStr = getLocalDateString();
     // Unique per punch event: timestamp + event type prevents same-day
     // clock-in/clock-out selfies from colliding on the same storage path.
-    const fileName = `selfies/${employeeId}_${dateStr}_${eventType}_${Date.now()}.webp`;
+    // Random 16-hex suffix makes the link unguessable (the bucket can no
+    // longer be listed - see migration 10_staffly_storage_lockdown.sql).
+    const rand = Array.from(crypto.getRandomValues(new Uint8Array(8)),
+      b => b.toString(16).padStart(2, '0')).join('');
+    const fileName = `selfies/${employeeId}_${dateStr}_${eventType}_${Date.now()}_${rand}.webp`;
 
     // 1. Upload the file to Supabase Storage.
     const { error: uploadError } = await sbClient.storage
@@ -1975,6 +1979,7 @@ async function handlePunchInAnimated() {
 async function handleClockIn() {
   const id = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : "";
   if (!id) return;
+  let syncStatusAfterPunch = false; // set when the server says "already punched"
 
   // Hard guard: don't let the punch attempt even start if we already know
   // location or camera access is blocked. Without this, the failure only
@@ -2076,6 +2081,9 @@ async function handleClockIn() {
       showPunchSuccess(`Distance from HQ: ${Math.round(data.distance_m)} meters${lateSuffix}`);
       updateHomeUI(true);
       renderPunchInSuccessCard(serverIsLate);
+      if (typeof sayPunch === 'function') {
+        sayPunch('in', { name: CURRENT_USER && (CURRENT_USER.fullName || CURRENT_USER.name), late: serverIsLate });
+      }
       startAutoLogoutTimer(5);
 
       // The photo attach step is tracked separately from the punch itself -
@@ -2097,10 +2105,12 @@ async function handleClockIn() {
     } else if (data.status === 'ERROR') {
       showDialog(data.message || "Error clocking in. Please try again.");
     } else if (data.status === 'ALREADY_CLOCKED_IN') {
-      showDialog("You have already clocked in today.");
+      // Server keeps the FIRST punch of the day (migration 09). The screen
+      // was out of date - reload the real status after this handler ends.
+      syncStatusAfterPunch = true;
+      showDialog("You have already clocked in today. Your first Punch In time is kept.");
     } else if (data.status === 'ALREADY_CLOCKED_OUT') {
-      // Retained in case this status is ever reintroduced server-side;
-      // not part of the current documented response set.
+      syncStatusAfterPunch = true;
       showDialog("You have already completed your attendance for today (clocked in and out). You cannot clock in again.");
     } else if (data.status) {
       // Any other status string the RPC returns - surfaced verbatim so
@@ -2114,6 +2124,8 @@ async function handleClockIn() {
   } finally {
     btn.classList.remove('loading');
     if (btnLabel) btnLabel.textContent = 'Punch In Now';
+    // Must run AFTER the label reset above, or it would be overwritten.
+    if (syncStatusAfterPunch) checkTodayAttendanceStatus();
   }
 }
 
@@ -2244,6 +2256,9 @@ async function handleClockOut() {
       // renderPunchOutSuccessCard() sets the red PUNCH OUT SUCCESSFUL!
       // card state and calls updateHomeUI(false) itself.
       renderPunchOutSuccessCard(res.hours_worked);
+      if (typeof sayPunch === 'function') {
+        sayPunch('out', { name: CURRENT_USER && (CURRENT_USER.fullName || CURRENT_USER.name), shiftComplete: res.shift_complete });
+      }
       startAutoLogoutTimer(5);
 
       // shift_message/shift_complete come straight from the clock_out RPC
@@ -2285,6 +2300,7 @@ async function handleClockOut() {
       showDialog("You haven't clocked in yet today. Please clock in before attempting to clock out.");
     } else if (res.status === 'ALREADY_CLOCKED_OUT') {
       showDialog("You have already clocked out for today.");
+      setTimeout(checkTodayAttendanceStatus, 0);
     } else {
       showDialog(`Unable to clock out: ${res.status || 'Unknown error'}`);
     }
@@ -2915,8 +2931,33 @@ async function checkTodayAttendanceStatus() {
     }
   } catch (e) {
     console.warn("Could not fetch today's punch status via callAPI:", e);
-    updateHomeUI(false);
+    // Do NOT fall back to "Punch In Now" - if the employee already punched
+    // in, a second tap would be a duplicate punch. Show a retry state.
+    renderPunchStatusUnknown();
   }
+}
+
+// Shown when today's punch status couldn't be loaded (weak network).
+// Tapping retries the status check instead of punching.
+function renderPunchStatusUnknown() {
+  const btn = document.getElementById('punchInBtn');
+  const btnLabel = document.getElementById('punchBtnText');
+  const timerChip = document.getElementById('timerChip');
+  if (btn) {
+    btn.disabled = false;
+    btn.style.cursor = '';
+    btn.style.opacity = '';
+    btn.style.border = 'none';
+    btn.style.background = 'linear-gradient(135deg, #8a8f98 0%, #6b7079 100%)';
+    btn.onclick = async () => {
+      btn.disabled = true;
+      if (btnLabel) btnLabel.innerText = 'Checking...';
+      await checkTodayAttendanceStatus();
+    };
+  }
+  if (btnLabel) btnLabel.innerText = '⚠️ No network - tap to retry';
+  else if (btn) btn.innerText = '⚠️ No network - tap to retry';
+  if (timerChip) timerChip.style.display = 'none';
 }
 
 function updateHomeUI(isClockedIn, isCompleted = false) {
