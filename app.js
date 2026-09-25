@@ -3191,6 +3191,17 @@ function wrapCanvasText(ctx, text, maxWidth) {
   return lines;
 }
 
+// Selfie size: longest side max 720 px, JPEG quality 0.72. Plenty for a face
+// and the address text, ~50-90 KB instead of ~0.5-1.5 MB at full camera
+// resolution - keeps Supabase storage (free plan ~1 GB) from filling up and
+// uploads fast on weak mobile data.
+const SELFIE_MAX_EDGE = 720;
+const SELFIE_JPEG_QUALITY = 0.72;
+function selfieSize(w, h) {
+  const scale = Math.min(1, SELFIE_MAX_EDGE / Math.max(w || 1, h || 1));
+  return { width: Math.round((w || 300) * scale), height: Math.round((h || 300) * scale) };
+}
+
 // Draws the captured photo onto a canvas with a permanent address+timestamp
 // burn-in, then re-encodes it - this returned data URL, not the original
 // unwatermarked capture, is what gets uploaded to storage.
@@ -3201,9 +3212,12 @@ function createWatermarkedSelfie(rawBase64, addressInfo) {
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
+        const size = selfieSize(img.naturalWidth || img.width, img.naturalHeight || img.height);
+        canvas.width = size.width;
+        canvas.height = size.height;
         const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         const addressText = (addressInfo && addressInfo.address)
@@ -3245,7 +3259,7 @@ function createWatermarkedSelfie(rawBase64, addressInfo) {
           reader.onloadend = () => resolve(reader.result);
           reader.onerror = () => resolve(rawBase64);
           reader.readAsDataURL(blob);
-        }, 'image/jpeg', 0.9);
+        }, 'image/jpeg', SELFIE_JPEG_QUALITY);
       } catch (err) {
         console.error('Watermarking failed, using unwatermarked photo instead:', err);
         resolve(rawBase64);
@@ -3288,11 +3302,14 @@ async function handleCaptureSelfie() {
     triggerCameraFlash();
 
     const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth || 300;
-    canvas.height = video.videoHeight || 300;
+    const size = selfieSize(video.videoWidth || 300, video.videoHeight || 300);
+    canvas.width = size.width;
+    canvas.height = size.height;
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const imageDataUrl = canvas.toDataURL('image/jpeg');
+    const imageDataUrl = canvas.toDataURL('image/jpeg', SELFIE_JPEG_QUALITY);
     preview.src = imageDataUrl;
     window.CAPTURED_SELFIE_DATA = imageDataUrl; // Saved for Supabase upload
     ATTENDANCE_SELFIE_BASE64 = imageDataUrl;
