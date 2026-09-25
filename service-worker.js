@@ -2,7 +2,7 @@
 // Caches only the static app shell. Never caches Supabase / API / geolocation
 // data, so attendance punches and geofence checks always hit the network live.
 
-const CACHE_NAME = 'staffly-shell-v40';
+const CACHE_NAME = 'staffly-shell-v43';
 
 const SHELL_ASSETS = [
   '/',
@@ -88,4 +88,52 @@ self.addEventListener('fetch', (event) => {
         });
     })
   );
+});
+
+// ==========================================================================
+// PUSH NOTIFICATIONS
+// ==========================================================================
+// Sent by the "staffly-push" Edge Function. If Staffly is open and visible,
+// the page shows it itself (bell + "Staffly!" jingle) - no duplicate system
+// alert. Otherwise it appears on the lock screen / notification bar.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'Staffly', body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const visible = wins.find((c) => c.visibilityState === 'visible');
+    if (visible) {
+      visible.postMessage({ type: 'staffly-push', data });
+      return;
+    }
+    await self.registration.showNotification(data.title || 'Staffly', {
+      body: data.body || '',
+      tag: data.tag || undefined,
+      icon: '/icon-192.png',
+      badge: '/favicon-96x96.png',
+      vibrate: [60, 40, 90],
+      data: { url: data.url || '/' }
+    });
+  })());
+});
+
+// Tapping the alert opens Staffly on the right page.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of wins) {
+      if (new URL(c.url).origin === self.location.origin) {
+        await c.focus();
+        c.postMessage({ type: 'staffly-open', url: target });
+        return;
+      }
+    }
+    await self.clients.openWindow(target);
+  })());
 });

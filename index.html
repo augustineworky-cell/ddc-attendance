@@ -449,6 +449,11 @@
           <button type="button" class="icon-btn" onclick="toggleNotifPanel(false)" aria-label="Close notifications"><i class="fas fa-xmark" aria-hidden="true"></i></button>
         </div>
       </div>
+      <div id="pushRow" class="push-row" hidden>
+        <span class="push-row-icon" aria-hidden="true"><i class="fas fa-mobile-screen-button"></i></span>
+        <span class="push-row-text"><strong id="pushRowTitle">Phone alerts</strong><span id="pushRowHint"></span></span>
+        <button type="button" id="pushToggleBtn" class="btn btn-primary push-row-btn" onclick="togglePushAlerts(this)">Enable</button>
+      </div>
       <button type="button" class="notif-markall" onclick="markAllNotificationsRead()">Mark all as read</button>
       <div id="notifList" class="notif-list"></div>
     </div>

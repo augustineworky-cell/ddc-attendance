@@ -63,8 +63,10 @@ BEGIN
   BEGIN
     v_ist  := NEW.clock_in_time AT TIME ZONE 'Asia/Kolkata';
     v_time := to_char(v_ist, 'HH12:MI AM');
-    -- Shift starts 11:00 IST (same as the app's "Official Shift").
-    v_late := coalesce(NEW.status ILIKE '%late%', false) OR v_ist::time > time '11:00';
+    -- Single source of truth: clock_in already decided Present / Late
+    -- (grace time 11:15 IST). Only if status is empty, fall back to 11:15.
+    v_late := CASE WHEN NEW.status IS NOT NULL THEN NEW.status ILIKE '%late%'
+                   ELSE v_ist::time > time '11:15' END;
     v_name := coalesce(private.display_name(NEW.employee_id), NEW.employee_id);
 
     PERFORM private.notify_admins(

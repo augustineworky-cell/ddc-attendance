@@ -706,7 +706,9 @@ const RPC_MAP = {
   registerDevice:     p => ['app_register_device', { p_pin: p.pin, p_label: p.label || null }],
   resetQuickLogin:    p => ['admin_reset_quick_login', { p_employee_id: p.employeeId }],
   notifications:      p => ['app_notifications', { p_after_id: p.afterId || 0, p_limit: p.limit || 30 }],
-  notificationsRead:  p => ['app_notifications_read', { p_ids: p.ids || null }]
+  notificationsRead:  p => ['app_notifications_read', { p_ids: p.ids || null }],
+  pushSubscribe:      p => ['app_push_subscribe', { p_endpoint: p.endpoint, p_p256dh: p.p256dh, p_auth: p.auth, p_user_agent: p.userAgent || null }],
+  pushUnsubscribe:    p => ['app_push_unsubscribe', { p_endpoint: p.endpoint }]
 };
 
 // ==========================================================================

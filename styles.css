@@ -2439,3 +2439,20 @@ button:focus:not(:focus-visible),
 .notif-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--coral-primary); margin-top: 6px; flex-shrink: 0; }
 @keyframes notifDrop { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .notif-panel.open, .notif-badge { animation: none; } }
+
+/* ===== Phone alerts row (inside the notifications panel) ===== */
+.push-row {
+  display: flex; align-items: center; gap: 12px;
+  margin: 2px 12px 8px; padding: 12px; border-radius: 16px;
+  background: linear-gradient(135deg, rgba(123, 111, 168, 0.1), rgba(238, 132, 120, 0.1));
+}
+.push-row[hidden] { display: none; }
+.push-row-icon {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: #fff; color: var(--purple-accent);
+}
+.push-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem; color: var(--navy-text); line-height: 1.4; }
+.push-row-text strong { font-size: 0.88rem; color: var(--navy-dark); }
+.push-row-btn { min-height: 36px; padding: 8px 14px; font-size: 0.82rem; flex-shrink: 0; }
+.push-row-btn[hidden] { display: none; }

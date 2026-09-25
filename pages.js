@@ -969,6 +969,9 @@ async function startNotifications() {
   NOTIF_ITEMS = []; NOTIF_LAST_ID = 0; NOTIF_UNREAD = 0;
   NOTIF_STARTED = true;
   updateSoundButton();
+  refreshPushUI();
+  syncPushSubscription();
+  applyPendingDeepLink();
   await pollNotifications(true);
   NOTIF_TIMER = setInterval(() => { if (document.visibilityState === 'visible') pollNotifications(false); }, NOTIF_POLL_MS);
 }
@@ -1025,7 +1028,9 @@ const NOTIF_ICONS = {
   punch_in: ['fa-right-to-bracket', 'ni-mint'],
   punch_in_self: ['fa-circle-check', 'ni-mint'],
   leave_applied: ['fa-umbrella-beach', 'ni-coral'],
-  leave_decided: ['fa-envelope-open-text', 'ni-purple']
+  leave_decided: ['fa-envelope-open-text', 'ni-purple'],
+  reminder_in: ['fa-clock', 'ni-gold'],
+  reminder_out: ['fa-person-walking-arrow-right', 'ni-gold']
 };
 
 function renderNotifList() {
@@ -1085,7 +1090,8 @@ async function openNotification(id) {
   }
   // Jump to the page the notification is about.
   const target = n.kind === 'leave_applied' || n.kind === 'leave_decided' ? 'leaveView'
-    : n.kind === 'punch_in' && isAdminUser() ? 'directoryView' : null;
+    : n.kind === 'punch_in' && isAdminUser() ? 'directoryView'
+    : n.kind === 'reminder_in' || n.kind === 'reminder_out' ? 'homeView' : null;
   if (target) {
     toggleNotifPanel(false);
     if (target === 'leaveView') LEAVE_TAB = n.kind === 'leave_applied' ? 'review' : 'mine';
@@ -1196,3 +1202,185 @@ function sayStaffly() {
 }
 // Chrome loads voices asynchronously.
 if ('speechSynthesis' in window) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); } catch (e) {} }
+
+
+// --------------------------------------------------------------------------
+// PUSH NOTIFICATIONS (alerts when Staffly is closed)
+// --------------------------------------------------------------------------
+// The device subscribes with the browser's push service; the subscription is
+// saved on the server (tied to whoever is logged in). The "staffly-push" Edge
+// Function sends each new notification to the recipient's devices.
+// A device stays subscribed across the automatic log-out after each punch;
+// it moves to whoever logs in next on it, or stops when "Turn off" is tapped.
+const PUSH_KEY_CACHE = 'STAFFLY_PUSH_PUBLIC_KEY';
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+function isIosNotInstalled() {
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  return ios && !standalone;
+}
+
+function b64urlToUint8(s) {
+  const pad = '='.repeat((4 - (s.length % 4)) % 4);
+  const raw = atob((s + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(raw, c => c.charCodeAt(0));
+}
+
+async function getPushPublicKey() {
+  const cached = localStorage.getItem(PUSH_KEY_CACHE);
+  if (cached) return cached;
+  const { data, error } = await sbClient.functions.invoke('staffly-push', { body: { action: 'public-key' } });
+  if (error || !data || !data.publicKey) throw new Error('PUSH_NOT_CONFIGURED');
+  localStorage.setItem(PUSH_KEY_CACHE, data.publicKey);
+  return data.publicKey;
+}
+
+async function currentPushSubscription() {
+  if (!pushSupported()) return null;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    return reg ? await reg.pushManager.getSubscription() : null;
+  } catch (e) { return null; }
+}
+
+async function savePushSubscription(sub) {
+  const j = sub.toJSON();
+  const r = await callAPI('pushSubscribe', {
+    endpoint: j.endpoint, p256dh: j.keys && j.keys.p256dh, auth: j.keys && j.keys.auth,
+    userAgent: navigator.userAgent.slice(0, 200)
+  });
+  if (!r || r.success === false) throw new Error((r && r.message) || 'SAVE_FAILED');
+}
+
+// After login: if this device already allowed alerts, attach it to this user.
+async function syncPushSubscription() {
+  if (!pushSupported() || Notification.permission !== 'granted') return;
+  const sub = await currentPushSubscription();
+  if (sub) savePushSubscription(sub).catch(() => {});
+}
+
+async function refreshPushUI() {
+  const row = document.getElementById('pushRow');
+  const title = document.getElementById('pushRowTitle');
+  const hint = document.getElementById('pushRowHint');
+  const btn = document.getElementById('pushToggleBtn');
+  if (!row || !btn) return;
+  row.hidden = false;
+  btn.hidden = false;
+  btn.classList.remove('btn-ghost'); btn.classList.add('btn-primary');
+
+  if (!pushSupported()) {
+    if (isIosNotInstalled()) {
+      title.textContent = 'Phone alerts';
+      hint.textContent = 'On iPhone: tap Share → "Add to Home Screen", open Staffly from there, then enable alerts.';
+    } else {
+      title.textContent = 'Phone alerts not available';
+      hint.textContent = "This browser can't show alerts when Staffly is closed. Try Chrome.";
+    }
+    btn.hidden = true;
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    title.textContent = 'Phone alerts are blocked';
+    hint.textContent = 'Allow notifications for Staffly in your browser / phone settings, then reopen Staffly.';
+    btn.hidden = true;
+    return;
+  }
+  const sub = await currentPushSubscription();
+  if (sub && Notification.permission === 'granted') {
+    title.textContent = 'Phone alerts are on';
+    hint.textContent = 'You will get alerts even when Staffly is closed.';
+    btn.textContent = 'Turn off';
+    btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost');
+  } else {
+    title.textContent = 'Get phone alerts';
+    hint.textContent = 'Be notified even when Staffly is closed.';
+    btn.textContent = 'Enable';
+  }
+}
+
+async function togglePushAlerts(btn) {
+  const sub = await currentPushSubscription();
+  setBusy(btn, true, sub ? 'Turning off…' : 'Enabling…');
+  try {
+    if (sub) {
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe().catch(() => {});
+      await callAPI('pushUnsubscribe', { endpoint }).catch(() => {});
+      notify('Phone alerts turned off for this device.', 'info');
+    } else {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        notify('Alerts were not allowed. You can allow them later in your browser settings.', 'error');
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const key = await getPushPublicKey();
+      let fresh;
+      try {
+        fresh = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToUint8(key) });
+      } catch (e) {
+        // Key changed on the server since it was cached: refresh once.
+        localStorage.removeItem(PUSH_KEY_CACHE);
+        fresh = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToUint8(await getPushPublicKey()) });
+      }
+      await savePushSubscription(fresh);
+      notify('Phone alerts are on. You will be notified even when Staffly is closed.');
+    }
+  } catch (e) {
+    console.warn('Push toggle:', e);
+    notify(e && e.message === 'PUSH_NOT_CONFIGURED'
+      ? 'Phone alerts are not set up on the server yet. Ask your admin.'
+      : "Couldn't change phone alerts. Please try again.", 'error');
+  } finally {
+    setBusy(btn, false);
+    refreshPushUI();
+  }
+}
+
+// ---- Deep links from a tapped alert (/?view=leaveView&tab=review) --------
+let PENDING_DEEP_LINK = null;
+(function captureDeepLink() {
+  try {
+    const p = new URLSearchParams(location.search);
+    if (p.get('view')) PENDING_DEEP_LINK = { view: p.get('view'), tab: p.get('tab') };
+  } catch (e) {}
+})();
+
+function openDeepLink(view, tab) {
+  const allowed = ['homeView', 'leaveView', 'directoryView', 'dashboardView', 'salaryView', 'trainingView'];
+  if (!allowed.includes(view)) return;
+  if (view === 'leaveView') LEAVE_TAB = tab === 'review' ? 'review' : 'mine';
+  const link = document.querySelector(`.sidebar-nav .nav-item[data-view="${view}"]`);
+  if (link && link.style.display !== 'none') link.click();
+}
+
+function applyPendingDeepLink() {
+  if (!PENDING_DEEP_LINK || !CURRENT_USER) return;
+  const { view, tab } = PENDING_DEEP_LINK;
+  PENDING_DEEP_LINK = null;
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  setTimeout(() => openDeepLink(view, tab), 300);
+}
+
+// Messages from the service worker.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    const msg = event.data || {};
+    if (msg.type === 'staffly-push' && CURRENT_USER) {
+      pollNotifications(false); // bell + jingle, same as in-app
+    } else if (msg.type === 'staffly-open') {
+      try {
+        const u = new URL(msg.url);
+        const view = u.searchParams.get('view');
+        if (view) {
+          if (CURRENT_USER) openDeepLink(view, u.searchParams.get('tab'));
+          else PENDING_DEEP_LINK = { view, tab: u.searchParams.get('tab') };
+        }
+      } catch (e) {}
+    }
+  });
+}
