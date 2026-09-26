@@ -708,7 +708,8 @@ const RPC_MAP = {
   notifications:      p => ['app_notifications', { p_after_id: p.afterId || 0, p_limit: p.limit || 30 }],
   notificationsRead:  p => ['app_notifications_read', { p_ids: p.ids || null }],
   pushSubscribe:      p => ['app_push_subscribe', { p_endpoint: p.endpoint, p_p256dh: p.p256dh, p_auth: p.auth, p_user_agent: p.userAgent || null }],
-  pushUnsubscribe:    p => ['app_push_unsubscribe', { p_endpoint: p.endpoint }]
+  pushUnsubscribe:    p => ['app_push_unsubscribe', { p_endpoint: p.endpoint }],
+  myPunchRules:       () => ['app_my_punch_rules', {}]
 };
 
 // ==========================================================================
@@ -2554,6 +2555,26 @@ function stopLocationPinging() {
   }
 }
 
+// ==================== PUNCH-FROM-ANYWHERE (field staff) ====================
+// Some employees (set by Admin in the database, private.anywhere_punch) may
+// punch from any location. The SERVER enforces this - the phone only uses
+// it to show the right message instead of "Outside Geofence".
+let MY_PUNCH_RULES = { emp: null, anywhere: false };
+
+async function loadMyPunchRules() {
+  const emp = CURRENT_USER ? (CURRENT_USER.employeeId || CURRENT_USER.employee_id) : null;
+  if (!emp) return false;
+  if (MY_PUNCH_RULES.emp === emp) return MY_PUNCH_RULES.anywhere;
+  try {
+    const r = await callAPI('myPunchRules');
+    MY_PUNCH_RULES = { emp, anywhere: !!(r && r.anywhere_punch) };
+  } catch (e) {
+    // Unknown -> behave like normal staff (server still decides the punch).
+    return false;
+  }
+  return MY_PUNCH_RULES.anywhere;
+}
+
 // ==================== GEOLOCATION & GEOFENCE WITH TIMEOUT ====================
 async function checkGeofence() {
   const title = document.getElementById('geofenceTitle');
@@ -2602,6 +2623,16 @@ async function checkGeofence() {
 
     updateMyLocationMap(currentLatitude, currentLongitude, currentAccuracy, dist);
 
+    // Field staff: any location is fine, their real location is recorded.
+    if (await loadMyPunchRules()) {
+      if (icon) icon.textContent = "🌍";
+      if (title) title.textContent = "Punch from Anywhere ✓";
+      if (subtitle) subtitle.textContent =
+        `You can punch from any location. Your current location will be saved (${formatDistance(dist)} from DDC Safdarjung HQ, ±${Math.round(currentAccuracy || 0)}m).`;
+      markPunchRetryReady();
+      return;
+    }
+
     // GPS says outside / weak, but the phone is on office Wi-Fi: the server
     // will accept the punch, so don't scare the employee.
     if (effectiveDist > MAX_GEOFENCE_RADIUS_METERS || lowAccuracy) {
@@ -2614,6 +2645,13 @@ async function checkGeofence() {
     }
   } catch (err) {
     console.warn("Location prompt or signal timeout:", err);
+    if (await loadMyPunchRules()) {
+      // Anywhere-punch still needs GPS, because the location is recorded.
+      if (icon) icon.textContent = "📍";
+      if (title) title.textContent = "Location Needed";
+      if (subtitle) subtitle.textContent = "You can punch from anywhere, but location must be ON so it can be saved. Turn on precise location and try again.";
+      return;
+    }
     if (err && err.code !== 1 && await checkOfficeNetwork()) {
       if (icon) icon.textContent = "📶";
       if (title) title.textContent = "On Office Wi-Fi ✓";
