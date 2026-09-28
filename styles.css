@@ -2456,3 +2456,314 @@ button:focus:not(:focus-visible),
 .push-row-text strong { font-size: 0.88rem; color: var(--navy-dark); }
 .push-row-btn { min-height: 36px; padding: 8px 14px; font-size: 0.82rem; flex-shrink: 0; }
 .push-row-btn[hidden] { display: none; }
+
+/* ==========================================================================
+   STAFFLY v2 UI (v47) - light & colourful upgrade
+   Floating pill nav, glowing punch button, live-location card, workspace
+   tiles, Profile screen, animated welcome. Added at the END of the file so
+   it layers on top of the existing theme; no existing keyframes or
+   animation rules above were changed.
+   ========================================================================== */
+:root {
+  --v2-cream: #FBF4EC;
+  --v2-ink: #2E2A5C;
+  --v2-ink-2: #5E5883;
+  --v2-line: #F1E4D8;
+  --v2-display: 'Bricolage Grotesque', 'Plus Jakarta Sans', -apple-system, sans-serif;
+}
+
+body { background: linear-gradient(180deg, #FBF4EC 0%, #F6ECE2 100%); background-attachment: fixed; }
+
+/* ---------- Login: animated sunrise warehouse ---------- */
+.mobile-login-wrapper { background: var(--v2-cream); }
+#loginView .login-header-banner.v2-welcome {
+  background: linear-gradient(180deg, #FFF6EC 0%, #FDE9DA 100%);
+  color: var(--v2-ink);
+  padding: 22px 0 0 0;
+  text-align: left;
+}
+#loginView .v2-brand-row { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 22px 6px; }
+#loginView .v2-welcome .brand-icon-wrapper { margin: 0; width: 48px; height: 48px; flex-shrink: 0; background: #FFFFFF; border: 1px solid rgba(238, 132, 120, 0.45); }
+#loginView .v2-welcome .brand-title { font-family: var(--v2-display); font-weight: 800; font-size: 22px; color: var(--v2-ink); }
+#loginView .v2-welcome .brand-subtitle { color: var(--v2-ink-2); margin-top: 1px; }
+#loginView .v2-scene { display: block; width: 100%; height: auto; aspect-ratio: 390 / 280; }
+
+#loginView .v2-fill-headline {
+  font-family: var(--v2-display); font-weight: 800; font-size: 30px; line-height: 1;
+  letter-spacing: -0.5px; text-transform: uppercase; color: var(--v2-ink); text-align: center;
+}
+#loginView .v2-fill-headline span { color: #E0604F; }
+#loginView .v2-fill-sign { margin-top: 10px; font-size: 13px; color: var(--v2-ink-2); }
+#loginView .v2-fill-sign b { font-family: var(--v2-display); font-size: 18px; color: #7B6FA8; margin-right: 4px; }
+
+/* ---------- Top bar avatar opens Profile ---------- */
+.mobile-user-avatar { box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px var(--coral-primary); }
+.mobile-user-avatar:focus-visible { outline: 3px solid rgba(238, 132, 120, 0.6); outline-offset: 3px; }
+
+/* ---------- Home layout ---------- */
+#homeView .v2-home { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+/* Punch hero (keeps .geofence-status-card so app.js animations still hit it) */
+#homeView .v2-hero.geofence-status-card {
+  position: relative; overflow: hidden; margin: 0; text-align: left;
+  background: var(--v2-ink); border: none; border-radius: 26px;
+  padding: 20px 18px 16px; box-shadow: 0 16px 34px rgba(46, 42, 92, 0.25);
+}
+#homeView .v2-hero::before {
+  content: ''; position: absolute; right: -70px; top: -80px; width: 280px; height: 280px;
+  background: radial-gradient(closest-side, rgba(238, 132, 120, 0.42), rgba(46, 42, 92, 0));
+  pointer-events: none;
+}
+#homeView .v2-hero > * { position: relative; z-index: 1; }
+#homeView .v2-greet { font-size: 13px; color: #D9D1EC; margin-bottom: 6px; }
+#homeView .v2-status { display: flex; align-items: flex-start; gap: 12px; }
+#homeView .v2-hero .geofence-icon-badge { margin: 2px 0 0; width: 40px; height: 40px; flex-shrink: 0; font-size: 18px; background: rgba(255, 255, 255, 0.14); }
+#homeView .v2-hero .status-heading { font-family: var(--v2-display); font-weight: 800; font-size: 22px; line-height: 1.15; color: #FFFFFF; }
+#homeView .v2-hero .status-subheading { font-size: 13px; line-height: 1.4; color: rgba(255, 255, 255, 0.8); margin-top: 3px; }
+#homeView .v2-hero #shiftGuidanceBadge { text-align: center; }
+#homeView .v2-hint { margin-top: 12px; text-align: center; font-size: 12.5px; color: rgba(255, 255, 255, 0.72); }
+
+#homeView .v2-hero-actions { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; margin-top: 16px; }
+#homeView .v2-selfie.camera-verification-card { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+#homeView .v2-selfie .selfie-frame { width: 104px; height: 104px; margin: 0; }
+#homeView .v2-selfie .btn-action-outline {
+  min-height: 40px; padding: 8px 14px; font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.1); color: #FFFFFF; border: 1.5px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Glowing punch orb */
+#homeView .v2-orb-wrap { position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; }
+#homeView .v2-orb-halo {
+  position: absolute; inset: -8px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(245, 150, 130, 0.72), rgba(238, 132, 120, 0.22) 55%, rgba(46, 42, 92, 0) 100%);
+  animation: v2Halo 2.2s ease-in-out infinite;
+}
+#homeView .v2-orb-ring {
+  position: absolute; inset: 14px; border-radius: 50%; border: 2px solid #F5B8A8; pointer-events: none;
+  animation: v2Ring 2.2s ease-out infinite;
+}
+#homeView .v2-orb-ring2 { animation-delay: 1.1s; }
+#homeView #punchInBtn.v2-orb {
+  position: relative; width: 112px; height: 112px; margin: 0; padding: 10px;
+  border-radius: 50%; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  color: #1A1530; font-size: 13px; font-weight: 800; line-height: 1.15; text-align: center;
+  border: 2px solid rgba(255, 255, 255, 0.55) !important;
+  background: radial-gradient(circle at 35% 30%, #FFB9A8 0%, #EE8478 55%, #E0604F 100%) !important;
+  animation: v2OrbGlow 2.2s ease-in-out infinite;
+}
+#homeView #punchInBtn.v2-orb:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 4px; }
+#homeView .v2-orb-icon { display: none; flex-shrink: 0; }
+#v2Hero[data-punch="in"] .v2-ic-in,
+#v2Hero[data-punch="out"] .v2-ic-out,
+#v2Hero[data-punch="done"] .v2-ic-done { display: block; }
+
+/* Ready to punch out: mint glow */
+#v2Hero[data-punch="out"] #punchInBtn.v2-orb {
+  color: #0F3D34;
+  background: radial-gradient(circle at 35% 30%, #B8F0E4 0%, #47C6B0 55%, #2BA891 100%) !important;
+  animation-name: v2OrbGlowMint;
+}
+#v2Hero[data-punch="out"] .v2-orb-halo { background: radial-gradient(closest-side, rgba(120, 220, 200, 0.7), rgba(71, 198, 176, 0.22) 55%, rgba(46, 42, 92, 0) 100%); }
+#v2Hero[data-punch="out"] .v2-orb-ring { border-color: #8FE3D2; }
+
+/* Shift done / network retry: calm grey, no glow */
+#v2Hero[data-punch="done"] #punchInBtn.v2-orb,
+#v2Hero[data-punch="unknown"] #punchInBtn.v2-orb {
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #B4AFCB 0%, #8E88AE 100%) !important;
+  animation: none;
+}
+/* Outside the office zone / no GPS: dimmed so staff see they can't punch
+   yet. Still tappable - the server always has the final say. */
+#v2Hero[data-zone="out"]:not([data-punch="done"]):not([data-punch="unknown"]) #punchInBtn.v2-orb,
+#v2Hero[data-zone="nogps"]:not([data-punch="done"]):not([data-punch="unknown"]) #punchInBtn.v2-orb {
+  color: var(--v2-ink);
+  background: radial-gradient(circle at 35% 30%, #F1EFF7 0%, #C9C4DD 60%, #A9A3C4 100%) !important;
+  animation: none;
+}
+#v2Hero[data-punch="done"] .v2-orb-halo, #v2Hero[data-punch="done"] .v2-orb-ring,
+#v2Hero[data-punch="unknown"] .v2-orb-halo, #v2Hero[data-punch="unknown"] .v2-orb-ring,
+#v2Hero[data-zone="out"] .v2-orb-halo, #v2Hero[data-zone="out"] .v2-orb-ring,
+#v2Hero[data-zone="nogps"] .v2-orb-halo, #v2Hero[data-zone="nogps"] .v2-orb-ring { display: none; }
+
+@keyframes v2OrbGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(238, 132, 120, 0.55), 0 10px 28px rgba(238, 132, 120, 0.55); }
+  50% { box-shadow: 0 0 0 10px rgba(238, 132, 120, 0), 0 14px 46px rgba(245, 150, 130, 0.95); }
+}
+@keyframes v2OrbGlowMint {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(71, 198, 176, 0.55), 0 10px 28px rgba(71, 198, 176, 0.5); }
+  50% { box-shadow: 0 0 0 10px rgba(71, 198, 176, 0), 0 14px 46px rgba(120, 220, 200, 0.9); }
+}
+@keyframes v2Halo { 0%, 100% { opacity: 0.55; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.08); } }
+@keyframes v2Ring { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.45); opacity: 0; } }
+
+/* ---------- Cards ---------- */
+#homeView .v2-card {
+  background: #FFFFFF; border: 1px solid var(--v2-line); border-radius: 24px; padding: 14px;
+  box-shadow: 0 10px 26px rgba(46, 42, 92, 0.08);
+}
+#homeView .v2-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+#homeView .v2-h { font-family: var(--v2-display); font-weight: 800; font-size: 19px; color: var(--v2-ink); }
+#homeView .v2-live {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+  background: #E3F6F1; color: #1E7F6D; font-size: 12px; font-weight: 800; letter-spacing: 0.6px;
+}
+#homeView .v2-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #2BA891; animation: v2Blink 1.4s ease-in-out infinite; }
+#homeView .v2-live[data-state="off"] { background: #F1EEF6; color: var(--v2-ink-2); }
+#homeView .v2-live[data-state="off"] .v2-live-dot { background: #A9A3C4; animation: none; }
+@keyframes v2Blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+#homeView .v2-map-box { position: relative; border-radius: 18px; overflow: hidden; isolation: isolate; }
+#homeView .v2-map-box .my-location-map { height: 200px; margin-top: 0; border: none; border-radius: 18px; background: #F1EEE6; }
+#homeView .v2-map-legend {
+  position: absolute; left: 10px; bottom: 10px; z-index: 1000;
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95); font-size: 12px; font-weight: 700; color: var(--v2-ink); pointer-events: none;
+}
+#homeView .v2-legend-line { width: 14px; height: 0; border-top: 2px dashed var(--coral-primary); }
+#homeView .v2-map-recenter {
+  position: absolute; right: 10px; top: 10px; z-index: 1000;
+  width: 44px; height: 44px; border-radius: 50%; border: none; background: #FFFFFF; color: var(--v2-ink);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(46, 42, 92, 0.2);
+}
+#homeView .v2-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+#homeView .v2-chip {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px;
+  min-height: 54px; padding: 9px 10px; border-radius: 14px; text-align: left; font-family: inherit;
+}
+#homeView .v2-chip-lbl { font-size: 11px; font-weight: 700; }
+#homeView .v2-chip-val { font-size: 15px; font-weight: 800; }
+#homeView .v2-chip-acc[data-level="none"] { background: #F3F0F8; color: var(--v2-ink); }
+#homeView .v2-chip-acc[data-level="good"] { background: #E3F6F1; color: #14594C; }
+#homeView .v2-chip-acc[data-level="weak"] { background: #FDF3DA; color: #6B4E0A; }
+#homeView .v2-chip-acc[data-level="poor"] { background: #FDEDE9; color: #7F2C20; }
+#homeView .v2-chip-dist { background: #FDEDE9; color: #7F2C20; }
+#homeView .v2-chip-refresh { background: #FFFFFF; border: 1.5px solid #E4DDF1; color: var(--v2-ink); cursor: pointer; }
+#homeView .v2-chip-refresh .v2-chip-lbl { color: var(--v2-ink-2); }
+#homeView .v2-chip-refresh:disabled { opacity: 0.6; cursor: progress; }
+
+/* ---------- This month ---------- */
+#homeView .v2-stats.stats-counter-grid { gap: 10px; padding-top: 0; border-top: none; }
+#homeView .v2-stat.stat-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  padding: 12px; border-radius: 18px; background: #FFFFFF;
+  border-top: 4px solid var(--mint-green); box-shadow: 0 6px 16px rgba(46, 42, 92, 0.06);
+}
+#homeView .v2-stat-half.stat-card { border-top-color: var(--gold-yellow); }
+#homeView .v2-stat-leave.stat-card { border-top-color: var(--coral-primary); }
+#homeView .v2-stat .stat-val { font-family: var(--v2-display); font-weight: 800; font-size: 24px; color: var(--v2-ink); }
+#homeView .v2-stat .stat-lbl { font-size: 12px; font-weight: 600; color: var(--v2-ink-2); }
+
+/* ---------- Workspace tiles ---------- */
+#homeView .v2-section-title { font-family: var(--v2-display); font-weight: 800; font-size: 22px; color: var(--v2-ink); margin: 4px 0 -4px; }
+#homeView .v2-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#homeView .v2-tile {
+  --tile-glow: rgba(238, 132, 120, 0.28);
+  min-height: 124px; padding: 10px 8px; border-radius: 22px; border: 1px solid var(--v2-line);
+  background: radial-gradient(120% 90% at 50% 0%, var(--tile-glow), #FFFFFF 72%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  color: var(--v2-ink); font-family: inherit; cursor: pointer;
+  box-shadow: 0 8px 20px rgba(46, 42, 92, 0.07);
+  transition: transform 0.15s var(--ease-snap), box-shadow 0.15s var(--ease-snap);
+}
+#homeView .v2-tile:active { transform: scale(0.97); }
+#homeView .v2-tile:focus-visible { outline: 3px solid rgba(238, 132, 120, 0.55); outline-offset: 2px; }
+#homeView .v2-t-gold { --tile-glow: rgba(240, 198, 96, 0.30); }
+#homeView .v2-t-purple { --tile-glow: rgba(154, 143, 203, 0.32); }
+#homeView .v2-t-mint { --tile-glow: rgba(71, 198, 176, 0.28); }
+#homeView .v2-t-coral { --tile-glow: rgba(238, 132, 120, 0.28); }
+#homeView .v2-t-blue { --tile-glow: rgba(120, 150, 230, 0.26); }
+#homeView .v2-tile-icon { width: 48px; height: 48px; }
+#homeView .v2-tile-title { font-weight: 800; font-size: 14px; letter-spacing: 0.6px; text-transform: uppercase; }
+#homeView .v2-tile-sub { font-size: 12px; color: var(--v2-ink-2); }
+
+/* ---------- Profile ---------- */
+#profileView .v2-profile { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+#profileView .v2-profile-card {
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 16px;
+  padding: 20px; border-radius: 26px; background: var(--v2-ink); box-shadow: 0 16px 34px rgba(46, 42, 92, 0.22);
+}
+#profileView .v2-profile-card::before {
+  content: ''; position: absolute; right: -60px; top: -80px; width: 260px; height: 220px;
+  background: radial-gradient(closest-side, rgba(238, 132, 120, 0.45), rgba(46, 42, 92, 0)); pointer-events: none;
+}
+#profileView .v2-profile-card > * { position: relative; }
+#profileView .v2-avatar-ring { width: 84px; height: 84px; flex-shrink: 0; border-radius: 50%; background: var(--coral-primary); display: flex; align-items: center; justify-content: center; }
+#profileView .v2-avatar { width: 74px; height: 74px; border-radius: 50%; background: var(--v2-cream); color: var(--v2-ink); display: flex; align-items: center; justify-content: center; font-family: var(--v2-display); font-weight: 800; font-size: 26px; }
+#profileView .v2-profile-name { font-size: 20px; font-weight: 700; color: #F7E7D3; }
+#profileView .v2-profile-meta { font-size: 14px; color: #D9D1EC; margin-top: 3px; }
+#profileView .v2-profile-site { font-size: 13px; font-weight: 700; color: #8FE3D2; margin-top: 3px; }
+#profileView .v2-group-title { font-family: var(--v2-display); font-weight: 800; font-size: 20px; color: var(--v2-ink); margin: 8px 0 0; }
+#profileView .admin-only { display: flex; flex-direction: column; gap: 12px; }
+#profileView .v2-list { background: #FFFFFF; border-radius: 22px; padding: 4px 16px; box-shadow: 0 8px 22px rgba(46, 42, 92, 0.07); }
+#profileView .v2-row {
+  width: 100%; min-height: 62px; padding: 8px 2px; display: flex; align-items: center; gap: 14px;
+  background: none; border: none; border-bottom: 1px solid #F1E8DE; border-radius: 0;
+  text-align: left; font-family: inherit; color: var(--v2-ink); cursor: pointer;
+}
+#profileView .v2-list > .v2-row:last-child { border-bottom: none; }
+#profileView .v2-row:focus-visible { outline: 3px solid rgba(238, 132, 120, 0.55); outline-offset: -3px; border-radius: 12px; }
+#profileView .v2-row-ic { width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+#profileView .v2-row-ic svg { width: 22px; height: 22px; fill: none; stroke: #FFFFFF; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#profileView .v2-bg-gold { background: #E9A92E; }
+#profileView .v2-bg-purple { background: #7B6FA8; }
+#profileView .v2-bg-mint { background: #2BA891; }
+#profileView .v2-bg-mint2 { background: #1E9C85; }
+#profileView .v2-bg-coral { background: #EE8478; }
+#profileView .v2-bg-slate { background: #5E5883; }
+#profileView .v2-bg-red { background: #E0604F; }
+#profileView .v2-bg-blue { background: #5B7FD6; }
+#profileView .v2-row-text { flex-grow: 1; display: flex; flex-direction: column; gap: 2px; }
+#profileView .v2-row-text b { font-size: 16px; font-weight: 700; }
+#profileView .v2-row-text small { font-size: 12px; color: var(--v2-ink-2); }
+#profileView .v2-chev { width: 9px; height: 9px; margin-right: 6px; border-right: 2px solid #7B6FA8; border-bottom: 2px solid #7B6FA8; transform: rotate(-45deg); flex-shrink: 0; }
+#profileView .v2-switch { position: relative; width: 46px; height: 28px; flex-shrink: 0; border-radius: 14px; background: #D9D4EA; transition: background 0.2s ease; }
+#profileView .v2-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); transition: transform 0.2s ease; }
+#profileView .v2-switch[data-on="true"] { background: #2BA891; }
+#profileView .v2-switch[data-on="true"]::after { transform: translateX(18px); }
+#profileView .v2-signout {
+  margin-top: 8px; min-height: 56px; border-radius: 28px; border: 2px solid var(--coral-primary);
+  background: #FFFFFF; color: #C4503F; font-family: inherit; font-weight: 800; font-size: 16px; cursor: pointer;
+}
+
+/* ---------- Floating pill navigation (phones) ---------- */
+@media (max-width: 768px) {
+  #bottomNav.v2-nav {
+    left: 24px; right: 24px; bottom: calc(14px + env(safe-area-inset-bottom));
+    height: 70px; padding: 6px; gap: 4px; justify-content: space-between;
+    border-radius: 36px; border: 1px solid #EFE3D6; border-top: 1px solid #EFE3D6;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 14px 34px rgba(46, 42, 92, 0.18);
+  }
+  #bottomNav .bottom-nav-item { height: 58px; padding: 0; gap: 3px; border-radius: 29px; color: #4A4570; }
+  #bottomNav .bottom-nav-item.active { background: var(--v2-ink); color: #FFFFFF; }
+  #bottomNav .bottom-nav-label { font-size: 12.5px; font-weight: 700; }
+  .main-content { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+}
+
+/* ---------- Welcome scene motion ---------- */
+@keyframes v2Drive { 0%, 100% { transform: translateX(-14px); } 50% { transform: translateX(10px); } }
+@keyframes v2Wheel { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes v2LampGlow { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes v2Flicker { 0%, 92%, 100% { opacity: 1; } 95% { opacity: 0.55; } }
+@keyframes v2Walk { 0% { transform: translateX(0); } 100% { transform: translateX(46px); } }
+@keyframes v2Bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+#loginView .v2-truck { animation: v2Drive 7s ease-in-out infinite; }
+#loginView .v2-wheel { animation: v2Wheel 1.2s linear infinite; transform-box: fill-box; transform-origin: center; }
+#loginView .v2-lamp { animation: v2LampGlow 3s ease-in-out infinite; }
+#loginView .v2-win { animation: v2Flicker 5s linear infinite; }
+#loginView .v2-win2 { animation: v2Flicker 7s linear infinite; }
+#loginView .v2-walker, #loginView .v2-bird { animation: v2Walk 9s linear infinite alternate; }
+#loginView .v2-walker2, #loginView .v2-bird2 { animation: v2Walk 11s linear infinite alternate-reverse; }
+#loginView .v2-step { animation: v2Bob 0.6s ease-in-out infinite; }
+
+/* Respect "reduce motion": only the new v2 motion is switched off here. */
+@media (prefers-reduced-motion: reduce) {
+  #loginView .v2-truck, #loginView .v2-wheel, #loginView .v2-lamp, #loginView .v2-win, #loginView .v2-win2,
+  #loginView .v2-walker, #loginView .v2-walker2, #loginView .v2-bird, #loginView .v2-bird2, #loginView .v2-step,
+  #homeView .v2-orb-halo, #homeView .v2-orb-ring, #homeView #punchInBtn.v2-orb, #homeView .v2-live-dot {
+    animation: none !important;
+  }
+}

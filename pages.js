@@ -1450,3 +1450,146 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// ==========================================================================
+// STAFFLY v2 UI (v47): glowing punch button, live-location chips, workspace
+// tiles, Profile screen and floating nav. UI only - every punch, login,
+// geofence and database rule still lives in app.js exactly as before.
+// app.js calls these through `typeof ... === 'function'` guards.
+// ==========================================================================
+let V2_LAST_FIX = 0;
+let V2_TICKER = null;
+
+// Open any app view the same way the sidebar does (keeps nav in sync,
+// lazy-loads data, starts/stops GPS polling).
+function v2Go(viewId) {
+  const link = document.querySelector(`.sidebar-nav .nav-item[data-view="${viewId}"]`)
+    || document.querySelector(`.bottom-nav .bottom-nav-item[data-view="${viewId}"]`);
+  if (link) link.click();
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+}
+
+function v2Help() {
+  showDialog('Need help? For a forgotten password or PIN, a new phone, or a wrong punch, contact HR or Robin (MIS). They can reset your login from System Settings.', 'info');
+}
+
+function v2SignOut() {
+  const b = document.getElementById('logoutBtn');
+  if (b) b.click();
+}
+
+function v2Install() {
+  const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const hasPrompt = typeof deferredInstallPrompt !== 'undefined' && deferredInstallPrompt;
+  if (standalone || window.navigator.standalone) {
+    showDialog('Staffly is already installed on this phone.', 'info');
+  } else if (hasPrompt || isIOS) {
+    triggerPwaInstall();
+  } else {
+    showDialog('To install: open this page in Chrome, tap the 3 dots ⋮ at the top right, then tap "Install app" (or "Add to Home screen").', 'info');
+  }
+}
+
+function v2ToggleSound() {
+  if (typeof toggleNotifSound === 'function') toggleNotifSound();
+  v2SyncSound();
+}
+
+function v2SyncSound() {
+  const sw = document.getElementById('v2SoundSwitch');
+  if (sw && typeof notifSoundOn === 'function') sw.dataset.on = notifSoundOn() ? 'true' : 'false';
+}
+
+function v2RenderUser(user) {
+  if (!user) return;
+  const name = String(user.fullName || user.name || '').trim();
+  const first = name.split(/\s+/)[0] || '';
+  const id = user.employeeId || user.employee_id || '';
+  const h = Number(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false }));
+  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'S';
+
+  const g = document.getElementById('v2Greeting');
+  if (g) g.textContent = first ? `${greet}, ${first}` : greet;
+  const pn = document.getElementById('v2ProfileName');
+  if (pn) pn.textContent = name || id;
+  const pm = document.getElementById('v2ProfileMeta');
+  if (pm) pm.textContent = [id, user.role || 'Employee'].filter(Boolean).join(' · ');
+  const pa = document.getElementById('v2ProfileAvatar');
+  if (pa) pa.textContent = initials;
+  v2SyncSound();
+}
+
+// Punch button look: 'in' (coral glow), 'out' (mint glow), 'done' (grey,
+// locked), 'unknown' (grey, network retry). Combined with data-zone below.
+function v2SetPunchState(state) {
+  const hero = document.getElementById('v2Hero');
+  if (hero) hero.dataset.punch = state;
+}
+
+// Where the phone is: 'in' | 'out' | 'any' (field staff) | 'wifi' | 'nogps'.
+// Outside / no GPS dims the glow so staff can see they can't punch yet -
+// the button still works, the server always makes the final decision.
+function v2SetZone(zone) {
+  const hero = document.getElementById('v2Hero');
+  if (hero) hero.dataset.zone = zone;
+  const live = document.getElementById('v2Live');
+  if (live) live.dataset.state = zone === 'nogps' ? 'off' : 'on';
+  if (zone === 'nogps') {
+    const acc = document.getElementById('v2AccVal');
+    const chip = document.getElementById('v2AccChip');
+    if (acc) acc.textContent = 'No GPS';
+    if (chip) chip.dataset.level = 'poor';
+  }
+}
+
+function v2OnGpsFix(distM, accuracyM, zone) {
+  v2SetZone(zone);
+  const acc = Math.round(accuracyM || 0);
+  const level = !accuracyM ? 'none' : acc <= 20 ? 'good' : acc <= 60 ? 'weak' : 'poor';
+  const word = { good: 'Good', weak: 'Weak', poor: 'Poor', none: '' }[level];
+  const accEl = document.getElementById('v2AccVal');
+  const chip = document.getElementById('v2AccChip');
+  if (accEl) accEl.textContent = accuracyM ? `±${acc} m · ${word}` : '–';
+  if (chip) chip.dataset.level = level;
+  const distEl = document.getElementById('v2DistVal');
+  if (distEl) distEl.textContent = typeof formatDistance === 'function' ? formatDistance(distM) : `${Math.round(distM)} m`;
+  V2_LAST_FIX = Date.now();
+  v2TickUpdated();
+  if (!V2_TICKER) V2_TICKER = setInterval(v2TickUpdated, 5000);
+}
+
+function v2TickUpdated() {
+  const el = document.getElementById('v2UpdVal');
+  if (!el || !V2_LAST_FIX) return;
+  const s = Math.max(0, Math.round((Date.now() - V2_LAST_FIX) / 1000));
+  el.textContent = s < 5 ? 'Updated just now' : s < 60 ? `Updated ${s}s ago` : `Updated ${Math.round(s / 60)} min ago`;
+}
+
+async function v2RefreshGps() {
+  const btn = document.getElementById('v2RefreshBtn');
+  const lbl = document.getElementById('v2UpdVal');
+  if (btn) btn.disabled = true;
+  if (lbl) lbl.textContent = 'Checking GPS…';
+  try {
+    if (typeof checkGeofence === 'function') await checkGeofence();
+  } finally {
+    if (btn) btn.disabled = false;
+    v2TickUpdated();
+    if (lbl && !V2_LAST_FIX) lbl.textContent = 'No GPS fix yet';
+  }
+}
+
+function v2Recenter() {
+  try {
+    if (typeof myLocationMapInstance !== 'undefined' && myLocationMapInstance
+        && typeof currentLatitude !== 'undefined' && currentLatitude != null) {
+      myLocationMapInstance.setView([currentLatitude, currentLongitude], 17, { animate: true });
+    } else {
+      v2RefreshGps();
+    }
+  } catch (e) { /* map not ready yet */ }
+}
+
+document.addEventListener('DOMContentLoaded', v2SyncSound);

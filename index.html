@@ -19,7 +19,7 @@
        via @import (which forces a slow sequential fetch-after-fetch). -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
 
   <!-- Font Awesome loaded non-blocking: the page paints immediately with
        system fonts/no icons, then icons pop in a moment later, instead of
@@ -148,16 +148,73 @@
   <div id="loginView" class="view active">
     <div class="mobile-login-wrapper">
 
-      <div class="login-header-banner">
-        <svg class="login-leaf-cluster" viewBox="0 0 420 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M300 -20 C360 -25 400 20 375 65 C350 105 295 95 292 55 C289 20 275 -15 300 -20 Z" fill="var(--mint-green)" opacity="0.5"/>
-          <path d="M370 20 C420 25 440 75 405 105 C378 128 335 110 342 75 C348 45 348 15 370 20 Z" fill="var(--coral-primary)" opacity="0.55"/>
-          <path d="M20 40 C-25 35 -40 85 -10 115 C15 140 55 120 48 85 C42 55 42 45 20 40 Z" fill="var(--coral-light)" opacity="0.4"/>
+      <div class="login-header-banner v2-welcome">
+        <div class="v2-brand-row">
+          <div class="brand-icon-wrapper"><img src="icon-192.png" alt="Staffly Logo" class="brand-icon-img"></div>
+          <div class="v2-brand-text">
+            <h2 class="brand-title">DCC Supply Chain</h2>
+            <p class="brand-subtitle">Workforce &amp; Logistics Management</p>
+          </div>
+        </div>
+        <svg class="v2-scene" viewBox="0 0 390 280" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Morning at the DCC warehouse: a fresh dairy truck drives in as staff arrive">
+          <defs>
+            <linearGradient id="v2sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF6EC"/><stop offset=".6" stop-color="#FCDCC8"/><stop offset="1" stop-color="#F8C39E"/></linearGradient>
+            <linearGradient id="v2dock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0C660"/><stop offset="1" stop-color="#EE8478"/></linearGradient>
+            <linearGradient id="v2cold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FE3D2"/><stop offset="1" stop-color="#47C6B0"/></linearGradient>
+            <linearGradient id="v2road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D8C6B8"/><stop offset="1" stop-color="#EFE3D8"/></linearGradient>
+            <radialGradient id="v2halo"><stop offset="0" stop-color="#F0C660" stop-opacity=".75"/><stop offset="1" stop-color="#F0C660" stop-opacity="0"/></radialGradient>
+            <radialGradient id="v2spill"><stop offset="0" stop-color="#EE8478" stop-opacity=".45"/><stop offset="1" stop-color="#EE8478" stop-opacity="0"/></radialGradient>
+          </defs>
+          <rect width="390" height="280" fill="url(#v2sky)"/>
+          <circle class="v2-lamp" cx="330" cy="34" r="38" fill="url(#v2halo)"/>
+          <circle cx="330" cy="34" r="18" fill="#F0C660"/>
+          <path class="v2-bird" d="M52 30q5-5 10 0q5-5 10 0" stroke="#7B6FA8" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <path class="v2-bird2" d="M126 16q4-4 8 0q4-4 8 0" stroke="#7B6FA8" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <rect x="0" y="160" width="390" height="120" fill="url(#v2road)"/>
+          <g fill="#FFFFFF" opacity=".85"><rect x="10" y="236" width="30" height="4" rx="2"/><rect x="80" y="236" width="30" height="4" rx="2"/><rect x="150" y="236" width="30" height="4" rx="2"/><rect x="220" y="236" width="30" height="4" rx="2"/><rect x="290" y="236" width="30" height="4" rx="2"/><rect x="360" y="236" width="30" height="4" rx="2"/></g>
+          <g transform="translate(39,-72) scale(0.8)">
+            <rect x="206" y="118" width="170" height="172" fill="#3A3568"/>
+            <rect x="206" y="110" width="170" height="10" fill="#4A4480"/>
+            <rect class="v2-win2" x="222" y="134" width="30" height="22" rx="2" fill="url(#v2cold)"/>
+            <rect class="v2-win" x="262" y="134" width="30" height="22" rx="2" fill="url(#v2cold)" opacity=".85"/>
+            <rect x="302" y="134" width="30" height="22" rx="2" fill="#4A4480"/>
+            <rect class="v2-win" x="342" y="134" width="24" height="22" rx="2" fill="url(#v2cold)"/>
+            <rect x="222" y="170" width="30" height="22" rx="2" fill="#4A4480"/>
+            <rect class="v2-win2" x="262" y="170" width="30" height="22" rx="2" fill="url(#v2cold)"/>
+            <rect class="v2-win" x="302" y="170" width="30" height="22" rx="2" fill="url(#v2cold)" opacity=".8"/>
+            <text x="291" y="228" text-anchor="middle" font-family="Bricolage Grotesque, Plus Jakarta Sans, sans-serif" font-weight="800" font-size="15" fill="#47C6B0" letter-spacing="2">COLD CHAIN</text>
+            <polygon points="0,150 64,112 196,112 212,150" fill="#4A4480"/>
+            <rect x="0" y="150" width="212" height="140" fill="#2E2A5C"/>
+            <rect x="18" y="126" width="72" height="20" rx="4" fill="#EE8478"/>
+            <text x="54" y="141" text-anchor="middle" font-family="Bricolage Grotesque, Plus Jakarta Sans, sans-serif" font-weight="800" font-size="14" fill="#1A1530" letter-spacing="1.5">DCC</text>
+            <rect x="22" y="182" width="120" height="108" fill="url(#v2dock)"/>
+            <rect x="22" y="176" width="120" height="8" fill="#1B1836"/>
+            <rect x="34" y="250" width="30" height="20" rx="2" fill="#2E2A5C"/><rect x="34" y="230" width="30" height="20" rx="2" fill="#3A355F"/>
+            <rect x="68" y="250" width="30" height="20" rx="2" fill="#2E2A5C"/>
+            <g class="v2-step"><circle cx="118" cy="232" r="7" fill="#1B1836"/><rect x="110" y="240" width="16" height="30" rx="6" fill="#1B1836"/></g>
+            <rect class="v2-win" x="156" y="176" width="40" height="30" rx="3" fill="#F0C660"/>
+            <rect x="156" y="220" width="40" height="30" rx="3" fill="#4A4480"/>
+            <ellipse cx="82" cy="300" rx="110" ry="22" fill="url(#v2spill)"/>
+            <rect x="150" y="262" width="26" height="16" rx="2" fill="#7B6FA8"/><rect x="178" y="262" width="26" height="16" rx="2" fill="#7B6FA8"/>
+            <rect x="164" y="246" width="26" height="16" rx="2" fill="#9A8FCB"/>
+            <circle class="v2-lamp" cx="198" cy="206" r="34" fill="url(#v2halo)"/>
+            <rect x="196" y="206" width="4" height="96" fill="#1B1836"/><rect x="189" y="198" width="18" height="10" rx="3" fill="#F0C660"/>
+            <g class="v2-walker"><g class="v2-step"><circle cx="232" cy="276" r="6" fill="#2E2A5C"/><rect x="226" y="283" width="12" height="22" rx="5" fill="#2E2A5C"/><rect x="237" y="286" width="7" height="9" rx="2" fill="#EE8478"/></g></g>
+            <g class="v2-walker2"><g class="v2-step"><circle cx="286" cy="278" r="6" fill="#2E2A5C"/><rect x="280" y="285" width="12" height="22" rx="5" fill="#7B6FA8"/></g></g>
+            <g class="v2-truck">
+              <ellipse cx="206" cy="372" rx="120" ry="8" fill="#2E2A5C" opacity=".18"/>
+              <rect x="96" y="300" width="150" height="62" rx="6" fill="#FFFFFF" stroke="#E8DCD0" stroke-width="1.5"/>
+              <rect x="96" y="300" width="150" height="10" rx="5" fill="#EE8478"/>
+              <text x="171" y="336" text-anchor="middle" font-family="Bricolage Grotesque, Plus Jakarta Sans, sans-serif" font-weight="800" font-size="17" fill="#2E2A5C">FRESH DAIRY</text>
+              <text x="171" y="352" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" font-size="9" fill="#7B6FA8" letter-spacing="1.5">DCC DISTRIBUTION</text>
+              <path d="M246 318 H286 L310 340 V362 H246 Z" fill="#EE8478"/>
+              <path d="M254 324 H282 L298 340 H254 Z" fill="#2E2A5C"/>
+              <rect class="v2-lamp" x="304" y="346" width="8" height="6" rx="2" fill="#F0C660"/>
+              <g class="v2-wheel"><circle cx="130" cy="364" r="12" fill="#1B1836"/><circle cx="130" cy="364" r="5" fill="#9A8FCB"/><rect x="129" y="354" width="2" height="20" fill="#9A8FCB"/></g>
+              <g class="v2-wheel"><circle cx="278" cy="364" r="12" fill="#1B1836"/><circle cx="278" cy="364" r="5" fill="#9A8FCB"/><rect x="277" y="354" width="2" height="20" fill="#9A8FCB"/></g>
+            </g>
+          </g>
         </svg>
-        <span class="login-header-blob" aria-hidden="true"></span>
-        <div class="brand-icon-wrapper"><img src="icon-192.png" alt="Staffly Logo" class="brand-icon-img"></div>
-        <h2 class="brand-title">DCC Supply Chain</h2>
-        <p class="brand-subtitle">Workforce &amp; Logistics Management</p>
       </div>
 
       <div class="login-card-container">
@@ -243,9 +300,8 @@
           <path d="M210 110 C255 115 270 155 240 180 C213 202 175 182 185 150 C193 125 180 106 210 110 Z" fill="var(--purple-accent)" opacity="0.2"/>
         </svg>
         <div class="login-fill-brand">
-          <span class="login-fill-powered">POWERED BY</span>
-          <span class="login-fill-staffly">⚡ STAFFLY</span>
-          <span class="login-fill-tagline">Smart Workforce Attendance</span>
+          <span class="v2-fill-headline">Every shift.<br>Every delivery.<br><span>On time.</span></span>
+          <span class="v2-fill-sign"><b>staffly</b> by DCC Supply Chain</span>
         </div>
       </div>
 
@@ -267,43 +323,25 @@
       <button type="button" class="notif-bell" onclick="toggleNotifPanel()" aria-label="Notifications" aria-haspopup="dialog" aria-controls="notifPanel">
         <i class="fas fa-bell" aria-hidden="true"></i><span class="notif-badge" hidden>0</span>
       </button>
-      <div class="mobile-user-avatar" id="mobileUserAvatar">D</div>
+      <div class="mobile-user-avatar" id="mobileUserAvatar" role="button" tabindex="0" aria-label="Open my profile" onclick="v2Go('profileView')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();v2Go('profileView')}">D</div>
       </div>
     </header>
 
     <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
 
     <!-- MOBILE BOTTOM NAVIGATION BAR (hidden on desktop) -->
-    <nav class="bottom-nav" id="bottomNav">
+    <nav class="bottom-nav v2-nav" id="bottomNav" aria-label="Main">
       <a href="javascript:void(0)" class="bottom-nav-item active" data-view="homeView">
-        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-        </svg>
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
         <span class="bottom-nav-label">Home</span>
       </a>
-
       <a href="javascript:void(0)" class="bottom-nav-item" data-view="leaveView">
-        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/></svg>
         <span class="bottom-nav-label">Leave</span>
       </a>
-
-      <a href="javascript:void(0)" class="bottom-nav-item" data-view="trainingView">
-        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
-        </svg>
-        <span class="bottom-nav-label">Training</span>
-      </a>
-
-      <a href="javascript:void(0)" class="bottom-nav-item" id="bottomMoreBtn">
-        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-          <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-        </svg>
-        <span class="bottom-nav-label">More</span>
+      <a href="javascript:void(0)" class="bottom-nav-item" data-view="profileView">
+        <svg class="bottom-nav-icon" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+        <span class="bottom-nav-label">Profile</span>
       </a>
     </nav>
 
@@ -354,6 +392,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
           </svg>
           <span class="nav-label">Home & Punch</span>
+        </a>
+
+        <a href="javascript:void(0)" class="nav-item" data-view="profileView">
+          <svg class="nav-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+          <span class="nav-label">My Profile</span>
         </a>
 
         <a href="javascript:void(0)" class="nav-item admin-only" data-view="dashboardView">
@@ -461,51 +504,176 @@
 
     <main class="main-content">
       <section id="homeView" class="app-view active fade-in-up">
-        <div class="punch-card-wrapper">
-          <!-- Botanical background decoration: leaf cluster + soft coral
-               circle blob, tucked behind the card corners per the design
-               system. Purely decorative - non-interactive, sits behind
-               all real content. -->
-          <svg class="punch-card-leaf-deco" viewBox="0 0 420 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M320 -20 C380 -15 410 30 380 75 C355 110 300 100 295 60 C290 25 290 -15 320 -20 Z" fill="var(--mint-green)" opacity="0.22"/>
-            <path d="M370 10 C420 20 430 65 400 95 C375 118 340 100 348 68 C355 40 350 5 370 10 Z" fill="var(--navy-dark)" opacity="0.15"/>
-            <path d="M20 140 C-25 150 -35 195 5 215 C35 232 70 210 60 178 C52 152 45 135 20 140 Z" fill="var(--coral-primary)" opacity="0.16"/>
-          </svg>
-          <span class="punch-card-blob" aria-hidden="true"></span>
+        <div class="v2-home">
 
-          <div class="geofence-status-card">
-            <div class="geofence-icon-badge" id="geofenceIcon">📍</div>
-            <h3 id="geofenceTitle" class="status-heading">Checking Location...</h3>
-            <p id="geofenceSubtitle" class="status-subheading">Calculating distance to DDC Safdarjung HQ</p>
-            <!-- Live map: shows the employee's own GPS dot, their device's
-                 accuracy radius, and the HQ geofence circle, so it's
-                 visually obvious why a punch is (or isn't) being blocked
-                 instead of just a flat text message. -->
-            <div id="myLocationMapContainer" class="my-location-map"></div>
-          </div>
-
-          <div class="camera-verification-card">
-            <div class="selfie-frame">
-              <video id="webcam" autoplay playsinline style="display:none;"></video>
-              <canvas id="canvas" style="display:none;"></canvas>
-              <img id="selfiePreview" src="default-avatar.svg" alt="Selfie Verification">
+          <!-- PUNCH HERO: live status (geofence text is written by app.js),
+               selfie step and the glowing punch button. Keeps the
+               .geofence-status-card class that app.js animates. -->
+          <div class="geofence-status-card v2-hero" id="v2Hero" data-punch="in" data-zone="checking">
+            <p class="v2-greet" id="v2Greeting">Hello</p>
+            <div class="v2-status">
+              <div class="geofence-icon-badge" id="geofenceIcon">📍</div>
+              <div class="v2-status-text">
+                <h3 id="geofenceTitle" class="status-heading">Checking Location...</h3>
+                <p id="geofenceSubtitle" class="status-subheading">Calculating distance to DDC Safdarjung HQ</p>
+              </div>
             </div>
-            <button type="button" id="captureBtn" class="btn-action-outline"><span class="btn-icon">📷</span> Capture Selfie</button>
-          </div>
 
-          <button type="button" id="punchInBtn" class="btn-punch-action">
-            <span id="punchBtnText">Punch In Now</span>
-          </button>
+            <div class="v2-hero-actions">
+              <div class="camera-verification-card v2-selfie">
+                <div class="selfie-frame">
+                  <video id="webcam" autoplay playsinline style="display:none;"></video>
+                  <canvas id="canvas" style="display:none;"></canvas>
+                  <img id="selfiePreview" src="default-avatar.svg" alt="Selfie Verification">
+                </div>
+                <button type="button" id="captureBtn" class="btn-action-outline"><span class="btn-icon">📷</span> Capture Selfie</button>
+              </div>
+
+              <div class="v2-orb-wrap">
+                <span class="v2-orb-halo" aria-hidden="true"></span>
+                <span class="v2-orb-ring" aria-hidden="true"></span>
+                <span class="v2-orb-ring v2-orb-ring2" aria-hidden="true"></span>
+                <button type="button" id="punchInBtn" class="btn-punch-action v2-orb">
+                  <svg class="v2-orb-icon v2-ic-in" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+                  <svg class="v2-orb-icon v2-ic-out" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l4 4-4 4M14 12H4"/></svg>
+                  <svg class="v2-orb-icon v2-ic-done" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                  <span id="punchBtnText">Punch In Now</span>
+                </button>
+              </div>
+            </div>
+            <p class="v2-hint">Take a selfie, then tap the punch button.</p>
+          </div>
 
           <div id="punchRejectNote" class="punch-reject" role="alert" hidden></div>
           <div id="shiftStatusBadge" class="shift-status-badge" style="display:none;"></div>
           <button type="button" id="retryPhotoUploadBtn" class="btn-retry-photo" style="display:none;" onclick="retrySelfiePhotoAttach()">⚠️ Retry Photo Upload</button>
 
-          <div class="stats-counter-grid">
-            <div class="stat-card"><span class="stat-val" id="presentCount">0</span><span class="stat-lbl">Present</span></div>
-            <div class="stat-card"><span class="stat-val" id="halfDayCount">0</span><span class="stat-lbl">Half Day</span></div>
-            <div class="stat-card"><span class="stat-val" id="leaveCount">0</span><span class="stat-lbl">Leaves</span></div>
+          <!-- LIVE LOCATION: the Leaflet map (app.js) plus accuracy / distance chips -->
+          <div class="v2-card v2-map-card">
+            <div class="v2-card-head">
+              <h3 class="v2-h">Your live location</h3>
+              <span class="v2-live" id="v2Live"><span class="v2-live-dot" aria-hidden="true"></span>LIVE</span>
+            </div>
+            <div class="v2-map-box">
+              <div id="myLocationMapContainer" class="my-location-map"></div>
+              <span class="v2-map-legend"><span class="v2-legend-line" aria-hidden="true"></span>Office zone 500 m</span>
+              <button type="button" class="v2-map-recenter" onclick="v2Recenter()" aria-label="Re-centre map on my location">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              </button>
+            </div>
+            <div class="v2-chips">
+              <div class="v2-chip v2-chip-acc" id="v2AccChip" data-level="none">
+                <span class="v2-chip-lbl">GPS accuracy</span><span class="v2-chip-val" id="v2AccVal">Waiting…</span>
+              </div>
+              <div class="v2-chip v2-chip-dist">
+                <span class="v2-chip-lbl">From HQ</span><span class="v2-chip-val" id="v2DistVal">–</span>
+              </div>
+              <button type="button" class="v2-chip v2-chip-refresh" id="v2RefreshBtn" onclick="v2RefreshGps()">
+                <span class="v2-chip-lbl" id="v2UpdVal">Not updated yet</span><span class="v2-chip-val">Refresh GPS</span>
+              </button>
+            </div>
           </div>
+
+          <!-- THIS MONTH (ids filled by app.js) -->
+          <div class="stats-counter-grid v2-stats">
+            <div class="stat-card v2-stat v2-stat-present"><span class="stat-val" id="presentCount">0</span><span class="stat-lbl">Present</span></div>
+            <div class="stat-card v2-stat v2-stat-half"><span class="stat-val" id="halfDayCount">0</span><span class="stat-lbl">Half Day</span></div>
+            <div class="stat-card v2-stat v2-stat-leave"><span class="stat-val" id="leaveCount">0</span><span class="stat-lbl">Leaves</span></div>
+          </div>
+
+          <h3 class="v2-section-title">Your workspace</h3>
+          <div class="v2-tiles">
+            <button type="button" class="v2-tile v2-t-gold" onclick="v2Go('leaveView')">
+              <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7D98A"/><stop offset="1" stop-color="#D99A2B"/></linearGradient></defs><rect x="17" y="8" width="14" height="8" rx="3" fill="none" stroke="#7B5A1E" stroke-width="3"/><rect x="6" y="14" width="36" height="28" rx="7" fill="url(#v2tA)"/><rect x="6" y="24" width="36" height="4" fill="#B97F20" opacity=".6"/><rect x="21" y="21" width="6" height="10" rx="2" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-title">Leave</span>
+              <span class="v2-tile-sub">Apply &amp; track</span>
+            </button>
+            <button type="button" class="v2-tile v2-t-purple" onclick="v2Go('trainingView')">
+              <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C3B8F0"/><stop offset="1" stop-color="#6F5FB3"/></linearGradient></defs><rect x="5" y="10" width="38" height="26" rx="6" fill="url(#v2tB)"/><path d="M21 17l9 6-9 6z" fill="#FFFFFF"/><rect x="14" y="39" width="20" height="4" rx="2" fill="#6F5FB3"/></svg>
+              <span class="v2-tile-title">Training</span>
+              <span class="v2-tile-sub">Modules &amp; videos</span>
+            </button>
+            <button type="button" class="v2-tile v2-t-mint" onclick="openLoginSettings()">
+              <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FE3D2"/><stop offset="1" stop-color="#2BA891"/></linearGradient></defs><circle cx="24" cy="24" r="19" fill="url(#v2tC)"/><g fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"><path d="M24 23c0 4-1 7.5-3 10"/><path d="M19 17a7 7 0 0 1 12 6c0 2-.2 4-.6 6"/><path d="M15 27c.5-1.6.8-3.2.8-5a8.5 8.5 0 0 1 13.5-6.8"/></g></svg>
+              <span class="v2-tile-title">Fingerprint</span>
+              <span class="v2-tile-sub">PIN &amp; quick login</span>
+            </button>
+            <button type="button" class="v2-tile v2-t-coral" onclick="v2Help()">
+              <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5B8A8"/><stop offset="1" stop-color="#E0604F"/></linearGradient></defs><path d="M8 10h32a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H20l-9 7v-7H8a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z" fill="url(#v2tD)"/><circle cx="16" cy="23" r="2.6" fill="#FFFFFF"/><circle cx="24" cy="23" r="2.6" fill="#FFFFFF"/><circle cx="32" cy="23" r="2.6" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-title">Help</span>
+              <span class="v2-tile-sub">Contact HR / IT</span>
+            </button>
+            <button type="button" class="v2-tile v2-t-blue admin-only" onclick="v2Go('dashboardView')">
+              <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tE" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9AB8F5"/><stop offset="1" stop-color="#4F6FC9"/></linearGradient></defs><rect x="5" y="6" width="38" height="36" rx="8" fill="url(#v2tE)"/><rect x="12" y="26" width="6" height="10" rx="2" fill="#FFFFFF"/><rect x="21" y="18" width="6" height="18" rx="2" fill="#FFFFFF"/><rect x="30" y="12" width="6" height="24" rx="2" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-title">Analytics</span>
+              <span class="v2-tile-sub">Attendance overview</span>
+            </button>
+            <button type="button" class="v2-tile v2-t-mint admin-only" onclick="v2Go('directoryView')">
+              <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FE3D2"/><stop offset="1" stop-color="#2BA891"/></linearGradient><linearGradient id="v2tG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7D98A"/><stop offset="1" stop-color="#EE8478"/></linearGradient></defs><circle cx="17" cy="17" r="7" fill="url(#v2tG)"/><path d="M4 40c0-8 6-13 13-13s13 5 13 13z" fill="url(#v2tG)"/><circle cx="32" cy="15" r="6" fill="url(#v2tF)"/><path d="M22 38c1-7 5-11 10-11 6 0 11 4 12 11z" fill="url(#v2tF)"/></svg>
+              <span class="v2-tile-title">Staff</span>
+              <span class="v2-tile-sub">Directory</span>
+            </button>
+            <button type="button" class="v2-tile v2-t-mint admin-only" onclick="v2Go('salaryView')">
+              <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FE3D2"/><stop offset="1" stop-color="#2BA891"/></linearGradient></defs><rect x="5" y="12" width="38" height="28" rx="7" fill="url(#v2tH)"/><rect x="5" y="17" width="38" height="5" fill="#1E7F6D"/><circle cx="33" cy="31" r="5" fill="#FFFFFF"/><text x="33" y="34.5" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="9" fill="#1E7F6D">₹</text></svg>
+              <span class="v2-tile-title">Payroll</span>
+              <span class="v2-tile-sub">Salary &amp; payslips</span>
+            </button>
+            <button type="button" class="v2-tile v2-t-coral admin-only" onclick="v2Go('fieldMapView')">
+              <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tI" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5B8A8"/><stop offset="1" stop-color="#E0604F"/></linearGradient></defs><path d="M24 44s-14-12-14-24a14 14 0 0 1 28 0c0 12-14 24-14 24z" fill="url(#v2tI)"/><circle cx="24" cy="20" r="6" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-title">Live map</span>
+              <span class="v2-tile-sub">Staff GPS</span>
+            </button>
+            <button type="button" class="v2-tile v2-t-purple admin-only" onclick="v2Go('userMgmtView')">
+              <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tJ" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C3B8F0"/><stop offset="1" stop-color="#5E5883"/></linearGradient></defs><path d="M24 4l5 4 6-1 2 6 5 4-3 5 3 5-5 4-2 6-6-1-5 4-5-4-6 1-2-6-5-4 3-5-3-5 5-4 2-6 6 1z" fill="url(#v2tJ)"/><circle cx="24" cy="24" r="7" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-title">Settings</span>
+              <span class="v2-tile-sub">Users, Wi-Fi, resets</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE (new in v47): grouped links to existing features -->
+      <section id="profileView" class="app-view">
+        <div class="v2-profile">
+          <div class="v2-profile-card">
+            <div class="v2-avatar-ring"><div class="v2-avatar" id="v2ProfileAvatar">–</div></div>
+            <div class="v2-profile-text">
+              <h2 class="v2-profile-name" id="v2ProfileName">–</h2>
+              <p class="v2-profile-meta" id="v2ProfileMeta">–</p>
+              <p class="v2-profile-site">DDC Safdarjung HQ</p>
+            </div>
+          </div>
+
+          <h3 class="v2-group-title">My work</h3>
+          <div class="v2-list">
+            <button type="button" class="v2-row" onclick="v2Go('leaveView')"><span class="v2-row-ic v2-bg-gold"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/></svg></span><span class="v2-row-text"><b>Leave Portal</b><small>Apply and track leaves</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+            <button type="button" class="v2-row" onclick="v2Go('trainingView')"><span class="v2-row-ic v2-bg-purple"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M10 9l5 2.5-5 2.5z"/></svg></span><span class="v2-row-text"><b>Training Modules</b><small>Videos and guides</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+          </div>
+
+          <div class="admin-only">
+            <h3 class="v2-group-title">Admin</h3>
+            <div class="v2-list">
+              <button type="button" class="v2-row" onclick="v2Go('dashboardView')"><span class="v2-row-ic v2-bg-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6"/></svg></span><span class="v2-row-text"><b>Analytics</b><small>Attendance overview</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+              <button type="button" class="v2-row" onclick="v2Go('directoryView')"><span class="v2-row-ic v2-bg-mint"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6"/><path d="M16 4a3.5 3.5 0 0 1 0 7M22 20c0-3-2-5-5-5.7"/></svg></span><span class="v2-row-text"><b>Staff Directory</b><small>All employees</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+              <button type="button" class="v2-row" onclick="v2Go('salaryView')"><span class="v2-row-ic v2-bg-mint2"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M15 15h2"/></svg></span><span class="v2-row-text"><b>Payroll &amp; Compensation</b><small>Salary and payslips</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+              <button type="button" class="v2-row" onclick="v2Go('fieldMapView')"><span class="v2-row-ic v2-bg-coral"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span><span class="v2-row-text"><b>Live GPS Map</b><small>Where staff are right now</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+              <button type="button" class="v2-row" onclick="v2Go('userMgmtView')"><span class="v2-row-ic v2-bg-slate"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/></svg></span><span class="v2-row-text"><b>System Settings</b><small>Users, office Wi-Fi, login resets</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+            </div>
+          </div>
+
+          <h3 class="v2-group-title">Login &amp; app</h3>
+          <div class="v2-list">
+            <button type="button" class="v2-row" onclick="openLoginSettings()"><span class="v2-row-ic v2-bg-mint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11c0 3.5-1 6.5-2.5 8.5"/><path d="M8.5 7.5A5 5 0 0 1 17 11c0 1.5-.1 3-.4 4.4"/><path d="M4.5 16c.6-1.5 1-3.2 1-5a6.5 6.5 0 0 1 11-4.7"/></svg></span><span class="v2-row-text"><b>Fingerprint &amp; PIN</b><small>Set up or change quick login</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+            <button type="button" class="v2-row" onclick="v2ToggleSound()"><span class="v2-row-ic v2-bg-coral"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg></span><span class="v2-row-text"><b>Sound &amp; voice</b><small>“Staffly!” on every punch</small></span><span class="v2-switch" id="v2SoundSwitch" data-on="true" aria-hidden="true"></span></button>
+            <button type="button" class="v2-row" onclick="v2Install()"><span class="v2-row-ic v2-bg-slate"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><span class="v2-row-text"><b>Install App</b><small>Add Staffly to your home screen</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+          </div>
+
+          <h3 class="v2-group-title">Support</h3>
+          <div class="v2-list">
+            <button type="button" class="v2-row" onclick="v2Help()"><span class="v2-row-ic v2-bg-red"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5V14M12 17h.01"/></svg></span><span class="v2-row-text"><b>Contact HR / IT</b><small>Forgot password, new phone, wrong punch</small></span><span class="v2-chev" aria-hidden="true"></span></button>
+          </div>
+
+          <button type="button" class="v2-signout" onclick="v2SignOut()">Sign out</button>
         </div>
       </section>
 

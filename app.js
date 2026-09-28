@@ -987,6 +987,7 @@ function renderUserBadge(user) {
   if (mobileUserAvatar) mobileUserAvatar.textContent = initial;
 
   applyRoleBasedUIRestrictions(user.role);
+  if (typeof v2RenderUser === 'function') v2RenderUser(user);
 }
 
 // Restrict .admin-only UI elements based on the current user's role
@@ -2584,6 +2585,7 @@ async function checkGeofence() {
   if (!navigator.geolocation) {
     if (title) title.textContent = "GPS Unavailable";
     if (subtitle) subtitle.textContent = "Geolocation is not supported by your browser.";
+    if (typeof v2SetZone === 'function') v2SetZone('nogps');
     return;
   }
 
@@ -2622,6 +2624,9 @@ async function checkGeofence() {
     }
 
     updateMyLocationMap(currentLatitude, currentLongitude, currentAccuracy, dist);
+    if (typeof v2OnGpsFix === 'function') {
+      v2OnGpsFix(dist, currentAccuracy, effectiveDist <= MAX_GEOFENCE_RADIUS_METERS ? 'in' : 'out');
+    }
 
     // Field staff: any location is fine, their real location is recorded.
     if (await loadMyPunchRules()) {
@@ -2630,6 +2635,7 @@ async function checkGeofence() {
       if (subtitle) subtitle.textContent =
         `You can punch from any location. Your current location will be saved (${formatDistance(dist)} from DDC Safdarjung HQ, ±${Math.round(currentAccuracy || 0)}m).`;
       markPunchRetryReady();
+      if (typeof v2SetZone === 'function') v2SetZone('any');
       return;
     }
 
@@ -2641,6 +2647,7 @@ async function checkGeofence() {
         if (title) title.textContent = "On Office Wi-Fi ✓";
         if (subtitle) subtitle.textContent =
           `You can punch. Verified by office Wi-Fi (GPS reads ${Math.round(dist)}m, ±${Math.round(currentAccuracy || 0)}m).`;
+        if (typeof v2SetZone === 'function') v2SetZone('wifi');
       }
     }
   } catch (err) {
@@ -2650,17 +2657,20 @@ async function checkGeofence() {
       if (icon) icon.textContent = "📍";
       if (title) title.textContent = "Location Needed";
       if (subtitle) subtitle.textContent = "You can punch from anywhere, but location must be ON so it can be saved. Turn on precise location and try again.";
+      if (typeof v2SetZone === 'function') v2SetZone('nogps');
       return;
     }
     if (err && err.code !== 1 && await checkOfficeNetwork()) {
       if (icon) icon.textContent = "📶";
       if (title) title.textContent = "On Office Wi-Fi ✓";
       if (subtitle) subtitle.textContent = "GPS not available, but you're on office Wi-Fi - you can punch.";
+      if (typeof v2SetZone === 'function') v2SetZone('wifi');
       return;
     }
     if (icon) icon.textContent = "📍";
     if (title) title.textContent = "GPS Location Pending";
     if (subtitle) subtitle.textContent = "Please allow location access, or connect to the office Wi-Fi";
+    if (typeof v2SetZone === 'function') v2SetZone('nogps');
   }
 }
 
@@ -2687,7 +2697,8 @@ function initMyLocationMap() {
 
   myLocationGeofenceCircle = L.circle([OFFICE_LAT, OFFICE_LNG], {
     radius: OFFICE_RADIUS_M,
-    color: '#2f9e44',
+    color: '#EE8478',
+    dashArray: '6 5',
     weight: 2,
     fillOpacity: 0.08
   }).addTo(myLocationMapInstance);
@@ -2996,6 +3007,7 @@ function renderPunchStatusUnknown() {
   if (btnLabel) btnLabel.innerText = '⚠️ No network - tap to retry';
   else if (btn) btn.innerText = '⚠️ No network - tap to retry';
   if (timerChip) timerChip.style.display = 'none';
+  if (typeof v2SetPunchState === 'function') v2SetPunchState('unknown');
 }
 
 function updateHomeUI(isClockedIn, isCompleted = false) {
@@ -3021,6 +3033,7 @@ function updateHomeUI(isClockedIn, isCompleted = false) {
       btn.innerText = 'Shift Completed Today';
     }
     if (timerChip) timerChip.style.display = 'none';
+    if (typeof v2SetPunchState === 'function') v2SetPunchState('done');
     return;
   }
 
@@ -3055,6 +3068,7 @@ function updateHomeUI(isClockedIn, isCompleted = false) {
     }
     if (timerChip) timerChip.style.display = 'none';
   }
+  if (typeof v2SetPunchState === 'function') v2SetPunchState(isClockedIn ? 'out' : 'in');
 }
 
 // ==========================================================================
