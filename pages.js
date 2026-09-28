@@ -1503,6 +1503,7 @@ function v2SyncSound() {
 
 function v2RenderUser(user) {
   if (!user) return;
+  if (typeof v2ResetTodaySelfies === 'function') v2ResetTodaySelfies();
   const name = String(user.fullName || user.name || '').trim();
   const first = name.split(/\s+/)[0] || '';
   const id = user.employeeId || user.employee_id || '';
@@ -1593,3 +1594,97 @@ function v2Recenter() {
 }
 
 document.addEventListener('DOMContentLoaded', v2SyncSound);
+
+// ---- Today's selfies (v48) -------------------------------------------------
+// Shows the Punch In / Punch Out photos that were actually SAVED on the
+// server today, so staff can see their submitted selfie. Read-only.
+const V2_TODAY = { in: null, out: null, inTime: null, outTime: null };
+
+function v2TimeIST(ts) {
+  if (!ts) return '–';
+  return new Date(ts).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function v2ResetTodaySelfies() {
+  const card = document.getElementById('v2TodaySelfies');
+  if (card) card.hidden = true;
+  ['in', 'out'].forEach(k => { V2_TODAY[k] = null; });
+}
+
+async function v2LoadTodaySelfies() {
+  const card = document.getElementById('v2TodaySelfies');
+  if (!card) return;
+  let r;
+  try { r = await callAPI('getMyTodaySelfies'); } catch (e) { return; } // keep whatever is shown
+  if (!r || r.status !== 'SUCCESS' || !r.clock_in_time) { card.hidden = true; return; }
+
+  V2_TODAY.in = r.in_photo || null;
+  V2_TODAY.out = r.out_photo || null;
+  V2_TODAY.inTime = r.clock_in_time;
+  V2_TODAY.outTime = r.clock_out_time;
+
+  v2FillSelfieTile('In', V2_TODAY.in, r.clock_in_time, 'Photo not saved – tap Retry Photo Upload');
+  v2FillSelfieTile('Out', V2_TODAY.out, r.clock_out_time,
+    r.clock_out_time ? 'Photo not saved – tap Retry Photo Upload' : 'Not punched out yet');
+
+  const badge = document.getElementById('v2TodayBadge');
+  const allSaved = !!V2_TODAY.in && (!r.clock_out_time || !!V2_TODAY.out);
+  if (badge) {
+    badge.textContent = allSaved ? 'Saved' : 'Photo missing';
+    badge.dataset.ok = allSaved ? 'true' : 'false';
+  }
+  card.hidden = false;
+}
+
+function v2FillSelfieTile(which, url, ts, emptyText) {
+  const tile = document.getElementById(`v2${which}Tile`);
+  const img = document.getElementById(`v2${which}Img`);
+  const empty = document.getElementById(`v2${which}Empty`);
+  const time = document.getElementById(`v2${which}Time`);
+  if (time) time.textContent = v2TimeIST(ts);
+  if (url && img) {
+    img.onerror = () => {
+      img.hidden = true;
+      if (empty) { empty.hidden = false; empty.textContent = 'Photo could not load'; }
+      if (tile) tile.disabled = true;
+    };
+    if (img.getAttribute('src') !== url) img.src = url;
+    img.hidden = false;
+    if (empty) empty.hidden = true;
+    if (tile) tile.disabled = false;
+  } else {
+    if (img) { img.hidden = true; img.removeAttribute('src'); }
+    if (empty) { empty.hidden = false; empty.textContent = emptyText; }
+    if (tile) tile.disabled = true;
+  }
+}
+
+let V2_VIEWER_RETURN = null;
+function v2OpenSelfie(which) {
+  const url = V2_TODAY[which];
+  if (!url) return;
+  const v = document.getElementById('v2Viewer');
+  const img = document.getElementById('v2ViewerImg');
+  const cap = document.getElementById('v2ViewerCap');
+  if (!v || !img) return;
+  img.src = url;
+  img.alt = which === 'in' ? 'Your Punch In selfie' : 'Your Punch Out selfie';
+  if (cap) cap.textContent = `${which === 'in' ? 'Punch In' : 'Punch Out'} · ${v2TimeIST(which === 'in' ? V2_TODAY.inTime : V2_TODAY.outTime)} today`;
+  V2_VIEWER_RETURN = document.activeElement;
+  v.hidden = false;
+  const close = v.querySelector('.v2-viewer-close');
+  if (close) close.focus();
+}
+
+function v2CloseSelfie() {
+  const v = document.getElementById('v2Viewer');
+  if (!v || v.hidden) return;
+  v.hidden = true;
+  const img = document.getElementById('v2ViewerImg');
+  if (img) img.removeAttribute('src');
+  if (V2_VIEWER_RETURN && V2_VIEWER_RETURN.focus) V2_VIEWER_RETURN.focus();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') v2CloseSelfie();
+});

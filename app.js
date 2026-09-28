@@ -680,6 +680,7 @@ const RPC_MAP = {
   applyLeave:         p => ['apply_leave', { p_from_date: p.fromDate, p_to_date: p.toDate, p_leave_type: p.leaveType, p_reason: p.reason, p_doc_pending: p.docPending || false }],
   attachLeaveDocument:p => ['attach_leave_document', { p_doc_path: p.docPath }],
   getTodayAttendance: () => ['get_today_attendance', {}],
+  getMyTodaySelfies:  () => ['get_my_today_selfies', {}],
   getEmployeeLeaves:  p => ['get_employee_leaves', { p_employee_id: p.employeeId }],
   getSalaryDetails:   p => ['get_salary_details', { p_employee_id: p.employeeId, p_month_str: p.monthStr }],
   // DB param is p_date_param (the old p_date key never matched, so these were failing)
@@ -893,6 +894,7 @@ async function retrySelfiePhotoAttach() {
     PENDING_SELFIE_RETRY = null;
     if (btn) btn.style.display = 'none';
     showDialog("Photo uploaded successfully.");
+    if (typeof v2LoadTodaySelfies === 'function') v2LoadTodaySelfies();
   } else {
     if (btn) {
       btn.disabled = false;
@@ -2087,6 +2089,7 @@ async function handleClockIn() {
         sayPunch('in', { name: CURRENT_USER && (CURRENT_USER.fullName || CURRENT_USER.name), late: serverIsLate });
       }
       startAutoLogoutTimer(5);
+      if (typeof v2LoadTodaySelfies === 'function') v2LoadTodaySelfies();
 
       // The photo attach step is tracked separately from the punch itself -
       // don't let a failed attach silently pass as if the selfie was saved.
@@ -2262,6 +2265,7 @@ async function handleClockOut() {
         sayPunch('out', { name: CURRENT_USER && (CURRENT_USER.fullName || CURRENT_USER.name), shiftComplete: res.shift_complete });
       }
       startAutoLogoutTimer(5);
+      if (typeof v2LoadTodaySelfies === 'function') v2LoadTodaySelfies();
 
       // shift_message/shift_complete come straight from the clock_out RPC
       // (e.g. "Shift Incomplete - only 6.25 of 9 hours completed." or
@@ -2978,6 +2982,7 @@ async function checkTodayAttendanceStatus() {
       hideShiftStatusBadge();
       updateHomeUI(false);
     }
+    if (typeof v2LoadTodaySelfies === 'function') v2LoadTodaySelfies();
   } catch (e) {
     console.warn("Could not fetch today's punch status via callAPI:", e);
     // Do NOT fall back to "Punch In Now" - if the employee already punched

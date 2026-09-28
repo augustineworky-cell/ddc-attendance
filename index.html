@@ -502,6 +502,13 @@
     </div>
     <div id="notifBackdrop" class="notif-backdrop" onclick="toggleNotifPanel(false)"></div>
 
+    <!-- Full-size view of a saved selfie (Today's selfies card) -->
+    <div id="v2Viewer" class="v2-viewer" role="dialog" aria-modal="true" aria-label="Selfie" hidden onclick="v2CloseSelfie()">
+      <img id="v2ViewerImg" alt="">
+      <p id="v2ViewerCap"></p>
+      <button type="button" class="v2-viewer-close" onclick="v2CloseSelfie()" aria-label="Close">✕</button>
+    </div>
+
     <main class="main-content">
       <section id="homeView" class="app-view active fade-in-up">
         <div class="v2-home">
@@ -547,6 +554,30 @@
           <div id="punchRejectNote" class="punch-reject" role="alert" hidden></div>
           <div id="shiftStatusBadge" class="shift-status-badge" style="display:none;"></div>
           <button type="button" id="retryPhotoUploadBtn" class="btn-retry-photo" style="display:none;" onclick="retrySelfiePhotoAttach()">⚠️ Retry Photo Upload</button>
+
+          <!-- TODAY'S SELFIES: the photos actually saved on the server today -->
+          <div class="v2-card v2-today" id="v2TodaySelfies" hidden>
+            <div class="v2-card-head">
+              <h3 class="v2-h">Today's selfies</h3>
+              <span class="v2-saved" id="v2TodayBadge">Saved</span>
+            </div>
+            <div class="v2-today-grid">
+              <button type="button" class="v2-today-tile" id="v2InTile" onclick="v2OpenSelfie('in')" disabled>
+                <span class="v2-today-photo">
+                  <img id="v2InImg" alt="Your Punch In selfie" hidden>
+                  <span class="v2-today-empty" id="v2InEmpty">No photo yet</span>
+                </span>
+                <span class="v2-today-cap"><b>Punch In</b><span id="v2InTime">–</span></span>
+              </button>
+              <button type="button" class="v2-today-tile" id="v2OutTile" onclick="v2OpenSelfie('out')" disabled>
+                <span class="v2-today-photo">
+                  <img id="v2OutImg" alt="Your Punch Out selfie" hidden>
+                  <span class="v2-today-empty" id="v2OutEmpty">Not punched out yet</span>
+                </span>
+                <span class="v2-today-cap"><b>Punch Out</b><span id="v2OutTime">–</span></span>
+              </button>
+            </div>
+          </div>
 
           <!-- LIVE LOCATION: the Leaflet map (app.js) plus accuracy / distance chips -->
           <div class="v2-card v2-map-card">
