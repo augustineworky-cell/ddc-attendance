@@ -2848,3 +2848,80 @@ body { background: linear-gradient(180deg, #FBF4EC 0%, #F6ECE2 100%); background
    instead of sitting alone. Employees only see 4, so this never applies. */
 #homeView .v2-tiles > .v2-tile:nth-child(9) { grid-column: 1 / -1; min-height: 118px; }
 #homeView .v2-tile { padding-bottom: 20px; }
+
+/* ==========================================================================
+   v50: desktop 2-column Home + sidebar matched to the v2 look
+   ========================================================================== */
+#homeView .v2-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* Laptops / wide tablets: punch + selfies + map on the left,
+   month stats + workspace tiles on the right. Phones are unchanged. */
+@media (min-width: 1024px) {
+  #homeView .v2-home {
+    max-width: 1040px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  #homeView .v2-col-side { position: sticky; top: calc(24px + var(--banners-h, 0px)); }
+  #homeView .v2-map-box .my-location-map { height: 240px; }
+  #homeView .v2-today-photo { aspect-ratio: 4 / 3; }
+  #profileView .v2-profile { max-width: 560px; }
+}
+
+/* ---------- Sidebar (desktop menu + phone drawer) ---------- */
+#sidebar.sidebar { background: #FBF4EC; }
+@media (min-width: 769px) { #sidebar.sidebar { border-right: 1px solid #F1E4D8; } }
+
+#sidebar .sidebar-coral-header {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(238, 132, 120, 0.45), rgba(46, 42, 92, 0) 60%),
+    #2E2A5C;
+  border-radius: 0 0 26px 26px;
+}
+#sidebar .sidebar-leaf-cluster, #sidebar .sidebar-blob { display: none; }
+#sidebar .sidebar-brand { border-bottom-color: rgba(255, 255, 255, 0.14); }
+#sidebar .brand-logo { background: #FFFFFF; }
+#sidebar .brand-name { font-family: var(--v2-display); font-weight: 800; font-size: 17px; }
+#sidebar .brand-tag { color: rgba(255, 255, 255, 0.7); }
+#sidebar .user-avatar { background: var(--v2-cream); color: var(--v2-ink); border-color: var(--coral-primary); font-weight: 800; }
+#sidebar .user-name { color: #F7E7D3; }
+#sidebar .role-pill { color: #8FE3D2; }
+
+#sidebar .nav-section-label { color: #7B7596; padding-top: 14px; }
+#sidebar .nav-item { border-radius: 14px; padding: 7px 10px; gap: 12px; color: var(--v2-ink); }
+#sidebar .nav-item .nav-icon {
+  --nav-c: #5E5883;
+  box-sizing: border-box; flex-shrink: 0;
+  width: 34px; height: 34px; padding: 7px; border-radius: 10px;
+  background: var(--nav-c); color: #FFFFFF;
+}
+#sidebar .nav-item:hover { background: #FFFFFF; color: var(--v2-ink); box-shadow: 0 4px 12px rgba(46, 42, 92, 0.06); }
+#sidebar .nav-item:hover .nav-icon { color: #FFFFFF; }
+#sidebar .nav-item.active { background: var(--v2-ink); color: #FFFFFF; box-shadow: 0 8px 18px rgba(46, 42, 92, 0.22); }
+#sidebar .nav-item.active .nav-icon { color: #FFFFFF; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35); }
+
+/* one colour per destination - same colours as the Home tiles / Profile rows */
+#sidebar .nav-item[data-view="homeView"] .nav-icon      { --nav-c: #EE8478; }
+#sidebar .nav-item[data-view="profileView"] .nav-icon   { --nav-c: #7B6FA8; }
+#sidebar .nav-item[data-view="dashboardView"] .nav-icon { --nav-c: #5B7FD6; }
+#sidebar .nav-item[data-view="directoryView"] .nav-icon { --nav-c: #2BA891; }
+#sidebar .nav-item[data-view="leaveView"] .nav-icon     { --nav-c: #E9A92E; }
+#sidebar .nav-item[data-view="salaryView"] .nav-icon    { --nav-c: #1E9C85; }
+#sidebar .nav-item[data-view="trainingView"] .nav-icon  { --nav-c: #7B6FA8; }
+#sidebar .nav-item[data-view="fieldMapView"] .nav-icon  { --nav-c: #E0604F; }
+#sidebar .nav-item[data-view="userMgmtView"] .nav-icon  { --nav-c: #5E5883; }
+#sidebar #installAppBtn .nav-icon                       { --nav-c: #5E5883; }
+#sidebar #loginSettingsBtn .nav-icon                    { --nav-c: #2BA891; }
+
+#sidebar .nav-item.logout { color: #C4503F; }
+#sidebar .nav-item.logout .nav-icon { --nav-c: #E0604F; color: #FFFFFF; }
+#sidebar .nav-item.logout:hover { background: #FDEDE9; color: #9E3A2C; }
+
+/* ---------- Leave review: remarks box (v50) ---------- */
+.leave-who-id { font-weight: 600; font-size: 0.78rem; margin-left: 4px; }
+.leave-remarks-label { display: block; margin-top: 12px; font-size: 0.8rem; font-weight: 700; color: var(--navy-dark); }
+.leave-remarks.field-input { width: 100%; min-height: 64px; margin-top: 6px; resize: vertical; font-family: inherit; font-size: 0.9rem; line-height: 1.4; }
+.leave-remarks.needs-remarks { border-color: #E0604F; box-shadow: 0 0 0 3px rgba(224, 96, 79, 0.18); }
+.leave-card .btn-row { margin-top: 10px; }

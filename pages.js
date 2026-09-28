@@ -271,15 +271,24 @@ function renderLeaveList(list, containerId, isReview) {
     return;
   }
   box.innerHTML = list.map(item => {
+    // The server names these fields differently per call (get_all_pending_leaves
+    // sends name/type and no status; get_employee_leaves sends type). Normalise
+    // them here so the card - and the Approve/Reject buttons - always work.
+    const leaveType = item.leave_type || item.type || 'Leave';
+    const empName = item.employee_name || item.name || '';
+    const status = item.status || (isReview ? 'Pending' : '');
+    const remark = String(item.hr_comment || '').trim();
+    const showRemark = remark && remark !== status; // old records stored "Approved"/"Rejected" as the comment
     const days = daysBetween(item.from_date, item.to_date);
     const range = item.from_date === item.to_date
       ? fmtDate(item.from_date)
       : `${fmtDate(item.from_date)} – ${fmtDate(item.to_date)}`;
     const who = isReview
-      ? `<div class="leave-who"><span class="avatar avatar-sm">${escapeHtml(initials(item.employee_name || item.employee_id))}</span>${escapeHtml(item.employee_name || item.employee_id)}</div>`
+      ? `<div class="leave-who"><span class="avatar avatar-sm">${escapeHtml(initials(empName || item.employee_id))}</span>${escapeHtml(empName || item.employee_id)}${empName ? ` <span class="muted leave-who-id">${escapeHtml(item.employee_id || '')}</span>` : ''}</div>`
       : '';
-    const actions = isReview && item.status === 'Pending' ? `
-      <input type="text" class="field-input field-sm" id="leaveComment-${Number(item.id)}" placeholder="Comment for the employee (optional)" maxlength="200">
+    const actions = isReview && status === 'Pending' ? `
+      <label class="leave-remarks-label" for="leaveComment-${Number(item.id)}">Remarks for ${escapeHtml(empName ? empName.split(/\s+/)[0] : 'the employee')}</label>
+      <textarea class="field-input leave-remarks" id="leaveComment-${Number(item.id)}" oninput="this.classList.remove('needs-remarks')" rows="2" maxlength="200" placeholder="Optional when approving. Required when rejecting."></textarea>
       <div class="btn-row">
         <button type="button" class="btn btn-success" onclick="processLeave(${Number(item.id)}, 'Approved', this)"><i class="fas fa-check" aria-hidden="true"></i> Approve</button>
         <button type="button" class="btn btn-danger-ghost" onclick="processLeave(${Number(item.id)}, 'Rejected', this)"><i class="fas fa-xmark" aria-hidden="true"></i> Reject</button>
@@ -287,12 +296,12 @@ function renderLeaveList(list, containerId, isReview) {
     return `<article class="card leave-card" id="leave-${Number(item.id)}">
       ${who}
       <div class="leave-top">
-        <span class="leave-type">${escapeHtml(item.leave_type || 'Leave')}</span>
-        ${statusPill(item.status)}
+        <span class="leave-type">${escapeHtml(leaveType)}</span>
+        ${statusPill(status)}
       </div>
       <div class="leave-dates"><i class="far fa-calendar" aria-hidden="true"></i> ${escapeHtml(range)} <span class="muted">&bull; ${days} ${days === 1 ? 'day' : 'days'}</span></div>
-      <p class="leave-reason">${item.reason ? escapeHtml(item.reason) : '<span class="muted">No reason given</span>'}</p>
-      ${item.hr_comment && !isReview ? `<p class="leave-comment"><i class="fas fa-reply" aria-hidden="true"></i> ${escapeHtml(item.hr_comment)}</p>` : ''}
+      ${item.reason === undefined ? '' : `<p class="leave-reason">${item.reason ? escapeHtml(item.reason) : '<span class="muted">No reason given</span>'}</p>`}
+      ${showRemark && !isReview ? `<p class="leave-comment"><i class="fas fa-reply" aria-hidden="true"></i> <b>Remarks:</b> ${escapeHtml(remark)}</p>` : ''}
       ${actions}
     </article>`;
   }).join('');
@@ -363,7 +372,13 @@ async function handleApplyLeave(btn) {
 
 async function processLeave(leaveId, status, btn) {
   const commentEl = document.getElementById(`leaveComment-${leaveId}`);
-  const comment = commentEl && commentEl.value.trim() ? commentEl.value.trim() : status;
+  const comment = commentEl ? commentEl.value.trim() : '';
+  // A rejection must say why - the employee sees these remarks.
+  if (status === 'Rejected' && comment.length < 3) {
+    notify('Add remarks so the employee knows why it was rejected.', 'error');
+    if (commentEl) { commentEl.focus(); commentEl.classList.add('needs-remarks'); }
+    return;
+  }
   const card = document.getElementById(`leave-${leaveId}`);
   if (card) card.querySelectorAll('button').forEach(b => b.disabled = true);
   setBusy(btn, true, status === 'Approved' ? 'Approving…' : 'Rejecting…');
