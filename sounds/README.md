@@ -1,7 +1,9 @@
-# Optional notification voice
+# Staffly voice line
 
-Put a short recorded clip here named **`staffly.mp3`** (about 1 second, a bright
-voice saying "Staffly!"). If this file exists, Staffly plays it for new
-notifications instead of the built-in chime + phone voice.
+- **staffly-soft.mp3** – the one the app plays (v52+). Same "Staffly" recording as
+  staffly.mp3, but 12 dB quieter, harsh treble smoothed out, gentle fade in/out,
+  after staff said the original was too loud.
+- **staffly.mp3** – the original loud recording, kept for reference only (not played).
 
-Keep it under ~100 KB. After adding it, bump `CACHE_NAME` in service-worker.js.
+To change the sound, replace staffly-soft.mp3 (keep it soft: peak around -16 dB)
+and bump CACHE_NAME in service-worker.js.

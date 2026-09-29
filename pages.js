@@ -970,7 +970,7 @@ async function toggleUserStatus(employeeId, currentStatus, btn) {
 // play the Staffly jingle unless muted.
 const NOTIF_POLL_MS = 25000;
 const NOTIF_SOUND_KEY = 'STAFFLY_NOTIF_SOUND';
-const STAFFLY_SOUND_FILE = 'sounds/staffly.mp3'; // optional recorded voice clip
+const STAFFLY_SOUND_FILE = 'sounds/staffly-soft.mp3'; // soft version of the recorded "Staffly" voice line (v52)
 let NOTIF_ITEMS = [];
 let NOTIF_LAST_ID = 0;
 let NOTIF_UNREAD = 0;
@@ -1146,7 +1146,16 @@ function updateSoundButton() {
 // high and cheerful). If sounds/staffly.mp3 exists - e.g. a recorded voice
 // clip - that plays instead.
 let NOTIF_AUDIO_CTX = null;
-let STAFFLY_CLIP = undefined; // undefined = not checked, null = none, Audio = use it
+let STAFFLY_CLIP = undefined;   // undefined = not loaded yet, null = unavailable, true = ready
+let STAFFLY_BUFFER = null;      // decoded "Staffly" voice line
+
+// Staffly volume: a share of the PHONE's media volume (apps can't change the
+// phone's own volume). Default 40%, adjustable per phone in Profile.
+const STAFFLY_VOLUME_KEY = 'STAFFLY_VOLUME';
+function stafflyVolume() {
+  const v = Number(localStorage.getItem(STAFFLY_VOLUME_KEY));
+  return Number.isFinite(v) && localStorage.getItem(STAFFLY_VOLUME_KEY) !== null ? Math.min(1, Math.max(0, v / 100)) : 0.4;
+}
 
 function unlockNotifAudio() {
   try {
@@ -1156,80 +1165,88 @@ function unlockNotifAudio() {
     }
     if (NOTIF_AUDIO_CTX && NOTIF_AUDIO_CTX.state === 'suspended') NOTIF_AUDIO_CTX.resume();
   } catch (e) {}
-  if (STAFFLY_CLIP === undefined && typeof fetch === 'function') {
+  if (STAFFLY_USE_CLIP && STAFFLY_CLIP === undefined && NOTIF_AUDIO_CTX && typeof fetch === 'function') {
     STAFFLY_CLIP = null;
-    fetch(STAFFLY_SOUND_FILE, { method: 'HEAD' })
-      .then(r => { if (r.ok) { STAFFLY_CLIP = new Audio(STAFFLY_SOUND_FILE); STAFFLY_CLIP.preload = 'auto'; } })
-      .catch(() => {});
+    fetch(STAFFLY_SOUND_FILE)
+      .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('no clip'))))
+      .then(buf => new Promise((res, rej) => NOTIF_AUDIO_CTX.decodeAudioData(buf, res, rej)))
+      .then(decoded => { STAFFLY_BUFFER = decoded; STAFFLY_CLIP = true; })
+      .catch(() => { STAFFLY_CLIP = null; });
   }
+}
+
+// Plays the "Staffly" voice line at the Staffly volume. Returns false if it
+// isn't ready (caller falls back to the chime).
+function playStafflyClip(onEnded) {
+  const ctx = NOTIF_AUDIO_CTX;
+  if (!ctx || ctx.state !== 'running' || !STAFFLY_BUFFER) return false;
+  try {
+    const src = ctx.createBufferSource();
+    const g = ctx.createGain();
+    src.buffer = STAFFLY_BUFFER;
+    g.gain.value = stafflyVolume();
+    src.connect(g); g.connect(ctx.destination);
+    if (onEnded) src.onended = onEnded;
+    src.start();
+    return true;
+  } catch (e) { return false; }
 }
 // Browsers only allow sound after the user has touched the page once.
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, unlockNotifAudio, { once: true, passive: true }));
 
+// v52: calmer sound after staff feedback ("too loud / annoying").
+// - Soft two-note chime: low, pure sine tones, slow fade, ~1/3 the old loudness
+// - The "Staffly" voice line stays, but as staffly-soft.mp3: the same
+//   recording 12 dB quieter, treble smoothed, gentle fade in/out
+// - No squeaky synthetic "Staffly!" (pitch 1.8) any more
+// - Punch voice: shorter, calmer sentence at a lower volume
+const STAFFLY_USE_CLIP = true;
+
 function playStafflyJingle() {
   if (!notifSoundOn()) return;
-  try { if (navigator.vibrate) navigator.vibrate([40, 40, 60]); } catch (e) {}
-  if (STAFFLY_CLIP) {
-    STAFFLY_CLIP.currentTime = 0;
-    STAFFLY_CLIP.play().catch(() => {});
-    return;
-  }
+  try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
+  if (playStafflyClip()) return;
   playStafflyChime();
-  setTimeout(sayStaffly, 380);
 }
 
-// The sparkly rising chime on its own (no voice).
+// Gentle "ding-dong": C5 then G5, pure sine, soft attack, long quiet fade,
+// high frequencies filtered out so it never sounds sharp.
 function playStafflyChime() {
   const ctx = NOTIF_AUDIO_CTX;
-  if (ctx && ctx.state === 'running') {
-    const t0 = ctx.currentTime + 0.02;
-    const master = ctx.createGain();
-    master.gain.value = 0.22;
-    master.connect(ctx.destination);
-    // Bright rising arpeggio (E6 G#6 B6 E7) + a soft shimmer on top.
-    [[1318.5, 0], [1661.2, 0.075], [1975.5, 0.15], [2637.0, 0.24]].forEach(([f, dt], i) => {
-      ['sine', 'triangle'].forEach((type, k) => {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = type;
-        o.frequency.value = f * (k ? 2 : 1);
-        const start = t0 + dt, peak = k ? 0.12 : 0.9, len = i === 3 ? 0.55 : 0.22;
-        g.gain.setValueAtTime(0.0001, start);
-        g.gain.exponentialRampToValueAtTime(peak, start + 0.012);
-        g.gain.exponentialRampToValueAtTime(0.0001, start + len);
-        o.connect(g); g.connect(master);
-        o.start(start); o.stop(start + len + 0.05);
-      });
-    });
-  }
-}
-
-function sayStaffly() {
-  if (!('speechSynthesis' in window)) return;
+  if (!ctx || ctx.state !== 'running') return;
   try {
-    const u = new SpeechSynthesisUtterance('Staffly!');
-    const voices = speechSynthesis.getVoices();
-    const female = /female|zira|samantha|susan|karen|moira|tessa|veena|heera|aria|jenny|google uk english female|google us english/i;
-    u.voice = voices.find(v => /^en/i.test(v.lang) && female.test(v.name))
-      || voices.find(v => /^en/i.test(v.lang)) || null;
-    u.lang = (u.voice && u.voice.lang) || 'en-US';
-    u.pitch = 1.8;   // bright, playful
-    u.rate = 1.05;
-    u.volume = 1;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
+    const t0 = ctx.currentTime + 0.03;
+    const master = ctx.createGain();
+    master.gain.value = 0.07 * (stafflyVolume() / 0.4);
+    const soften = ctx.createBiquadFilter();
+    soften.type = 'lowpass';
+    soften.frequency.value = 2000;
+    master.connect(soften);
+    soften.connect(ctx.destination);
+    [[523.25, 0], [783.99, 0.18]].forEach(([freq, dt]) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      const start = t0 + dt;
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(1, start + 0.045);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + 1.1);
+      o.connect(g); g.connect(master);
+      o.start(start); o.stop(start + 1.2);
+    });
   } catch (e) {}
 }
+
 // ---- Punch voice -----------------------------------------------------------
-// After a successful Punch In / Punch Out: "Staffly!" (recorded clip or
-// chime) followed by a short spoken confirmation with the employee's first
-// name. Uses the same speaker on/off button as notifications.
+// After a successful Punch In / Punch Out: the soft chime, then one short,
+// calm sentence with the employee's first name. Same speaker on/off switch.
 //   kind: 'in' | 'out'
 //   opts: { name, late (in), shiftComplete (out) }
 function sayPunch(kind, opts = {}) {
   if (!notifSoundOn()) return;
   unlockNotifAudio();
-  try { if (navigator.vibrate) navigator.vibrate([60, 50, 120]); } catch (e) {}
+  try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) {}
 
   const first = String(opts.name || '').trim().split(/\s+/)[0] || '';
   const who = first ? `, ${first}` : '';
@@ -1238,30 +1255,24 @@ function sayPunch(kind, opts = {}) {
 
   let line;
   if (kind === 'in') {
-    line = opts.late
-      ? `Punch in successful${who}. Marked late today.`
-      : `Punch in successful. ${greet}${who}!`;
+    line = opts.late ? `Punched in${who}. Marked late today.` : `Punched in. ${greet}${who}.`;
   } else {
-    line = opts.shiftComplete === false
-      ? `Punch out successful${who}. Shift incomplete today.`
-      : `Punch out successful. Thank you${who}, see you tomorrow!`;
+    line = opts.shiftComplete === false ? `Punched out${who}. Shift incomplete today.` : `Punched out. Thank you${who}.`;
   }
 
-  if (STAFFLY_CLIP) {
-    // Recorded "Staffly!" first, then the sentence once it ends.
-    let spoken = false;
-    const go = () => { if (!spoken) { spoken = true; speakStaffly(line); } };
-    STAFFLY_CLIP.currentTime = 0;
-    STAFFLY_CLIP.onended = go;
-    STAFFLY_CLIP.play().catch(go);
-    setTimeout(go, 1500); // safety net if 'ended' never fires
+  let spoken = false;
+  const go = () => { if (!spoken) { spoken = true; speakStaffly(line); } };
+  if (playStafflyClip(go)) {
+    // Soft "Staffly" voice line first, then the sentence once it ends.
+    setTimeout(go, 2600); // safety net if 'ended' never fires
   } else {
+    // Clip not loaded yet: soft chime, then say the brand name calmly.
     playStafflyChime();
-    setTimeout(() => speakStaffly('Staffly! ' + line), 380);
+    setTimeout(() => speakStaffly('Staffly. ' + line), 700);
   }
 }
 
-// Speaks a sentence in a clear, friendly voice (Indian English preferred).
+// Speaks a sentence in a calm, natural voice (Indian English preferred).
 function speakStaffly(text) {
   if (!('speechSynthesis' in window)) return;
   try {
@@ -1273,9 +1284,9 @@ function speakStaffly(text) {
       || voices.find(v => /^en/i.test(v.lang) && female.test(v.name))
       || voices.find(v => /^en/i.test(v.lang)) || null;
     u.lang = (u.voice && u.voice.lang) || 'en-IN';
-    u.pitch = 1.15;
-    u.rate = 1.0;
-    u.volume = 1;
+    u.pitch = 1.0;   // natural, not squeaky
+    u.rate = 0.95;   // unhurried
+    u.volume = stafflyVolume(); // same Staffly volume (default 40%)
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
   } catch (e) {}
@@ -1703,3 +1714,27 @@ function v2CloseSelfie() {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') v2CloseSelfie();
 });
+
+
+// ---- Staffly volume slider (Profile) --------------------------------------
+function v2SyncVolume() {
+  const r = document.getElementById('v2VolRange');
+  const o = document.getElementById('v2VolOut');
+  const pct = Math.round(stafflyVolume() * 100);
+  if (r) r.value = String(pct);
+  if (o) o.textContent = `${pct}%`;
+}
+let V2_VOL_PREVIEW = null;
+function v2SetVolume(pct) {
+  const v = Math.min(100, Math.max(0, Math.round(Number(pct) / 10) * 10));
+  try { localStorage.setItem(STAFFLY_VOLUME_KEY, String(v)); } catch (e) {}
+  const o = document.getElementById('v2VolOut');
+  if (o) o.textContent = `${v}%`;
+  // short preview after the finger stops moving
+  clearTimeout(V2_VOL_PREVIEW);
+  V2_VOL_PREVIEW = setTimeout(() => {
+    unlockNotifAudio();
+    if (v > 0 && notifSoundOn() && !playStafflyClip()) playStafflyChime();
+  }, 350);
+}
+document.addEventListener('DOMContentLoaded', v2SyncVolume);

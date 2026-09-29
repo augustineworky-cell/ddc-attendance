@@ -2945,3 +2945,9 @@ body { background: linear-gradient(180deg, #FBF4EC 0%, #F6ECE2 100%); background
 #sidebar .sidebar-leaf-cluster path:nth-child(3) { fill: #EE8478; opacity: 0.30; }
 #sidebar .sidebar-leaf-cluster path:nth-child(4) { fill: #F0C660; opacity: 0.22; }
 #sidebar .sidebar-blob { display: block; background: var(--coral-primary); opacity: 0.2; }
+
+/* ---------- Staffly volume slider (v52) ---------- */
+#profileView .v2-row-static { cursor: default; align-items: center; }
+#profileView .v2-row-static label { cursor: pointer; }
+#profileView .v2-vol-range { width: 100%; margin: 10px 0 4px; accent-color: var(--coral-primary); height: 28px; cursor: pointer; }
+#profileView .v2-vol-out { min-width: 44px; text-align: right; font-weight: 800; font-size: 15px; color: var(--v2-ink); font-variant-numeric: tabular-nums; }
