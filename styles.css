@@ -2951,3 +2951,261 @@ body { background: linear-gradient(180deg, #FBF4EC 0%, #F6ECE2 100%); background
 #profileView .v2-row-static label { cursor: pointer; }
 #profileView .v2-vol-range { width: 100%; margin: 10px 0 4px; accent-color: var(--coral-primary); height: 28px; cursor: pointer; }
 #profileView .v2-vol-out { min-width: 44px; text-align: right; font-weight: 800; font-size: 15px; color: var(--v2-ink); font-variant-numeric: tabular-nums; }
+
+/* ---------- Pause after beta (v54) ---------- */
+#loginView .v2-paused[hidden] { display: none; }
+#loginView .v2-paused {
+  position: relative; z-index: 2;
+  margin: -40px 18px 0; padding: 26px 22px 22px;
+  border-radius: 26px; background: #FFFFFF; text-align: center;
+  border: 2px solid rgba(238, 132, 120, 0.5);
+  box-shadow: 0 18px 40px rgba(46, 42, 92, 0.16);
+}
+#loginView .v2-paused-badge {
+  display: inline-block; padding: 5px 12px; border-radius: 999px;
+  background: #E3F6F1; color: #1E7F6D; font-size: 12px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+}
+#loginView .v2-paused-title {
+  margin: 14px 0 10px; font-family: var(--v2-display); font-weight: 800;
+  font-size: 32px; line-height: 1.05; color: var(--v2-ink); text-transform: uppercase; letter-spacing: -0.3px;
+}
+#loginView .v2-paused-msg { font-size: 18px; color: #C4503F; margin: 0 0 12px; }
+#loginView .v2-paused-msg strong { font-weight: 800; }
+#loginView .v2-paused-sub { font-size: 14px; line-height: 1.5; color: var(--v2-ink-2); margin: 0 0 8px; }
+#loginView .v2-paused-admin {
+  margin-top: 10px; min-height: 44px; padding: 8px 14px; border: none; background: none;
+  color: var(--v2-ink-2); font-family: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; cursor: pointer;
+}
+/* while paused, hide the login form (unless the admin asked for it) */
+body.app-paused:not(.paused-admin) #loginView .login-card-container { display: none !important; }
+body.app-paused #loginView .login-fill-space { display: none; }
+body.app-paused.paused-admin #loginView .v2-paused { display: none; }
+
+/* =====================================================================
+   v55: DEVELOPER FLIP CARD  (on the paused screen)
+   ===================================================================== */
+.dev-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 20px auto 0;
+  max-width: 300px;
+  text-align: center;
+}
+
+/* 3-D stage */
+.dev-flip-wrap {
+  width: 96px;
+  height: 96px;
+  perspective: 600px;
+  margin-bottom: 6px;
+}
+
+.dev-flip-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.45, 0, 0.55, 1);
+  border-radius: 50%;
+}
+
+.dev-flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.dev-flip-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  border: 3px solid #EE8478;      /* coral ring, matches Profile screen */
+  box-shadow: 0 0 0 1.5px #FBF4EC, 0 4px 18px rgba(238,132,120,0.35);
+}
+
+.dev-flip-back {
+  transform: rotateY(180deg);
+}
+
+.dev-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dev-name {
+  font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #2E2A5C;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.dev-role {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #7B6FA8;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.dev-tagline {
+  font-size: 12px;
+  color: #5a5585;
+  line-height: 1.6;
+  margin: 4px 0 2px;
+  font-style: italic;
+}
+
+.dev-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  background: linear-gradient(135deg, #2E2A5C, #7B6FA8);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.2px;
+  box-shadow: 0 4px 14px rgba(46,42,92,0.28);
+  margin: 4px 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dev-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(46,42,92,0.35);
+}
+
+.dev-link i {
+  font-size: 10px;
+}
+
+.dev-cta {
+  font-size: 11px;
+  color: #9993bb;
+  margin: 2px 0 0;
+  line-height: 1.5;
+}
+
+/* =====================================================================
+   v55: FULL-SCREEN PWA UPDATE MODAL
+   ===================================================================== */
+.pwa-update-banner {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+  background: rgba(15, 23, 42, 0.82) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px !important;
+  border-bottom: none !important;
+  animation: pwaModalIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes pwaModalIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.pwa-update-inner {
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px 28px 24px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+  animation: pwaCardUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pwaCardUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.pwa-update-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2E2A5C, #7B6FA8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.pwa-update-icon i {
+  color: #fff;
+  font-size: 24px;
+}
+
+.pwa-update-title {
+  font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2E2A5C;
+  margin: 0 0 10px;
+  letter-spacing: -0.5px;
+}
+
+.pwa-update-body {
+  font-size: 13.5px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+/* override old tiny-banner btn styles in context of modal */
+.pwa-update-inner .pwa-update-btn {
+  display: block;
+  width: 100%;
+  background: linear-gradient(135deg, #EE8478, #d4705c);
+  color: #fff;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(238,132,120,0.4);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  margin-bottom: 10px;
+}
+
+.pwa-update-inner .pwa-update-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(238,132,120,0.48);
+}
+
+.pwa-update-skip {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: color 0.15s ease;
+}
+
+.pwa-update-skip:hover {
+  color: #6b7280;
+}
+
+/* freeze scrolling while update modal is open */
+body.pwa-update-open { overflow: hidden; }

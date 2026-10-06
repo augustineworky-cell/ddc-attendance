@@ -128,11 +128,14 @@
        never overlap each other; height is measured live by JS to push the
        app's fixed header/sidebar down by exactly the right amount. -->
   <div id="topBannerStack" class="top-banner-stack">
-    <div id="pwaUpdateBanner" class="pwa-update-banner" style="display:none;">
-      <span class="pwa-update-text">
-        <i class="fas fa-circle-arrow-up"></i> A new version of Staffly is available.
-      </span>
-      <button type="button" class="pwa-update-btn" onclick="applyPwaUpdate()">Update Now</button>
+    <div id="pwaUpdateBanner" class="pwa-update-banner" style="display:none;" role="alertdialog" aria-modal="true" aria-labelledby="pwaUpdateTitle">
+      <div class="pwa-update-inner">
+        <div class="pwa-update-icon"><i class="fas fa-circle-arrow-up"></i></div>
+        <h2 class="pwa-update-title" id="pwaUpdateTitle">Staffly Update Ready</h2>
+        <p class="pwa-update-body">A new version is available with improvements and fixes. Tap <strong>Update Now</strong> — it only takes a second.</p>
+        <button type="button" class="pwa-update-btn" onclick="applyPwaUpdate()">Update Now</button>
+        <button type="button" class="pwa-update-skip" onclick="document.getElementById('pwaUpdateBanner').style.display='none'">Remind me later</button>
+      </div>
     </div>
 
     <div id="permissionBanner" class="permission-banner" style="display:none;">
@@ -224,6 +227,37 @@
             </g>
           </g>
         </svg>
+      </div>
+
+      <!-- Shown when Staffly is paused on the server (after beta testing) -->
+      <div id="v2PausedNotice" class="v2-paused" role="alert" hidden>
+        <div class="v2-paused-badge">Staffly beta</div>
+        <h1 class="v2-paused-title">Testing phase<br>completed</h1>
+        <p class="v2-paused-msg" id="v2PausedMsg"><strong>Please wait for the final launch.</strong></p>
+        <p class="v2-paused-sub">Thank you for testing Staffly! Login and punching are switched off until the final launch. Your attendance records are safe.</p>
+
+        <!-- Developer flip card -->
+        <div class="dev-card">
+          <div class="dev-flip-wrap">
+            <div class="dev-flip-inner" id="devFlipInner">
+              <div class="dev-flip-face dev-flip-front">
+                <img src="assets/dev-real.jpg" alt="Augustine Rozario" class="dev-avatar">
+              </div>
+              <div class="dev-flip-face dev-flip-back">
+                <img src="assets/dev-anime.jpg" alt="Augustine · Anime" class="dev-avatar">
+              </div>
+            </div>
+          </div>
+          <p class="dev-name">Augustine Rozario</p>
+          <p class="dev-role">Designer &amp; Developer · Staffly</p>
+          <p class="dev-tagline">This app was built from scratch — not off-the-shelf.<br>Every screen, every feature, crafted with purpose.</p>
+          <a href="https://makemyclick.com" target="_blank" rel="noopener" class="dev-link">
+            <i class="fas fa-arrow-up-right-from-square"></i> makemyclick.com
+          </a>
+          <p class="dev-cta">Need a custom web system or automation for your business?</p>
+        </div>
+
+        <button type="button" class="v2-paused-admin" onclick="v2ShowAdminLogin()">Admin sign-in</button>
       </div>
 
       <div class="login-card-container">
@@ -959,7 +993,10 @@
 
     function showPwaUpdateBanner() {
       const banner = document.getElementById('pwaUpdateBanner');
-      if (banner) banner.style.display = 'flex';
+      if (banner) {
+        banner.style.display = 'flex';
+        document.body.classList.add('pwa-update-open');
+      }
     }
 
     function applyPwaUpdate() {
@@ -968,6 +1005,7 @@
       }
       const banner = document.getElementById('pwaUpdateBanner');
       if (banner) banner.style.display = 'none';
+      document.body.classList.remove('pwa-update-open');
     }
 
     let deferredInstallPrompt = null;

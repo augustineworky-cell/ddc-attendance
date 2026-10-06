@@ -967,6 +967,7 @@ function applySessionUI(isLoggedIn) {
       loginView.style.removeProperty('display');
       loginView.style.setProperty('display', 'flex', 'important');
     }
+    if (typeof v2CheckAppStatus === 'function') v2CheckAppStatus();
   }
 }
 
@@ -1327,6 +1328,11 @@ async function loginWithFingerprint() {
         }
       }
     });
+    if (data && data.status === 'APP_PAUSED') {
+      setFpVisual('idle');
+      if (typeof v2ApplyPause === 'function') v2ApplyPause(true, data.message);
+      return;
+    }
     if (!data || data.status !== 'SUCCESS') throw new Error((data && data.status) || 'FAILED');
     setFpVisual('success');
     await new Promise(r => setTimeout(r, 450)); // let the ✓ show
@@ -1372,6 +1378,10 @@ async function loginWithPin() {
       return;
     }
     input.value = '';
+    if (data && data.status === 'APP_PAUSED') {
+      if (typeof v2ApplyPause === 'function') v2ApplyPause(true, data.message);
+      return;
+    }
     if (data && data.status === 'INVALID_PIN') {
       showQuickError(`Wrong PIN. ${data.attempts_left} ${data.attempts_left === 1 ? 'try' : 'tries'} left.`);
     } else if (data && data.status === 'PIN_LOCKED') {
@@ -1659,6 +1669,10 @@ async function handlePasswordLogin(e) {
     if (!data || data.status !== 'SUCCESS') {
       passwordInput.value = '';
       passwordInput.focus();
+      if (data && data.status === 'APP_PAUSED') {
+        if (typeof v2ApplyPause === 'function') v2ApplyPause(true, data.message);
+        return;
+      }
       if (data && data.status === 'LOCKED') {
         showError(`Too many wrong attempts. Try again in ${data.retry_after_minutes || 15} minutes.`);
       } else {

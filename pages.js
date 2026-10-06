@@ -1738,3 +1738,83 @@ function v2SetVolume(pct) {
   }, 350);
 }
 document.addEventListener('DOMContentLoaded', v2SyncVolume);
+
+// ---- Pause after beta (v54) -----------------------------------------------
+// The server decides (public.app_status). While paused, the login form is
+// replaced by a "Testing phase completed" notice. Only the Dev account can
+// still sign in, via the small "Admin sign-in" link.
+async function v2CheckAppStatus() {
+  try {
+    if (typeof sbClient === 'undefined' || !sbClient) return;
+    const { data, error } = await sbClient.rpc('app_status');
+    if (error || !data) return;
+    v2ApplyPause(!!data.paused, data.message);
+  } catch (e) { /* offline: leave the screen as it is */ }
+}
+
+function v2ApplyPause(paused, message) {
+  document.body.classList.toggle('app-paused', !!paused);
+  if (!paused) document.body.classList.remove('paused-admin');
+  const box = document.getElementById('v2PausedNotice');
+  if (box) box.hidden = !paused;
+  const msg = document.getElementById('v2PausedMsg');
+  if (msg && message) {
+    msg.innerHTML = '';
+    const b = document.createElement('strong');
+    b.textContent = String(message).replace(/^Testing phase completed\.?\s*/i, '') || 'Please wait for the final launch.';
+    msg.appendChild(b);
+  }
+}
+
+function v2ShowAdminLogin() {
+  document.body.classList.add('paused-admin');
+  if (typeof showPasswordLogin === 'function') {
+    try { showPasswordLogin('Admin sign-in only. Staff login is paused until the final launch.'); } catch (e) {}
+  }
+  const id = document.getElementById('loginEmployeeId') || document.querySelector('#loginView input[type="text"]');
+  if (id) id.focus();
+}
+
+document.addEventListener('DOMContentLoaded', v2CheckAppStatus);
+
+// =====================================================================
+// v55: Developer flip-card auto-animation
+// Flips every 3.5 s while the paused notice is visible.
+// =====================================================================
+(function () {
+  let _devFlipTimer = null;
+  let _devFlipped   = false;
+
+  function _startDevFlip() {
+    if (_devFlipTimer) return;          // already running
+    const el = document.getElementById('devFlipInner');
+    if (!el) return;
+    _devFlipTimer = setInterval(() => {
+      _devFlipped = !_devFlipped;
+      el.classList.toggle('flipped', _devFlipped);
+    }, 3500);
+  }
+
+  function _stopDevFlip() {
+    clearInterval(_devFlipTimer);
+    _devFlipTimer = null;
+  }
+
+  // Hook into v2ApplyPause so the timer starts/stops with the screen.
+  const _origApplyPause = window.v2ApplyPause;
+  window.v2ApplyPause = function (paused, message) {
+    if (typeof _origApplyPause === 'function') _origApplyPause(paused, message);
+    if (paused) {
+      // Small delay so the DOM element is visible before we start
+      setTimeout(_startDevFlip, 400);
+    } else {
+      _stopDevFlip();
+    }
+  };
+
+  // Also kick off if page loads already in paused state
+  document.addEventListener('DOMContentLoaded', () => {
+    const notice = document.getElementById('v2PausedNotice');
+    if (notice && !notice.hidden) _startDevFlip();
+  });
+})();
