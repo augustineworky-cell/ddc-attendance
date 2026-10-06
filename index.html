@@ -1003,10 +1003,14 @@
       const banner = document.getElementById('pwaUpdateBanner');
       if (banner) banner.style.display = 'none';
       document.body.classList.remove('pwa-update-open');
+
       if (pwaWaitingWorker) {
+        // Tell the waiting SW to activate — controllerchange will reload the page.
         pwaWaitingWorker.postMessage({ type: 'SKIP_WAITING' });
+        // Fallback: if controllerchange never fires within 3 s, force reload anyway.
         setTimeout(() => window.location.reload(), 3000);
       } else {
+        // No waiting worker tracked — just reload; browser will pick up latest.
         window.location.reload();
       }
     }

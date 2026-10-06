@@ -1,8 +1,8 @@
-// DDC Attendance PWA Service Worker
+// DDC Attendance PWA Service Worker  (v56 — robust install + reliable update)
 // Caches only the static app shell. Never caches Supabase / API / geolocation
 // data, so attendance punches and geofence checks always hit the network live.
 
-const CACHE_NAME = 'staffly-shell-v55';
+const CACHE_NAME = 'staffly-shell-v56';
 
 const SHELL_ASSETS = [
   '/',
@@ -22,14 +22,24 @@ const SHELL_ASSETS = [
   '/assets/dev-anime.jpg'
 ];
 
-// Install: pre-cache the app shell
+// Install: pre-cache the app shell.
+// IMPORTANT: cache each asset individually so one missing file does NOT
+// kill the entire install (addAll is all-or-nothing).  Previously, a
+// single 404 on any shell asset would silently fail the whole SW
+// install, leaving the Update banner showing forever with no way out.
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        SHELL_ASSETS.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn('[SW] Could not cache', url, err);
+            return null; // swallow — don't fail the whole install
+          })
+        )
+      )
+    )
   );
-  // NOTE: intentionally no self.skipWaiting() here.
-  // We want the new worker to sit in "waiting" state until the user
-  // explicitly taps "Update Now" in the app's update banner.
 });
 
 // Let the page tell a waiting worker to activate immediately
@@ -58,7 +68,6 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Never touch non-GET requests, cross-origin API calls, or Supabase traffic.
   const isDynamic =
     request.method !== 'GET' ||
     url.origin !== self.location.origin ||
@@ -68,7 +77,6 @@ self.addEventListener('fetch', (event) => {
     url.pathname.includes('/storage/');
 
   if (isDynamic) {
-    // Let it go straight to the network, no caching, no interception logic.
     return;
   }
 
@@ -77,13 +85,11 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
       return fetch(request)
         .then((response) => {
-          // Cache a copy of newly-fetched shell assets for next time offline.
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
           return response;
         })
         .catch(() => {
-          // Offline fallback: serve the cached shell page if available.
           if (request.mode === 'navigate') {
             return caches.match('/index.html');
           }
@@ -92,12 +98,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// ==========================================================================
 // PUSH NOTIFICATIONS
-// ==========================================================================
-// Sent by the "staffly-push" Edge Function. If Staffly is open and visible,
-// the page shows it itself (bell + "Staffly!" jingle) - no duplicate system
-// alert. Otherwise it appears on the lock screen / notification bar.
 self.addEventListener('push', (event) => {
   let data = {};
   try {
@@ -123,7 +124,6 @@ self.addEventListener('push', (event) => {
   })());
 });
 
-// Tapping the alert opens Staffly on the right page.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
