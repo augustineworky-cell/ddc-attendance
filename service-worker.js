@@ -1,8 +1,8 @@
-// DDC Attendance PWA Service Worker  (v57 — silent auto-update, no banner)
+// DDC Attendance PWA Service Worker  (v58 — client logos added, silent update)
 // Caches only the static app shell. Updates install, activate and reload
 // the page automatically — no "Update Now" prompt is ever shown.
 
-const CACHE_NAME = 'staffly-shell-v57';
+const CACHE_NAME = 'staffly-shell-v58';
 
 const SHELL_ASSETS = [
   '/',
@@ -19,12 +19,13 @@ const SHELL_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
   '/assets/dev-real.jpg',
-  '/assets/dev-anime.jpg'
+  '/assets/dev-anime.jpg',
+  '/assets/clients/makemyclick.jpg',
+  '/assets/clients/zenin.jpg',
+  '/assets/clients/bansals.jpg',
+  '/assets/clients/catalyster.jpg'
 ];
 
-// Install: cache each file individually so a single 404 cannot kill
-// the whole install.  Then skipWaiting() so this new worker activates
-// immediately instead of waiting for the user to tap anything.
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
@@ -36,11 +37,10 @@ self.addEventListener('install', (event) => {
         })
       )
     );
-    await self.skipWaiting();           // <<< auto-activate, no "waiting" state
+    await self.skipWaiting();
   })());
 });
 
-// Activate: clean up old caches and claim all open pages immediately.
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -51,7 +51,6 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-// Fetch: cache-first for the app shell, network-only for everything dynamic
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -76,29 +75,20 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          if (request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
+          if (request.mode === 'navigate') return caches.match('/index.html');
         });
     })
   );
 });
 
-// PUSH NOTIFICATIONS
 self.addEventListener('push', (event) => {
   let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch (e) {
-    data = { title: 'Staffly', body: event.data ? event.data.text() : '' };
-  }
+  try { data = event.data ? event.data.json() : {}; }
+  catch (e) { data = { title: 'Staffly', body: event.data ? event.data.text() : '' }; }
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const visible = wins.find((c) => c.visibilityState === 'visible');
-    if (visible) {
-      visible.postMessage({ type: 'staffly-push', data });
-      return;
-    }
+    if (visible) { visible.postMessage({ type: 'staffly-push', data }); return; }
     await self.registration.showNotification(data.title || 'Staffly', {
       body: data.body || '',
       tag: data.tag || undefined,

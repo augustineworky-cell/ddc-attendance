@@ -3209,3 +3209,94 @@ body.app-paused.paused-admin #loginView .v2-paused { display: none; }
 
 /* freeze scrolling while update modal is open */
 body.pwa-update-open { overflow: hidden; }
+
+/* =====================================================================
+   v58: "WORKED WITH" freelance showcase on paused screen
+   Clean partner-logo row — perfect DP circles, aligned, warm card.
+   ===================================================================== */
+.worked-with {
+  margin: 18px auto 0;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+/* Thin divider with centered label */
+.worked-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 14px;
+  color: #a39cc4;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  white-space: nowrap;
+}
+.worked-divider::before,
+.worked-divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(123,111,168,0.3), transparent);
+}
+
+/* Logos row */
+.worked-logos {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.worked-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 60px;
+}
+
+/* The DP circle itself */
+.worked-item img {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;              /* perfect circle */
+  object-fit: cover;               /* fill, no squish */
+  object-position: center;
+  background: #fff;                /* clean white backdrop for logos w/ transparency */
+  border: 2px solid #fff;
+  box-shadow:
+    0 0 0 1.5px #EE8478,           /* coral ring, matches dev card */
+    0 3px 10px rgba(46,42,92,0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: block;
+}
+
+.worked-item:hover img {
+  transform: translateY(-2px) scale(1.06);
+  box-shadow:
+    0 0 0 1.5px #EE8478,
+    0 6px 16px rgba(238,132,120,0.4);
+}
+
+.worked-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: #5a5585;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+  text-align: center;
+  max-width: 60px;
+  word-break: break-word;
+}
+
+.worked-footnote {
+  font-size: 10.5px;
+  color: #9993bb;
+  font-style: italic;
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
