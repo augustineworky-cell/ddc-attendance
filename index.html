@@ -128,7 +128,7 @@
        never overlap each other; height is measured live by JS to push the
        app's fixed header/sidebar down by exactly the right amount. -->
   <div id="topBannerStack" class="top-banner-stack">
-    <div id="pwaUpdateBanner" class="pwa-update-banner" style="display:none;" role="alertdialog" aria-modal="true" aria-labelledby="pwaUpdateTitle">
+    <div id="pwaUpdateBanner" class="pwa-update-banner" style="display:none !important;" hidden aria-hidden="true">
       <div class="pwa-update-inner">
         <div class="pwa-update-icon"><i class="fas fa-circle-arrow-up"></i></div>
         <h2 class="pwa-update-title" id="pwaUpdateTitle">Staffly Update Ready</h2>
@@ -992,11 +992,9 @@
     }
 
     function showPwaUpdateBanner() {
-      const banner = document.getElementById('pwaUpdateBanner');
-      if (banner) {
-        banner.style.display = 'flex';
-        document.body.classList.add('pwa-update-open');
-      }
+      // v57: disabled. New service workers auto-activate via
+      // skipWaiting() in SW install, and controllerchange auto-reloads
+      // the page.  No "Update Now" modal is ever shown to the user.
     }
 
     function applyPwaUpdate() {

@@ -1,8 +1,8 @@
-// DDC Attendance PWA Service Worker  (v56 — robust install + reliable update)
-// Caches only the static app shell. Never caches Supabase / API / geolocation
-// data, so attendance punches and geofence checks always hit the network live.
+// DDC Attendance PWA Service Worker  (v57 — silent auto-update, no banner)
+// Caches only the static app shell. Updates install, activate and reload
+// the page automatically — no "Update Now" prompt is ever shown.
 
-const CACHE_NAME = 'staffly-shell-v56';
+const CACHE_NAME = 'staffly-shell-v57';
 
 const SHELL_ASSETS = [
   '/',
@@ -22,45 +22,33 @@ const SHELL_ASSETS = [
   '/assets/dev-anime.jpg'
 ];
 
-// Install: pre-cache the app shell.
-// IMPORTANT: cache each asset individually so one missing file does NOT
-// kill the entire install (addAll is all-or-nothing).  Previously, a
-// single 404 on any shell asset would silently fail the whole SW
-// install, leaving the Update banner showing forever with no way out.
+// Install: cache each file individually so a single 404 cannot kill
+// the whole install.  Then skipWaiting() so this new worker activates
+// immediately instead of waiting for the user to tap anything.
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      Promise.all(
-        SHELL_ASSETS.map((url) =>
-          cache.add(url).catch((err) => {
-            console.warn('[SW] Could not cache', url, err);
-            return null; // swallow — don't fail the whole install
-          })
-        )
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.all(
+      SHELL_ASSETS.map((url) =>
+        cache.add(url).catch((err) => {
+          console.warn('[SW] Could not cache', url, err);
+          return null;
+        })
       )
-    )
-  );
+    );
+    await self.skipWaiting();           // <<< auto-activate, no "waiting" state
+  })());
 });
 
-// Let the page tell a waiting worker to activate immediately
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
-// Activate: clean up old cache versions
+// Activate: clean up old caches and claim all open pages immediately.
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      )
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+    );
+    await self.clients.claim();
+  })());
 });
 
 // Fetch: cache-first for the app shell, network-only for everything dynamic
@@ -76,9 +64,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.includes('/auth/') ||
     url.pathname.includes('/storage/');
 
-  if (isDynamic) {
-    return;
-  }
+  if (isDynamic) return;
 
   event.respondWith(
     caches.match(request).then((cached) => {
