@@ -1,8 +1,8 @@
-// DDC Attendance PWA Service Worker  (v58 — client logos added, silent update)
+// DDC Attendance PWA Service Worker  (v59 — clean build, promotion removed, silent update)
 // Caches only the static app shell. Updates install, activate and reload
 // the page automatically — no "Update Now" prompt is ever shown.
 
-const CACHE_NAME = 'staffly-shell-v58';
+const CACHE_NAME = 'staffly-shell-v59';
 
 const SHELL_ASSETS = [
   '/',
@@ -18,12 +18,6 @@ const SHELL_ASSETS = [
   '/icon-180.png',
   '/icon-192.png',
   '/icon-512.png',
-  '/assets/dev-real.jpg',
-  '/assets/dev-anime.jpg',
-  '/assets/clients/makemyclick.jpg',
-  '/assets/clients/zenin.jpg',
-  '/assets/clients/bansals.jpg',
-  '/assets/clients/catalyster.jpg'
 ];
 
 self.addEventListener('install', (event) => {
