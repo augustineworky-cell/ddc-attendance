@@ -1,8 +1,8 @@
-// DDC Attendance PWA Service Worker  (v62 — PC dashboard + Mobile app, silent update)
+// DDC Attendance PWA Service Worker  (v63 — Staffly-styled PC dashboard + Mobile app, silent update)
 // Caches only the static app shell. Updates install, activate and reload
 // the page automatically — no "Update Now" prompt is ever shown.
 
-const CACHE_NAME = 'staffly-shell-v62';
+const CACHE_NAME = 'staffly-shell-v63';
 
 const SHELL_ASSETS = [
   '/',
