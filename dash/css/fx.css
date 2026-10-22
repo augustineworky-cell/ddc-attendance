@@ -1,0 +1,56 @@
+/* =====================================================================
+   fx.css  -  motion layer. ONLY transform + opacity are animated (GPU
+   composited, no repaint), nothing blurred, no blend modes.
+   Particles (sparks / petals) are drawn by js/fx.js on one canvas.
+   ===================================================================== */
+
+/* ---------- site password gate ---------- */
+.sitegate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(20,4,8,.92)}
+.sitegate form{background:#fffaf0;border:1px solid #dcae52;border-radius:16px;padding:26px 28px;width:min(330px,88vw);display:grid;gap:12px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.sitegate h3{margin:0;color:#5a0c12}.sitegate p{margin:0;color:#6a3f3a;font-size:13px}
+.sitegate input{padding:10px 12px;border:1px solid #e3c27a;border-radius:10px;font-size:15px;text-align:center}
+.sitegate .err{color:#b3121f;font-size:12px;min-height:15px}
+
+/* ---------- Durga theme only ---------- */
+#fx{display:none}
+html[data-theme="durga"] #fx{display:block;position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}
+html[data-theme="durga"].fx-off #fx{display:none}
+
+/* Maa's aura: a soft golden glow that breathes behind the poster */
+.puja .aura{display:none}
+html[data-theme="durga"] .puja .aura{display:block;position:absolute;top:6vh;height:88vh;width:88vh;left:calc(50% + 116px - 44vh);
+  background:radial-gradient(circle,rgba(255,196,96,.5) 0,rgba(255,150,60,.22) 38%,transparent 68%);
+  opacity:.55;transform:translateZ(0) scale(1);will-change:transform,opacity;animation:aura 5.5s ease-in-out infinite alternate}
+@keyframes aura{from{opacity:.38;transform:translateZ(0) scale(.96)}to{opacity:.8;transform:translateZ(0) scale(1.07)}}
+@media (max-width:860px){html[data-theme="durga"] .puja .aura{left:calc(50% - 44vh)}}
+
+/* light rays: slow shimmer + gentle sway around the top-centre */
+html[data-theme="durga"] .puja .rays{transform-origin:50% 4%;animation:raysh 6s ease-in-out infinite alternate,raysway 18s ease-in-out infinite alternate!important}
+@keyframes raysway{from{transform:translateZ(0) rotate(-1.6deg)}to{transform:translateZ(0) rotate(1.6deg)}}
+
+/* lanterns: smoother pendulum (ease-in-out + a little extra swing) */
+html[data-theme="durga"] .puja .lant{animation:lsway var(--t,6s) cubic-bezier(.45,.05,.55,.95) infinite alternate;will-change:transform}
+@keyframes lsway{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
+
+/* garland sways very slightly, twinkles keep their own timing */
+html[data-theme="durga"] .puja .garland{transform-origin:50% 0;animation:gsway 9s ease-in-out infinite alternate;will-change:transform}
+@keyframes gsway{from{transform:translateX(-3px)}to{transform:translateX(3px)}}
+
+/* dhunuchi-style glow on the two drums (opacity only, drums themselves stay still) */
+html[data-theme="durga"] .puja .dhak{will-change:auto}
+
+/* cards: soft rise-in when a page is drawn */
+@keyframes rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+.kpi{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.kpi:nth-child(2){animation-delay:.05s}.kpi:nth-child(3){animation-delay:.1s}.kpi:nth-child(4){animation-delay:.15s}.kpi:nth-child(5){animation-delay:.2s}.kpi:nth-child(6){animation-delay:.25s}
+.mg,.notes{animation:rise .4s cubic-bezier(.2,.7,.2,1) both}
+
+/* ---------- when the device is struggling (set by fx.js) or user prefers less motion ---------- */
+html.fx-lite .puja .rays,html.fx-lite .puja .lant,html.fx-lite .puja .garland,html.fx-lite .puja .aura,html.fx-lite .puja .tw{animation:none!important}
+html.fx-lite .puja .aura{opacity:.6}
+@media (prefers-reduced-motion:reduce){
+  #fx{display:none!important}
+  .puja .rays,.puja .aura,.puja .lant,.puja .garland,.puja .tw,.kpi,.mg,.notes{animation:none!important}
+}
+/* nothing animates while the tab is hidden (fx.js adds this class) */
+html.tab-hidden .puja *,html.tab-hidden .diyas i::before{animation-play-state:paused!important}
