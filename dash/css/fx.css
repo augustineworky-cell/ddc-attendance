@@ -5,11 +5,6 @@
    ===================================================================== */
 
 /* ---------- site password gate ---------- */
-.sitegate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(20,4,8,.92)}
-.sitegate form{background:#fffaf0;border:1px solid #dcae52;border-radius:16px;padding:26px 28px;width:min(330px,88vw);display:grid;gap:12px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6)}
-.sitegate h3{margin:0;color:#5a0c12}.sitegate p{margin:0;color:#6a3f3a;font-size:13px}
-.sitegate input{padding:10px 12px;border:1px solid #e3c27a;border-radius:10px;font-size:15px;text-align:center}
-.sitegate .err{color:#b3121f;font-size:12px;min-height:15px}
 
 /* ---------- Durga theme only ---------- */
 #fx{display:none}
@@ -54,3 +49,37 @@ html.fx-lite .puja .aura{opacity:.6}
 }
 /* nothing animates while the tab is hidden (fx.js adds this class) */
 html.tab-hidden .puja *,html.tab-hidden .diyas i::before{animation-play-state:paused!important}
+/* ---- Staffly sign-in ---- */
+.sitegate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;overflow:auto;
+  background:radial-gradient(900px 500px at 15% 10%,rgba(220,174,82,.22),transparent 60%),radial-gradient(800px 600px at 90% 95%,rgba(179,18,31,.35),transparent 60%),linear-gradient(160deg,#2a0509 0%,#4a0a10 55%,#1d0306 100%);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font-family:inherit}
+.sitegate::before{content:"";position:absolute;inset:0;opacity:.07;pointer-events:none;background-image:radial-gradient(#fff 1px,transparent 1px);background-size:22px 22px}
+.sg-card{position:relative;width:min(400px,100%);background:#fffaf0;border-radius:22px;padding:34px 32px 24px;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(220,174,82,.55);animation:sgIn .45s cubic-bezier(.2,.8,.2,1)}
+.sg-card::before{content:"";position:absolute;left:28px;right:28px;top:0;height:4px;border-radius:0 0 6px 6px;background:linear-gradient(90deg,#b3121f,#dcae52,#b3121f)}
+@keyframes sgIn{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+.sg-logo{width:64px;height:64px;margin:0 auto 14px;border-radius:18px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:19px;letter-spacing:.5px;background:linear-gradient(145deg,#7a1019,#b3121f);box-shadow:0 10px 24px rgba(122,16,25,.4),inset 0 0 0 2px rgba(220,174,82,.8)}
+.sg-card h3{margin:0;text-align:center;color:#4a0a10;font-size:24px;font-weight:800;letter-spacing:-.3px}
+.sg-sub{margin:6px 0 22px;text-align:center;color:#7a5a50;font-size:13.5px;line-height:1.45}
+.sg-field{display:block;margin-bottom:14px}
+.sg-field>span{display:block;margin:0 0 6px 2px;font-size:12px;font-weight:700;color:#5a0c12;text-transform:uppercase;letter-spacing:.6px}
+.sg-in{position:relative;display:flex;align-items:center}
+.sg-in svg{position:absolute;left:13px;width:18px;height:18px;stroke:#a07a5a;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.sg-in input{width:100%;box-sizing:border-box;padding:13px 44px 13px 42px;border:1.5px solid #e6cf9c;border-radius:12px;background:#fff;color:#2a1410;font-size:15.5px;font-family:inherit;text-align:left;outline:none;transition:border-color .15s,box-shadow .15s}
+.sg-in input::placeholder{color:#b9a58c}
+.sg-in input:focus{border-color:#b3121f;box-shadow:0 0 0 4px rgba(179,18,31,.12)}
+.sg-eye{position:absolute;right:6px;width:36px;height:36px;border:0;background:none;border-radius:9px;cursor:pointer;display:grid;place-items:center;color:#a07a5a}
+.sg-eye:hover{background:rgba(220,174,82,.2)}.sg-eye svg{position:static;stroke:currentColor}
+.sg-go{box-sizing:border-box;width:100%;margin-top:6px;padding:14px;border:0;border-radius:12px;cursor:pointer;color:#fff;font-size:16px;font-weight:700;font-family:inherit;letter-spacing:.2px;background:linear-gradient(135deg,#8a1019,#b3121f);box-shadow:0 10px 22px rgba(179,18,31,.38);transition:transform .12s,box-shadow .12s,filter .12s}
+.sg-go:hover{filter:brightness(1.07);box-shadow:0 12px 26px rgba(179,18,31,.45)}.sg-go:active{transform:translateY(1px)}
+.sg-go:disabled{opacity:.75;cursor:progress}
+.sg-go .sp{display:inline-block;width:15px;height:15px;margin-right:8px;vertical-align:-2px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sgSp .7s linear infinite}
+@keyframes sgSp{to{transform:rotate(360deg)}}
+.sitegate .err{margin-top:12px;min-height:0;padding:0;border-radius:10px;color:#9b0f1a;font-size:13px;font-weight:600;text-align:center}
+.sitegate .err:not(:empty){padding:10px 12px;background:#fde8ea;border:1px solid #f3b9bf}
+.sg-or{display:flex;align-items:center;gap:10px;margin:18px 0 12px;color:#b9a58c;font-size:12px}
+.sg-or::before,.sg-or::after{content:"";flex:1;height:1px;background:#ecdcb8}
+.sg-mob{box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;border:1.5px solid #e6cf9c;border-radius:12px;background:transparent;color:#5a0c12;font-size:14px;font-weight:600;font-family:inherit;text-decoration:none;cursor:pointer}
+.sg-mob:hover{background:rgba(220,174,82,.16)}.sg-mob svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sg-foot{margin:18px 0 0;text-align:center;color:#a08c78;font-size:11.5px;line-height:1.5}
+@media(max-width:420px){.sg-card{padding:28px 20px 20px;border-radius:18px}}
+@media(prefers-reduced-motion:reduce){.sg-card,.sg-go .sp{animation:none}}

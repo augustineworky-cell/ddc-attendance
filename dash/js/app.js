@@ -20,12 +20,22 @@ function busyUpd(fn) {
 function askSitePassword() {
   return new Promise((resolve) => {
     const w = document.createElement('div'); w.className = 'sitegate';
-    w.innerHTML = '<form><h3>Staffly Dashboard</h3><p>Sign in with your Admin, HR or Dev account</p><input name="id" type="text" autocomplete="username" placeholder="Employee ID" autofocus><input name="pw" type="password" autocomplete="current-password" placeholder="Password"><button class="btn primary" type="submit">Sign in</button><div class="err"></div><p style="margin:12px 0 0;font-size:12px"><a href="#" id="sgMobile">Open the mobile app instead</a></p></form>';
+    w.innerHTML = '<form class="sg-card" novalidate>'
+      + '<div class="sg-logo">DCC</div><h3>Staffly Dashboard</h3>'
+      + '<p class="sg-sub">Sign in with your Admin, HR or Dev account<br>to view attendance.</p>'
+      + '<label class="sg-field"><span>Employee ID</span><div class="sg-in"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><input name="id" type="text" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="e.g. DCC101" autofocus></div></label>'
+      + '<label class="sg-field"><span>Password</span><div class="sg-in"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input name="pw" type="password" autocomplete="current-password" placeholder="Enter your password"><button type="button" class="sg-eye" tabindex="-1" aria-label="Show password"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></label>'
+      + '<button class="sg-go" type="submit">Sign in</button><div class="err" role="alert"></div>'
+      + '<div class="sg-or">or</div>'
+      + '<a href="#" id="sgMobile" class="sg-mob"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>Open the mobile punch-in app</a>'
+      + '<p class="sg-foot">DCC Supply Chain &amp; Distribution LLP<br>Authorised staff only</p></form>';
     document.body.appendChild(w);
-    const f = w.querySelector('form'), i = w.querySelector('input[name=id]'), p = w.querySelector('input[name=pw]'), er = w.querySelector('.err'), b = w.querySelector('button');
+    const f = w.querySelector('form'), i = w.querySelector('input[name=id]'), p = w.querySelector('input[name=pw]'), er = w.querySelector('.err'), b = w.querySelector('.sg-go'), eye = w.querySelector('.sg-eye');
+    eye.addEventListener('click', () => { const s = p.type === 'password'; p.type = s ? 'text' : 'password'; eye.setAttribute('aria-label', s ? 'Hide password' : 'Show password'); p.focus(); });
     w.querySelector('#sgMobile').addEventListener('click', (ev) => { ev.preventDefault(); StafflyAPI.goMobile(); });
     f.addEventListener('submit', async (ev) => {
-      ev.preventDefault(); er.textContent = ''; b.disabled = true; b.textContent = 'Signing in…';
+      ev.preventDefault(); er.textContent = ''; if (!i.value.trim() || !p.value) { er.textContent = 'Enter your Employee ID and password.'; (i.value.trim() ? p : i).focus(); return; }
+      b.disabled = true; b.innerHTML = '<span class="sp"></span>Signing in…';
       try { await StafflyAPI.login(i.value.trim(), p.value); w.remove(); resolve(); }
       catch (e) { er.textContent = e.message; b.disabled = false; b.textContent = 'Sign in'; p.select(); }
     });
