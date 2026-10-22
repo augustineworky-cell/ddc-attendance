@@ -8,7 +8,7 @@
      Set to true to bring the old in-app admin screens back (nothing was deleted). */
   window.STAFFLY_ADMIN_UI = false;
 
-  /* v61: Mobile / PC view. Stored choice: 'mobile' | 'pc' | none (= follow the device). */
+  /* Mobile / PC view. Stored choice: 'mobile' | 'pc' | none (= follow the device). */
   (function () {
     var KEY = 'staffly_view_mode';
     function read() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
@@ -26,18 +26,18 @@
       },
       toggle: function () { this.set(this.effective === 'pc' ? 'mobile' : 'pc'); }
     };
-    /* PC view on a phone: ask the browser for a desktop-width layout. */
-    if (!inFrame && mode === 'pc' && (screen.width || 0) < 769) {
-      var vp = document.querySelector('meta[name="viewport"]');
-      if (vp) vp.setAttribute('content', 'width=1100, initial-scale=' + ((screen.width || 400) / 1100).toFixed(3) + ', user-scalable=yes');
-    }
-    /* Mobile view on a PC: open the phone-shaped frame page (same app, same login, inside an iframe). */
-    if (!inFrame && mode === 'mobile' && wide) {
+    /* v62: PC view = the attendance dashboard (dashboard.html). Mobile view = this app (location + punching).
+       Default follows the device; the stored choice (toggle) overrides it. */
+    if (!inFrame && window.STAFFLY_VIEW.effective === 'pc') {
+      location.replace('dashboard.html');
+    } else if (!inFrame && mode === 'mobile' && wide) {
+      /* Mobile view on a PC: phone-shaped frame (same app, same login). */
       location.replace('frame.html');
     }
   })();
   </script>
   <title>Staffly - Workforce Attendance Portal</title>
+  <style>/* v62: employees never see a view switch; testing toggles live on the dashboard and frame pages */#viewModeRow,#viewModeTopBtn,#viewModeNavBtn{display:none!important}</style>
   <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 
