@@ -3284,3 +3284,18 @@ body::before { display: none; }
 .seg-btn { border-radius: 8px; }
 #homeView .v2-hero .selfie-frame, .v2-hero .selfie-frame { border-color: rgba(255, 255, 255, 0.55) !important; box-shadow: none; }
 #profileView .v2-avatar-ring { background: rgba(255, 255, 255, 0.28); }
+
+/* =====================================================================
+   v61: Mobile / PC view toggle
+   ===================================================================== */
+.view-seg { display: inline-flex; flex-shrink: 0; padding: 3px; gap: 2px; border-radius: 10px; background: var(--pro-tint); border: 1px solid var(--pro-border); }
+.view-seg button {
+  min-height: 34px; min-width: 64px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--v2-ink-2); cursor: pointer;
+}
+.view-seg button.on { background: var(--pro-navy); color: #FFFFFF; }
+.view-seg button:focus-visible { outline: 3px solid rgba(27, 34, 80, 0.45); outline-offset: 1px; }
+.view-toggle-btn { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.view-toggle-btn svg { width: 18px; height: 18px; }
+@media (min-width: 769px) { .view-toggle-btn { display: none; } }
+#profileView .v2-row-static .v2-row-text { min-width: 0; }

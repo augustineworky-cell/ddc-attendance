@@ -1007,7 +1007,7 @@ function renderUserBadge(user) {
 
 // Restrict .admin-only UI elements based on the current user's role
 function applyRoleBasedUIRestrictions(role) {
-  const isAdmin = ['Admin', 'HR', 'Dev'].includes(role);
+  const isAdmin = !!window.STAFFLY_ADMIN_UI && ['Admin', 'HR', 'Dev'].includes(role);
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
   });

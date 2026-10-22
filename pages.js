@@ -8,7 +8,7 @@
 // ==========================================================================
 
 const ADMIN_ROLES = ['Admin', 'HR', 'Dev'];
-const isAdminUser = () => !!(CURRENT_USER && ADMIN_ROLES.includes(CURRENT_USER.role));
+const isAdminUser = () => !!(window.STAFFLY_ADMIN_UI && CURRENT_USER && ADMIN_ROLES.includes(CURRENT_USER.role));
 
 // --------------------------------------------------------------------------
 // Shared UI helpers

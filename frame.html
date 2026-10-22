@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staffly - Workforce Attendance Portal</title>
+<meta name="theme-color" content="#1B2250">
+<link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #E9EDF5; display: flex; align-items: center; justify-content: center; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  .host { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .phone { width: 408px; height: min(860px, calc(100vh - 84px)); background: #fff; border-radius: 22px; border: 1px solid #D5DBE8; box-shadow: 0 8px 30px rgba(20, 28, 66, .14); overflow: hidden; }
+  .phone iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .bar { font-size: 13px; color: #5A6282; display: flex; align-items: center; gap: 10px; }
+  .bar button { border: 1px solid #1B2250; background: #1B2250; color: #fff; border-radius: 8px; padding: 7px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="host">
+  <div class="phone">
+    <iframe id="f" title="Staffly" allow="geolocation; camera; microphone; clipboard-write; publickey-credentials-get; publickey-credentials-create"></iframe>
+  </div>
+  <div class="bar"><span>Mobile view</span><button id="b" type="button">Switch to PC view</button></div>
+</div>
+<script>
+(function () {
+  var KEY = 'staffly_view_mode', mode = '';
+  try { mode = localStorage.getItem(KEY) || ''; } catch (e) {}
+  /* only stay here if Mobile view was chosen and the window is wide; otherwise go back to the normal app */
+  if (mode !== 'mobile' || window.innerWidth < 769) { location.replace('./'); return; }
+  document.getElementById('f').src = './index.html?m=1';
+  document.getElementById('b').onclick = function () {
+    try { localStorage.setItem(KEY, 'pc'); } catch (e) {}
+    location.replace('./');
+  };
+})();
+</script>
+</body>
+</html>
