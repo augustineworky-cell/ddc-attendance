@@ -1,3 +1,15 @@
+// v60: professional line icons (replace emoji in status badges)
+window.PRO_ICONS = {
+  pin: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  ok: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l10 17.5H2z"/><path d="M12 10v5M12 18h.01"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+  wifi: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'
+};
+
 // ==========================================================================
 // DDC SUPPLY CHAIN & DISTRIBUTION LLP - WORKFORCE ATTENDANCE APP.JS
 // ==========================================================================
@@ -332,7 +344,7 @@ async function runPreciseLocationCheck(force) {
       }
     } else if (force) {
       if (status) {
-        status.textContent = `✅ Precise location is ON (±${Math.round(accuracy)} m). You're all set!`;
+        status.textContent = `Precise location is ON (±${Math.round(accuracy)} m). You're all set!`;
         status.className = 'loc-check-status ok';
       }
       setTimeout(closePreciseLocationModal, 1800);
@@ -878,7 +890,7 @@ function renderSelfieRetryPrompt(employeeId, base64, eventType) {
   const btn = document.getElementById('retryPhotoUploadBtn');
   if (btn) {
     btn.style.display = 'inline-flex';
-    btn.textContent = `⚠️ Retry ${eventType === 'clockout' ? 'Clock-Out' : 'Clock-In'} Photo Upload`;
+    btn.textContent = `Retry ${eventType === 'clockout' ? 'Clock-Out' : 'Clock-In'} Photo Upload`;
   }
 }
 
@@ -898,7 +910,7 @@ async function retrySelfiePhotoAttach() {
   } else {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = `⚠️ Retry ${eventType === 'clockout' ? 'Clock-Out' : 'Clock-In'} Photo Upload`;
+      btn.textContent = `Retry ${eventType === 'clockout' ? 'Clock-Out' : 'Clock-In'} Photo Upload`;
     }
     showDialog("Photo upload failed again. Your Punch " + (eventType === 'clockout' ? 'Out' : 'In') + " time was still recorded correctly - only the photo is missing. Please try the retry button again, or contact admin if it keeps failing.");
   }
@@ -1114,7 +1126,7 @@ function showQuickToast(name) {
         'box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:9000;opacity:0;transition:opacity .25s;pointer-events:none;';
       document.body.appendChild(t);
     }
-    t.textContent = `👋 Welcome, ${name || ''}`.trim();
+    t.textContent = `Welcome, ${name || ''}`.trim();
     t.style.opacity = '1';
     clearTimeout(t._hide);
     t._hide = setTimeout(() => { t.style.opacity = '0'; }, 2200);
@@ -1184,9 +1196,9 @@ function clearQuickDevice() {
 // Password Manager PIN - so don't call it "fingerprint" there.
 function biometricLabel() {
   const p = detectPlatform();
-  if (p === 'android') return { button: 'Login with Fingerprint', name: 'fingerprint', icon: '👆' };
-  if (p === 'ios') return { button: 'Login with Face ID / Touch ID', name: 'Face ID / Touch ID', icon: '👆' };
-  return { button: 'Login with Passkey (Windows Hello)', name: 'passkey (Windows Hello / screen lock)', icon: '🔑' };
+  if (p === 'android') return { button: 'Login with Fingerprint', name: 'fingerprint', icon: '' };
+  if (p === 'ios') return { button: 'Login with Face ID / Touch ID', name: 'Face ID / Touch ID', icon: '' };
+  return { button: 'Login with Passkey (Windows Hello)', name: 'passkey (Windows Hello / screen lock)', icon: '' };
 }
 
 async function fingerprintSupported() {
@@ -1558,9 +1570,9 @@ async function saveQuickPin() {
     document.getElementById('quickSetupPin2').value = '';
     if (await fingerprintSupported()) {
       openQuickSetup('fp');
-      setQuickSetupStatus('✅ PIN saved.', 'ok');
+      setQuickSetupStatus('PIN saved.', 'ok');
     } else {
-      setQuickSetupStatus('✅ PIN saved. Next time just enter your PIN.', 'ok');
+      setQuickSetupStatus('PIN saved. Next time just enter your PIN.', 'ok');
       setTimeout(closeQuickSetup, 1500);
     }
   } catch (e) {
@@ -1583,14 +1595,14 @@ async function setupFingerprintNow() {
     await enableFingerprint(device);
     setFpVisual('success');
     setQuickSetupStatus(detectPlatform() === 'desktop'
-      ? '✅ Passkey registered! Next time just use Windows Hello.'
-      : '✅ Fingerprint registered! Next time just touch the sensor.', 'ok');
+      ? 'Passkey registered! Next time just use Windows Hello.'
+      : 'Fingerprint registered! Next time just touch the sensor.', 'ok');
     if (btn) btn.style.display = 'none';
     setTimeout(closeQuickSetup, 2200);
   } catch (e) {
     console.warn('Enable fingerprint:', e);
     setFpVisual('fail');
-    setQuickSetupStatus('❌ ' + fingerprintErrorMessage(e, false) + ' Your PIN still works.', 'bad');
+    setQuickSetupStatus('' + fingerprintErrorMessage(e, false) + ' Your PIN still works.', 'bad');
     if (btn) btn.textContent = 'Try again';
   } finally {
     if (btn) btn.disabled = false;
@@ -1625,10 +1637,10 @@ async function openLoginSettings() {
   const onThis = detectPlatform() === 'desktop' ? 'this computer' : 'this phone';
   if (info) {
     info.textContent = !supported
-      ? `✅ PIN login is ON for ${onThis}. This device doesn't support ${lbl.name} login.`
+      ? `PIN login is ON for ${onThis}. This device doesn't support ${lbl.name} login.`
       : hasFp
-        ? `✅ PIN and ${lbl.name} login are both ON for ${onThis}.`
-        : `✅ PIN login is ON for ${onThis}. ${lbl.name.charAt(0).toUpperCase() + lbl.name.slice(1)} login is OFF.`;
+        ? `PIN and ${lbl.name} login are both ON for ${onThis}.`
+        : `PIN login is ON for ${onThis}. ${lbl.name.charAt(0).toUpperCase() + lbl.name.slice(1)} login is OFF.`;
   }
   if (fpBtn) {
     fpBtn.style.display = supported ? '' : 'none';
@@ -2478,7 +2490,7 @@ function renderPunchInSuccessCard(isLate = false) {
       : `Clocked in at ${timeStr} today`;
     subtitleEl.style.color = isLate ? '#F0C660' : '';
   }
-  if (iconEl) iconEl.textContent = '✅';
+  if (iconEl) iconEl.innerHTML = PRO_ICONS.ok;
 
   // Bounce the surrounding card - .geofence-status-card is the actual
   // wrapper class, there's no separate #homeStatusCard/#geofenceCard ID.
@@ -2531,7 +2543,7 @@ function renderPunchOutSuccessCard(hoursWorked) {
     subtitleEl.textContent = `Clocked out at ${timeStr} today (${hoursWorked} hrs worked)`;
     subtitleEl.style.color = '';
   }
-  if (iconEl) iconEl.textContent = '🏁';
+  if (iconEl) iconEl.innerHTML = PRO_ICONS.flag;
 
   const statusCard = titleEl ? titleEl.closest('.geofence-status-card') : null;
   if (statusCard) {
@@ -2623,7 +2635,7 @@ async function checkGeofence() {
     const lowAccuracy = currentAccuracy && currentAccuracy > GEOFENCE_LOW_ACCURACY_WARNING_M;
 
     if (effectiveDist <= MAX_GEOFENCE_RADIUS_METERS) {
-      if (icon) icon.textContent = lowAccuracy ? "⚠️" : "✅";
+      if (icon) icon.innerHTML = lowAccuracy ? PRO_ICONS.warn : PRO_ICONS.ok;
       if (title) title.textContent = lowAccuracy ? "Inside Geofence (weak signal)" : "Inside Geofence";
       markPunchRetryReady();
       if (subtitle) {
@@ -2632,7 +2644,7 @@ async function checkGeofence() {
           : `${Math.round(dist)}m from DDC Safdarjung HQ (±${Math.round(currentAccuracy || 0)}m accuracy)`;
       }
     } else {
-      if (icon) icon.textContent = "📍";
+      if (icon) icon.innerHTML = PRO_ICONS.pin;
       if (title) title.textContent = "Outside Geofence";
       if (subtitle) {
         subtitle.textContent = lowAccuracy
@@ -2648,7 +2660,7 @@ async function checkGeofence() {
 
     // Field staff: any location is fine, their real location is recorded.
     if (await loadMyPunchRules()) {
-      if (icon) icon.textContent = "🌍";
+      if (icon) icon.innerHTML = PRO_ICONS.globe;
       if (title) title.textContent = "Punch from Anywhere ✓";
       if (subtitle) subtitle.textContent =
         `You can punch from any location. Your current location will be saved (${formatDistance(dist)} from DDC Safdarjung HQ, ±${Math.round(currentAccuracy || 0)}m).`;
@@ -2661,7 +2673,7 @@ async function checkGeofence() {
     // will accept the punch, so don't scare the employee.
     if (effectiveDist > MAX_GEOFENCE_RADIUS_METERS || lowAccuracy) {
       if (await checkOfficeNetwork()) {
-        if (icon) icon.textContent = "📶";
+        if (icon) icon.innerHTML = PRO_ICONS.wifi;
         if (title) title.textContent = "On Office Wi-Fi ✓";
         if (subtitle) subtitle.textContent =
           `You can punch. Verified by office Wi-Fi (GPS reads ${Math.round(dist)}m, ±${Math.round(currentAccuracy || 0)}m).`;
@@ -2672,20 +2684,20 @@ async function checkGeofence() {
     console.warn("Location prompt or signal timeout:", err);
     if (await loadMyPunchRules()) {
       // Anywhere-punch still needs GPS, because the location is recorded.
-      if (icon) icon.textContent = "📍";
+      if (icon) icon.innerHTML = PRO_ICONS.pin;
       if (title) title.textContent = "Location Needed";
       if (subtitle) subtitle.textContent = "You can punch from anywhere, but location must be ON so it can be saved. Turn on precise location and try again.";
       if (typeof v2SetZone === 'function') v2SetZone('nogps');
       return;
     }
     if (err && err.code !== 1 && await checkOfficeNetwork()) {
-      if (icon) icon.textContent = "📶";
+      if (icon) icon.innerHTML = PRO_ICONS.wifi;
       if (title) title.textContent = "On Office Wi-Fi ✓";
       if (subtitle) subtitle.textContent = "GPS not available, but you're on office Wi-Fi - you can punch.";
       if (typeof v2SetZone === 'function') v2SetZone('wifi');
       return;
     }
-    if (icon) icon.textContent = "📍";
+    if (icon) icon.innerHTML = PRO_ICONS.pin;
     if (title) title.textContent = "GPS Location Pending";
     if (subtitle) subtitle.textContent = "Please allow location access, or connect to the office Wi-Fi";
     if (typeof v2SetZone === 'function') v2SetZone('nogps');
@@ -3023,8 +3035,8 @@ function renderPunchStatusUnknown() {
       await checkTodayAttendanceStatus();
     };
   }
-  if (btnLabel) btnLabel.innerText = '⚠️ No network - tap to retry';
-  else if (btn) btn.innerText = '⚠️ No network - tap to retry';
+  if (btnLabel) btnLabel.innerText = 'No network - tap to retry';
+  else if (btn) btn.innerText = 'No network - tap to retry';
   if (timerChip) timerChip.style.display = 'none';
   if (typeof v2SetPunchState === 'function') v2SetPunchState('unknown');
 }
@@ -3432,7 +3444,7 @@ async function handleCaptureSelfie() {
 
     video.style.display = 'none';  
     preview.style.display = 'block';
-    captureBtn.innerHTML = '<span class="btn-icon">📷</span> Retake Selfie';
+    captureBtn.innerHTML = '<span class="btn-icon">'+PRO_ICONS.camera+'</span> Retake Selfie';
     return;
   }
 
@@ -3446,7 +3458,7 @@ async function handleCaptureSelfie() {
     video.srcObject = webcamStream;
     video.style.display = 'block';
     preview.style.display = 'none';
-    captureBtn.innerHTML = '<span class="btn-icon">📸</span> Snap Photo';
+    captureBtn.innerHTML = '<span class="btn-icon">'+PRO_ICONS.camera+'</span> Snap Photo';
 
     // Kick off the GPS fix + reverse-geocode the moment the camera opens,
     // in parallel with the user framing/taking the photo - by punch time

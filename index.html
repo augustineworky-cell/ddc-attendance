@@ -9,7 +9,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#1B2250">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Staffly">
@@ -243,7 +243,7 @@
         <div class="login-card">
           <!-- QUICK LOGIN (phone already registered): fingerprint first, PIN backup -->
           <div id="quickLoginPanel" class="quick-login-panel" style="display:none;">
-            <p class="quick-login-welcome">👋 Welcome back</p>
+            <p class="quick-login-welcome">Welcome back</p>
             <p class="quick-login-name"><span id="quickLoginName"></span></p>
             <p class="quick-login-id">Employee ID: <span id="quickLoginId"></span></p>
 
@@ -550,7 +550,7 @@
             </svg>
             <p class="v2-greet" id="v2Greeting">Hello</p>
             <div class="v2-status">
-              <div class="geofence-icon-badge" id="geofenceIcon">📍</div>
+              <div class="geofence-icon-badge" id="geofenceIcon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
               <div class="v2-status-text">
                 <h3 id="geofenceTitle" class="status-heading">Checking Location...</h3>
                 <p id="geofenceSubtitle" class="status-subheading">Calculating distance to DDC Safdarjung HQ</p>
@@ -564,7 +564,7 @@
                   <canvas id="canvas" style="display:none;"></canvas>
                   <img id="selfiePreview" src="default-avatar.svg" alt="Selfie Verification">
                 </div>
-                <button type="button" id="captureBtn" class="btn-action-outline"><span class="btn-icon">📷</span> Capture Selfie</button>
+                <button type="button" id="captureBtn" class="btn-action-outline"><span class="btn-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span> Capture Selfie</button>
               </div>
 
               <div class="v2-orb-wrap">
@@ -584,7 +584,7 @@
 
           <div id="punchRejectNote" class="punch-reject" role="alert" hidden></div>
           <div id="shiftStatusBadge" class="shift-status-badge" style="display:none;"></div>
-          <button type="button" id="retryPhotoUploadBtn" class="btn-retry-photo" style="display:none;" onclick="retrySelfiePhotoAttach()">⚠️ Retry Photo Upload</button>
+          <button type="button" id="retryPhotoUploadBtn" class="btn-retry-photo" style="display:none;" onclick="retrySelfiePhotoAttach()"> Retry Photo Upload</button>
 
           <!-- TODAY'S SELFIES: the photos actually saved on the server today -->
           <div class="v2-card v2-today" id="v2TodaySelfies" hidden>
@@ -650,46 +650,55 @@
           <div class="v2-tiles">
             <button type="button" class="v2-tile v2-t-gold" onclick="v2Go('leaveView')">
               <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7D98A"/><stop offset="1" stop-color="#D99A2B"/></linearGradient></defs><rect x="17" y="8" width="14" height="8" rx="3" fill="none" stroke="#7B5A1E" stroke-width="3"/><rect x="6" y="14" width="36" height="28" rx="7" fill="url(#v2tA)"/><rect x="6" y="24" width="36" height="4" fill="#B97F20" opacity=".6"/><rect x="21" y="21" width="6" height="10" rx="2" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
               <span class="v2-tile-title">Leave</span>
               <span class="v2-tile-sub">Apply &amp; track</span>
             </button>
             <button type="button" class="v2-tile v2-t-purple" onclick="v2Go('trainingView')">
               <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C3B8F0"/><stop offset="1" stop-color="#6F5FB3"/></linearGradient></defs><rect x="5" y="10" width="38" height="26" rx="6" fill="url(#v2tB)"/><path d="M21 17l9 6-9 6z" fill="#FFFFFF"/><rect x="14" y="39" width="20" height="4" rx="2" fill="#6F5FB3"/></svg>
+              <span class="v2-tile-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/></svg></span>
               <span class="v2-tile-title">Training</span>
               <span class="v2-tile-sub">Modules &amp; videos</span>
             </button>
             <button type="button" class="v2-tile v2-t-mint" onclick="openLoginSettings()">
               <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FE3D2"/><stop offset="1" stop-color="#2BA891"/></linearGradient></defs><circle cx="24" cy="24" r="19" fill="url(#v2tC)"/><g fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"><path d="M24 23c0 4-1 7.5-3 10"/><path d="M19 17a7 7 0 0 1 12 6c0 2-.2 4-.6 6"/><path d="M15 27c.5-1.6.8-3.2.8-5a8.5 8.5 0 0 1 13.5-6.8"/></g></svg>
+              <span class="v2-tile-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11c0 3.5-1 6.5-2.5 8.5"/><path d="M8.5 7.5A5 5 0 0 1 17 11c0 1.5-.1 3-.4 4.4"/><path d="M6 10a6 6 0 0 1 .8-3"/><path d="M15.2 18.5c-.4 1-.9 2-1.5 2.8"/><path d="M4.5 16c.6-1.5 1-3.2 1-5a6.5 6.5 0 0 1 11-4.7"/><path d="M12 11c0 2.4-.4 4.6-1.2 6.5"/><path d="M19.5 13.5c-.1 1.6-.4 3.1-.9 4.5"/></svg></span>
               <span class="v2-tile-title">Fingerprint</span>
               <span class="v2-tile-sub">PIN &amp; quick login</span>
             </button>
             <button type="button" class="v2-tile v2-t-coral" onclick="v2Help()">
               <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5B8A8"/><stop offset="1" stop-color="#E0604F"/></linearGradient></defs><path d="M8 10h32a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H20l-9 7v-7H8a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z" fill="url(#v2tD)"/><circle cx="16" cy="23" r="2.6" fill="#FFFFFF"/><circle cx="24" cy="23" r="2.6" fill="#FFFFFF"/><circle cx="32" cy="23" r="2.6" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7"/><path d="M12 17h.01"/></svg></span>
               <span class="v2-tile-title">Help</span>
               <span class="v2-tile-sub">Contact HR / IT</span>
             </button>
             <button type="button" class="v2-tile v2-t-blue admin-only" onclick="v2Go('dashboardView')">
               <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tE" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9AB8F5"/><stop offset="1" stop-color="#4F6FC9"/></linearGradient></defs><rect x="5" y="6" width="38" height="36" rx="8" fill="url(#v2tE)"/><rect x="12" y="26" width="6" height="10" rx="2" fill="#FFFFFF"/><rect x="21" y="18" width="6" height="18" rx="2" fill="#FFFFFF"/><rect x="30" y="12" width="6" height="24" rx="2" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
               <span class="v2-tile-title">Analytics</span>
               <span class="v2-tile-sub">Attendance overview</span>
             </button>
             <button type="button" class="v2-tile v2-t-mint admin-only" onclick="v2Go('directoryView')">
               <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FE3D2"/><stop offset="1" stop-color="#2BA891"/></linearGradient><linearGradient id="v2tG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7D98A"/><stop offset="1" stop-color="#EE8478"/></linearGradient></defs><circle cx="17" cy="17" r="7" fill="url(#v2tG)"/><path d="M4 40c0-8 6-13 13-13s13 5 13 13z" fill="url(#v2tG)"/><circle cx="32" cy="15" r="6" fill="url(#v2tF)"/><path d="M22 38c1-7 5-11 10-11 6 0 11 4 12 11z" fill="url(#v2tF)"/></svg>
+              <span class="v2-tile-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14a5 5 0 0 1 4.5 5"/></svg></span>
               <span class="v2-tile-title">Staff</span>
               <span class="v2-tile-sub">Directory</span>
             </button>
             <button type="button" class="v2-tile v2-t-mint admin-only" onclick="v2Go('salaryView')">
               <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FE3D2"/><stop offset="1" stop-color="#2BA891"/></linearGradient></defs><rect x="5" y="12" width="38" height="28" rx="7" fill="url(#v2tH)"/><rect x="5" y="17" width="38" height="5" fill="#1E7F6D"/><circle cx="33" cy="31" r="5" fill="#FFFFFF"/><text x="33" y="34.5" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="9" fill="#1E7F6D">₹</text></svg>
+              <span class="v2-tile-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg></span>
               <span class="v2-tile-title">Payroll</span>
               <span class="v2-tile-sub">Salary &amp; payslips</span>
             </button>
             <button type="button" class="v2-tile v2-t-coral admin-only" onclick="v2Go('fieldMapView')">
               <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tI" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5B8A8"/><stop offset="1" stop-color="#E0604F"/></linearGradient></defs><path d="M24 44s-14-12-14-24a14 14 0 0 1 28 0c0 12-14 24-14 24z" fill="url(#v2tI)"/><circle cx="24" cy="20" r="6" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
               <span class="v2-tile-title">Live map</span>
               <span class="v2-tile-sub">Staff GPS</span>
             </button>
             <button type="button" class="v2-tile v2-t-purple admin-only" onclick="v2Go('userMgmtView')">
               <svg class="v2-tile-icon" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="v2tJ" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C3B8F0"/><stop offset="1" stop-color="#5E5883"/></linearGradient></defs><path d="M24 4l5 4 6-1 2 6 5 4-3 5 3 5-5 4-2 6-6-1-5 4-5-4-6 1-2-6-5-4 3-5-3-5 5-4 2-6 6 1z" fill="url(#v2tJ)"/><circle cx="24" cy="24" r="7" fill="#FFFFFF"/></svg>
+              <span class="v2-tile-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
               <span class="v2-tile-title">Settings</span>
               <span class="v2-tile-sub">Users, Wi-Fi, resets</span>
             </button>
@@ -880,7 +889,7 @@
         </div>
 
         <div class="office-net-card" id="officeNetworksCard">
-          <h3 class="office-net-title">📶 Office Wi-Fi Networks</h3>
+          <h3 class="office-net-title">Office Wi-Fi Networks</h3>
           <p class="office-net-help">Phones on these networks can punch even when GPS is weak. Connect this device to the office Wi-Fi, then tap "Add this network".</p>
           <div id="officeNetworksBox"></div>
           <div class="office-net-add">
@@ -890,7 +899,7 @@
         </div>
 
         <div class="office-net-card">
-          <h3 class="office-net-title">🔐 Reset Fingerprint / PIN Login</h3>
+          <h3 class="office-net-title">Reset Fingerprint / PIN Login</h3>
           <p class="office-net-help">Use when an employee loses their phone, gets a new one, or forgets their PIN. They'll log in once with ID + password and set a new PIN.</p>
           <div class="office-net-add">
             <input type="text" id="resetQuickLoginId" placeholder="Employee ID" autocapitalize="characters" spellcheck="false">
@@ -1112,11 +1121,11 @@
   <!-- Precise location check (shown when the phone only shares approximate location) -->
   <div id="locCheckModal" class="loc-check-modal" role="dialog" aria-modal="true" aria-labelledby="locCheckTitle" aria-hidden="true">
     <div class="loc-check-card">
-      <div class="loc-check-icon">📍</div>
+      <div class="loc-check-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
       <h3 id="locCheckTitle">Turn on Precise Location</h3>
       <p id="locCheckAccuracy" class="loc-check-text"></p>
       <ol id="locCheckSteps" class="loc-check-steps"></ol>
-      <p id="locCheckWifiNote" class="loc-check-wifi" style="display:none">📶 You're on office Wi-Fi, so you can still punch today, but please fix this for next time.</p>
+      <p id="locCheckWifiNote" class="loc-check-wifi" style="display:none">You're on office Wi-Fi, so you can still punch today, but please fix this for next time.</p>
       <p id="locCheckStatus" class="loc-check-status" aria-live="polite"></p>
       <button type="button" id="locCheckAgainBtn" class="loc-check-primary" onclick="runPreciseLocationCheck(true)">Check again</button>
       <button type="button" class="loc-check-secondary" onclick="closePreciseLocationModal()">Skip for now</button>
@@ -1127,7 +1136,7 @@
   <div id="quickSetupModal" class="loc-check-modal" role="dialog" aria-modal="true" aria-labelledby="quickSetupTitle" aria-hidden="true">
     <div class="loc-check-card">
       <div id="quickSetupPinStep">
-        <div class="loc-check-icon">🔢</div>
+        <div class="loc-check-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
         <h3 id="quickSetupTitle">Faster login next time</h3>
         <p class="loc-check-text">Set a 4-digit PIN for this phone. Next time, just enter the PIN (or use your fingerprint) instead of your ID and password.</p>
         <input type="password" id="quickSetupPin" class="quick-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="New PIN" aria-label="New 4-digit PIN">
@@ -1137,7 +1146,7 @@
         <button type="button" class="loc-check-secondary" onclick="skipQuickSetup('pin')">Not now</button>
       </div>
       <div id="quickSetupSettingsStep" style="display:none;">
-        <div class="loc-check-icon">🔐</div>
+        <div class="loc-check-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
         <h3>Fingerprint &amp; PIN</h3>
         <p class="loc-check-text" id="quickSettingsInfo"></p>
         <button type="button" id="quickSettingsFpBtn" class="loc-check-primary" onclick="openQuickSetup('fp')">Enable fingerprint</button>
