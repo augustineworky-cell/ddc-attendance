@@ -1,0 +1,141 @@
+/* =====================================================================
+   theme-mobile.css - Staffly colour themes for the PHONE app (loaded after styles.css).
+   html[data-theme="mist"]     Lavender Mist  (light)
+   html[data-theme="twilight"] Twilight Violet (dark)
+   Same names/colours as the PC dashboard (dash/css/violet.css). Chosen by dash/js/theme.js.
+   ===================================================================== */
+html[data-theme="mist"]{color-scheme:light;
+  --m-bg:#f4effb;--m-surface:#ffffff;--m-surface2:#faf6ff;--m-line:#e4d9f4;--m-ink:#2b1450;--m-muted:#7a6a98;
+  --m-acc:#7c4dcc;--m-acc2:#c46fd8;--m-hi:#f2a65a;--m-deep1:#3a1d6e;--m-deep2:#6a3cc4;--m-on-acc:#ffffff;--m-tint:#efe9f8;
+  --m-ok:#12805f;--m-ok-bg:#e6f6f1;--m-bad:#b3263f;--m-bad-bg:#fdecef;--m-warn:#a85d12;--m-warn-bg:#fff3e2;
+  --m-shadow:0 1px 2px rgba(43,20,80,.06),0 8px 22px -12px rgba(43,20,80,.25);
+  --m-orb:linear-gradient(160deg,#9a6ee0 0%,#7c4dcc 55%,#5d2fb0 100%);--m-orb-glow:124,77,204;
+  --bg-cream:#f4effb;--coral-primary:#7c4dcc;--coral-light:#c9a7f0;--navy-dark:#2b1450;--navy-text:#2b1450;--mint-green:#1fa88f;
+  --purple-accent:#7c4dcc;--gold-yellow:#e8923a;--white-card:#ffffff;--text-muted:#7a6a98;
+  --glass-bg:#ffffff;--glass-bg-strong:#ffffff;--glass-border:#e4d9f4;
+  --v2-cream:#f4effb;--v2-ink:#2b1450;--v2-ink-2:#6f5f8d;--v2-line:#e4d9f4;
+  --pro-bg:#f4effb;--pro-surface:#ffffff;--pro-border:#e4d9f4;--pro-navy:#2b1450;--pro-navy-2:#3a1d6e;--pro-tint:#efe9f8;
+  --pro-shadow:0 1px 2px rgba(43,20,80,.06),0 8px 22px -12px rgba(43,20,80,.25);--pro-shadow-lg:0 12px 32px -14px rgba(43,20,80,.35)}
+html[data-theme="twilight"]{color-scheme:dark;
+  --m-bg:#150a26;--m-surface:#24133f;--m-surface2:#2d1a4d;--m-line:#3d2a62;--m-ink:#f3ecff;--m-muted:#b3a1d4;
+  --m-acc:#a678f0;--m-acc2:#f08fd0;--m-hi:#f5b97a;--m-deep1:#2d1560;--m-deep2:#5a2fb0;--m-on-acc:#1a0b2e;--m-tint:#2d1a4d;
+  --m-ok:#5fe3d3;--m-ok-bg:rgba(63,208,192,.14);--m-bad:#ff9bab;--m-bad-bg:rgba(255,107,129,.14);--m-warn:#f5b97a;--m-warn-bg:rgba(240,166,90,.15);
+  --m-shadow:0 1px 2px rgba(0,0,0,.4),0 10px 26px -12px rgba(0,0,0,.7);
+  --m-orb:linear-gradient(160deg,#c9a7f5 0%,#a678f0 50%,#f08fd0 130%);--m-orb-glow:166,120,240;
+  --bg-cream:#150a26;--coral-primary:#a678f0;--coral-light:#d3b6fa;--navy-dark:#f3ecff;--navy-text:#e6dcfa;--mint-green:#5fe3d3;
+  --purple-accent:#a678f0;--gold-yellow:#f5b97a;--white-card:#24133f;--text-muted:#b3a1d4;
+  --glass-bg:#24133f;--glass-bg-strong:#24133f;--glass-border:#3d2a62;
+  --v2-cream:#150a26;--v2-ink:#f3ecff;--v2-ink-2:#b3a1d4;--v2-line:#3d2a62;
+  --pro-bg:#150a26;--pro-surface:#24133f;--pro-border:#3d2a62;--pro-navy:#f3ecff;--pro-navy-2:#d3b6fa;--pro-tint:#2d1a4d;
+  --pro-shadow:0 1px 2px rgba(0,0,0,.4),0 10px 26px -12px rgba(0,0,0,.7);--pro-shadow-lg:0 14px 34px -14px rgba(0,0,0,.8)}
+
+/* page */
+html[data-vt] body{background:radial-gradient(700px 420px at 100% -5%,color-mix(in srgb,var(--m-acc) 18%,transparent),transparent 65%),var(--m-bg);background-attachment:fixed;color:var(--m-ink)}
+html[data-vt] .app-loading-splash{background:var(--m-bg)}
+html[data-vt] .loading-splash-title,html[data-vt] .loading-splash-brand h1{color:var(--m-ink)}
+
+/* ---- solid "deep" blocks (these used navy as a BACKGROUND) ---- */
+html[data-vt] #homeView .v2-hero.geofence-status-card,
+html[data-vt] #profileView .v2-profile-card,
+html[data-vt] #loginView .login-header-banner.v2-welcome,
+html[data-vt] .login-header-banner,
+html[data-vt] #sidebar .sidebar-coral-header,
+html[data-vt] .kpi-accent{background:linear-gradient(150deg,var(--m-deep1) 0%,var(--m-deep2) 100%)!important;color:#fff}
+html[data-vt] #homeView .v2-hero *,html[data-vt] #profileView .v2-profile-card *{--navy-dark:#fff;--navy-text:#fff}
+html[data-vt] .btn-primary,html[data-vt] .btn-primary-mobile,html[data-vt] .loc-check-primary{background:linear-gradient(135deg,var(--m-acc),var(--m-acc2))!important;color:var(--m-on-acc)!important;border-color:transparent!important;box-shadow:0 10px 22px -10px var(--m-acc)}
+html[data-vt] .btn-primary:hover,html[data-vt] .btn-primary-mobile:hover{filter:brightness(1.08)}
+html[data-vt] .user-avatar,html[data-vt] .mobile-user-avatar{background:linear-gradient(135deg,var(--m-acc),var(--m-acc2))!important;color:var(--m-on-acc)!important}
+html[data-vt] .chip.on,html[data-vt] .chip.active,html[data-vt] .chip.is-active,html[data-vt] .view-seg button.on{background:var(--m-acc)!important;border-color:var(--m-acc)!important;color:var(--m-on-acc)!important}
+html[data-vt] .hq-pin,html[data-vt] .toast{background:var(--m-deep2)!important;color:#fff!important}
+html[data-vt] #sidebar .nav-item.active{background:color-mix(in srgb,var(--m-acc) 22%,transparent)!important;color:var(--m-ink)!important}
+html[data-vt] #sidebar .nav-item.active .nav-icon{background:var(--m-acc)!important;color:var(--m-on-acc)!important}
+
+/* ---- punch button ---- */
+html[data-vt] #homeView #punchInBtn.v2-orb{background:var(--m-orb)!important;color:var(--m-on-acc);border:3px solid rgba(255,255,255,.8)!important;animation:vtGlow 2.4s ease-in-out infinite}
+html[data-vt] #homeView .v2-orb-halo{background:radial-gradient(closest-side,rgba(var(--m-orb-glow),.4),rgba(var(--m-orb-glow),.1) 60%,transparent 100%)}
+@keyframes vtGlow{0%,100%{box-shadow:0 0 0 0 rgba(var(--m-orb-glow),.5),0 6px 16px rgba(0,0,0,.3)}50%{box-shadow:0 0 0 10px rgba(var(--m-orb-glow),0),0 8px 20px rgba(0,0,0,.34)}}
+html[data-vt] .btn-punch-action.reject-shake{background:linear-gradient(135deg,#b3263f,#e0566e)!important}
+
+/* ---- surfaces that were white ---- */
+html[data-vt] .mobile-login-wrapper,html[data-vt] .loc-check-card,html[data-vt] .kpi,html[data-vt] .notif-panel,html[data-vt] #homeView .v2-card,html[data-vt] .card,html[data-vt] .v2-card,html[data-vt] .stat-card,html[data-vt] .person-card,html[data-vt] .modal-content{background:var(--m-surface)!important;border-color:var(--m-line)!important;color:var(--m-ink);box-shadow:var(--m-shadow)}
+html[data-vt] .input-group input,html[data-vt] .office-net-add input,html[data-vt] .quick-pin-input,html[data-vt] .field-input,html[data-vt] .search-field,html[data-vt] .chip,html[data-vt] .icon-btn,html[data-vt] .btn-ghost,html[data-vt] .btn-action-outline,html[data-vt] .notif-bell,html[data-vt] .push-row-icon,html[data-vt] .seg-btn,html[data-vt] input,html[data-vt] select,html[data-vt] textarea{background:var(--m-surface2);border-color:var(--m-line);color:var(--m-ink)}
+html[data-vt] .input-group input:focus,html[data-vt] .field-input:focus,html[data-vt] .search-field:focus-within{border-color:var(--m-acc)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--m-acc) 25%,transparent)}
+html[data-vt] ::placeholder{color:var(--m-muted);opacity:.8}
+html[data-vt] .seg-btn.on{background:var(--m-acc);color:var(--m-on-acc);box-shadow:none}
+html[data-vt] .badge-pill,html[data-vt] .geofence-icon-badge,html[data-vt] .error-msg,html[data-vt] .brand-logo,html[data-vt] .fp-visual,html[data-vt] .fingerprint-icon{background:var(--m-surface2);color:var(--m-ink);border-color:var(--m-line)}
+html[data-vt] #homeView .v2-hero .geofence-icon-badge,html[data-vt] #homeView .v2-selfie .btn-action-outline{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.28)}
+html[data-vt] #homeView .v2-map-legend{background:var(--m-surface);color:var(--m-ink);border:1px solid var(--m-line)}
+html[data-vt] .nav-item:hover{background:var(--m-tint)}
+html[data-vt] .permission-banner-btn{background:var(--m-surface2);color:var(--m-ink)}
+html[data-vt] #profileView .v2-avatar-ring{background:var(--m-surface)}
+html[data-vt] .v2-viewer-close{background:var(--m-surface);color:var(--m-ink)}
+
+/* ---- bottom nav + headers ---- */
+html[data-vt] #bottomNav.v2-nav,html[data-vt] #bottomNav{background:var(--m-surface)!important;border-top:1px solid var(--m-line)!important;box-shadow:0 -8px 24px -14px rgba(0,0,0,.35)}
+html[data-vt] #bottomNav .active,html[data-vt] #bottomNav .is-active,html[data-vt] #bottomNav [aria-current=page]{color:var(--m-acc)!important}
+html[data-vt] #bottomNav button,html[data-vt] #bottomNav a{color:var(--m-muted)}
+html[data-vt] #bottomNav .active *,html[data-vt] #bottomNav .is-active *{color:var(--m-acc)!important}
+html[data-vt] #sidebar{background:var(--m-surface);border-color:var(--m-line)}
+html[data-vt] header,html[data-vt] .mobile-header,html[data-vt] .app-header,html[data-vt] .top-bar{background:color-mix(in srgb,var(--m-bg) 88%,transparent)!important;border-color:var(--m-line)!important;color:var(--m-ink)}
+
+/* ---- text ---- */
+html[data-vt] h1,html[data-vt] h2,html[data-vt] h3,html[data-vt] h4,html[data-vt] .card-title,html[data-vt] .person-name,html[data-vt] .empty-title{color:var(--m-ink)}
+html[data-vt] #homeView .v2-hero h1,html[data-vt] #homeView .v2-hero h2,html[data-vt] #homeView .v2-hero h3,html[data-vt] #profileView .v2-profile-card h1,html[data-vt] #profileView .v2-profile-card h2,html[data-vt] #profileView .v2-profile-card h3,html[data-vt] .login-header-banner h1,html[data-vt] .login-header-banner h2,html[data-vt] .login-header-banner p{color:#fff}
+html[data-vt] .kpi-val,html[data-vt] .stat-val{color:var(--m-ink)}
+html[data-vt] .kpi-accent .kpi-val,html[data-vt] .kpi-accent *{color:#fff}
+html[data-vt] .stat-lbl,html[data-vt] .kpi-lbl,html[data-vt] small,html[data-vt] .v2-hint{color:var(--m-muted)}
+
+/* ---- status colours (same meaning as PC) ---- */
+html[data-vt] .v2-chip-acc[data-level="good"]{background:var(--m-ok-bg);color:var(--m-ok)}
+html[data-vt] .v2-chip-acc[data-level="poor"],html[data-vt] .punch-reject{background:var(--m-bad-bg);color:var(--m-bad)}
+html[data-vt] .v2-chip-acc[data-level="weak"]{background:var(--m-warn-bg);color:var(--m-warn)}
+html[data-vt] .pill-role{background:var(--m-tint);color:var(--m-ink)}
+html[data-vt] .v2-live{background:var(--m-ok-bg);color:var(--m-ok)}
+
+/* ---- home / profile specifics ---- */
+html[data-vt] #homeView .v2-tile,html[data-vt] #homeView .v2-stat.stat-card,html[data-vt] #homeView .v2-today-tile,html[data-vt] #homeView .v2-chip-refresh,html[data-vt] #profileView .v2-list{background:var(--m-surface)!important;border-color:var(--m-line)!important;box-shadow:var(--m-shadow)}
+html[data-vt] #homeView .v2-stat.stat-card{border-top-color:var(--m-acc)!important}
+html[data-vt] #homeView .v2-stat-half.stat-card{border-top-color:var(--m-hi)!important}
+html[data-vt] #homeView .v2-tile:hover{border-color:var(--m-acc)!important}
+html[data-vt] #homeView .v2-tile .v2-tile-ic,html[data-vt] #profileView .v2-row-ic{background:var(--m-tint)!important;color:var(--m-acc)}
+html[data-vt] #homeView .v2-tile-title,html[data-vt] #profileView .v2-row-text b,html[data-vt] #homeView .v2-stat .stat-val,html[data-vt] #profileView .v2-row{color:var(--m-ink)!important}
+html[data-vt] #homeView .v2-tile-sub,html[data-vt] #homeView .v2-stat .stat-lbl,html[data-vt] #profileView .v2-row-text small,html[data-vt] #homeView .v2-chip-refresh .v2-chip-lbl,html[data-vt] #homeView .v2-today-cap span,html[data-vt] #homeView .v2-today-empty{color:var(--m-muted)!important}
+html[data-vt] #profileView .v2-row{border-bottom-color:var(--m-line)!important}
+html[data-vt] #profileView .v2-chev{color:var(--m-muted)}
+html[data-vt] #profileView .v2-group-title,html[data-vt] #homeView .v2-section-title{color:var(--m-muted)}
+html[data-vt] #profileView .v2-avatar{background:var(--m-surface2);color:var(--m-ink)}
+html[data-vt] #profileView .v2-avatar-ring{background:linear-gradient(135deg,var(--m-acc),var(--m-acc2))}
+html[data-vt] #homeView .v2-chip-acc[data-level="none"]{background:var(--m-tint);color:var(--m-ink)}
+html[data-vt] #homeView .v2-chip-dist{background:var(--m-bad-bg);color:var(--m-bad)}
+html[data-vt] #homeView .v2-chip{background:var(--m-surface2);border-color:var(--m-line)}
+html[data-vt] #homeView .v2-chip-lbl,html[data-vt] #homeView .v2-chip-val{color:var(--m-ink)}
+html[data-vt] #homeView .v2-chip-acc .v2-chip-lbl,html[data-vt] #homeView .v2-chip-dist .v2-chip-lbl{opacity:.8}
+html[data-vt] #homeView .v2-saved{background:var(--m-ok-bg);color:var(--m-ok)}
+html[data-vt] #homeView .v2-saved[data-ok="false"]{background:var(--m-bad-bg);color:var(--m-bad)}
+html[data-vt] #homeView .v2-today-photo{background:var(--m-tint)}
+html[data-vt] #homeView .v2-map-box .my-location-map{background:var(--m-surface2)}
+html[data-vt] .selfie-frame{background:linear-gradient(135deg,var(--m-acc),var(--m-acc2))!important;box-shadow:0 4px 14px color-mix(in srgb,var(--m-acc) 40%,transparent)}
+html[data-vt] .stat-card:nth-child(1){background:var(--m-acc)}html[data-vt] .stat-card:nth-child(2){background:var(--m-hi)}html[data-vt] .stat-card:nth-child(3){background:var(--m-deep2)}
+html[data-vt] .v2-tile::before,html[data-vt] #homeView .v2-tile{--tile-edge:var(--m-acc);--tile-glow:transparent}
+html[data-vt] .leaflet-container{background:var(--m-surface2)}
+html[data-vt] .leaflet-tile-pane{filter:var(--m-map-filter,none)}
+html[data-theme="twilight"]{--m-map-filter:invert(.92) hue-rotate(235deg) saturate(.7) brightness(.85) contrast(.95)}
+html[data-vt] #loginView a{color:var(--m-acc)!important}
+
+/* ---- v67: punch card layout - selfie strip + full-width punch pill (no side-by-side circles) ---- */
+html[data-vt] #homeView .v2-hero-actions{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-top:16px}
+html[data-vt] #homeView .v2-selfie.camera-verification-card{flex-direction:row;align-items:center;gap:14px;padding:10px 12px;text-align:left;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:16px;box-shadow:none}
+html[data-vt] #homeView .v2-selfie .selfie-frame{width:60px;height:60px;flex:0 0 60px;border:2px solid rgba(255,255,255,.7);box-shadow:none!important;background:rgba(255,255,255,.18)!important}
+html[data-vt] #homeView .v2-selfie .selfie-frame img,html[data-vt] #homeView .v2-selfie .selfie-frame video{width:100%;height:100%;object-fit:cover;border-radius:50%}
+html[data-vt] #homeView .v2-selfie .btn-action-outline{flex:1;min-width:0;justify-content:center;min-height:44px;font-size:13.5px;border-radius:12px}
+html[data-vt] #homeView .v2-orb-wrap{width:100%;height:auto;display:block}
+html[data-vt] #homeView .v2-orb-halo,html[data-vt] #homeView .v2-orb-ring{display:none!important}
+html[data-vt] #homeView #punchInBtn.v2-orb{width:100%;height:60px;padding:0 20px;border-radius:16px;flex-direction:row;gap:10px;font-size:16.5px;letter-spacing:.01em;overflow:visible;
+  background:#fff!important;color:var(--m-deep1,#3a1d6e);border:0!important;box-shadow:0 10px 24px -10px rgba(0,0,0,.55);animation:none}
+html[data-vt] #homeView #punchInBtn.v2-orb:active{transform:scale(.98)}
+html[data-vt] #homeView .v2-orb-icon{width:22px;height:22px}
+html[data-vt] #v2Hero[data-punch="out"] #punchInBtn.v2-orb{background:linear-gradient(135deg,#bff3e6,#7fe0c6)!important;color:#0c3b30}
+html[data-vt] #v2Hero[data-punch="done"] #punchInBtn.v2-orb,html[data-vt] #v2Hero[data-punch="unknown"] #punchInBtn.v2-orb{background:rgba(255,255,255,.18)!important;color:#fff;box-shadow:none}
+html[data-vt] #v2Hero[data-zone="out"]:not([data-punch="done"]):not([data-punch="unknown"]) #punchInBtn.v2-orb,
+html[data-vt] #v2Hero[data-zone="nogps"]:not([data-punch="done"]):not([data-punch="unknown"]) #punchInBtn.v2-orb{background:rgba(255,255,255,.88)!important;color:#5b4a82;box-shadow:none}
+html[data-vt] #homeView .v2-hint{margin-top:10px}
