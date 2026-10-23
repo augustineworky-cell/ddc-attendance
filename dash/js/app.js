@@ -380,7 +380,10 @@ function renderCal(soft) {
   const noted = S.rows.filter((r) => r.note);
   const noteBox = noted.length ? `<div class="notes"><b>${noted.length} day(s) with corrections / notes:</b> ${noted.map((r) => `${fmtDate(r.work_date)} – ${esc(r.note)}`).join(' · ')}</div>` : '';
   const e = S.emp;
-  const head = `<div class="emp-head"><h2>${esc(e.name)}</h2><span>${esc(e.location)} · ${S.from ? S.from.slice(8) + ' ' + MONTHS[+S.from.slice(5, 7) - 1] : ''} – ${S.to ? S.to.slice(8) + ' ' + MONTHS[+S.to.slice(5, 7) - 1] : ''}${e.active ? '' : ' · inactive'}</span></div>`;
+  const _code = ((S.emps.find((x) => x.id === e.id)) || {}).code || '';
+  const _ini = esc(String(e.name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase());
+  const _av = `<span class="eav"><b>${_ini}</b>${_code ? `<img src="/photos/${encodeURIComponent(_code)}.jpg" alt="" onerror="this.remove()">` : ''}</span>`;
+  const head = `<div class="emp-head"><div class="eh-l">${_av}<h2>${esc(e.name)}</h2></div><span>${esc(e.location)} · ${S.from ? S.from.slice(8) + ' ' + MONTHS[+S.from.slice(5, 7) - 1] : ''} – ${S.to ? S.to.slice(8) + ' ' + MONTHS[+S.to.slice(5, 7) - 1] : ''}${e.active ? '' : ' · inactive'}</span></div>`;
   if (!S.rows.length) {
     $('#center').classList.remove('enter'); $('#center').innerHTML = head + '<div class="empty"><b>No attendance records</b>Nothing is recorded for this employee in this month (not on the roster yet, or no longer active).</div>';
     return;
