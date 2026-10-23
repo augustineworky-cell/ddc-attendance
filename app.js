@@ -1093,6 +1093,9 @@ function applyRoleBasedUIRestrictions(role) {
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
   });
+  document.querySelectorAll('.emp-only').forEach(el => {
+    el.style.display = isAdmin ? 'none' : '';
+  });
 }
 
 // Single entry point used by both a fresh login and session restoration.

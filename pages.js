@@ -492,7 +492,7 @@ async function calculateSalary() {
       legend.innerHTML = seen.map(c => `<span class="legend-item"><span class="legend-dot color-${escapeHtml(c)}"></span>${escapeHtml(PAY_COLOR_LABELS[c] || c)}</span>`).join('');
     }
     const who = document.getElementById('salaryWho');
-    if (who) who.textContent = empId === CURRENT_USER.employeeId ? 'Your payroll' : `Payroll for ${empId}`;
+    if (who) who.textContent = empId === CURRENT_USER.employeeId ? (isAdminUser() ? 'Your payroll' : 'My attendance') : `Payroll for ${empId}`;
   } catch (e) {
     notify("Couldn't calculate payroll for that month.", 'error');
   } finally {
