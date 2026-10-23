@@ -1,33 +1,43 @@
 /* =====================================================================
-   theme.js - picks the look BEFORE the page paints (no flash).
-
-   ONLY ONE LOOK: Professional (id 'premium'). Everyone, on every device, always gets it.
-   The Festive (Durga) and Hydrangea looks are switched off here; their CSS is still in the files if ever needed.
+   theme.js - ONE colour theme for the phone app AND the PC dashboard (same website, same saved choice).
+   Modes:  'mist'     = Lavender Mist  (light)
+           'twilight' = Twilight Violet (dark)
+           'auto'     = follow the device (dark at night if the phone/PC is set to dark)
+   Saved in localStorage 'staffly_theme'. Runs in <head> so there is no flash.
    ===================================================================== */
 (function () {
   'use strict';
-  var KEY = 'dccThemeMode';
-  var FESTIVE = [];   // festive auto mode switched OFF: the Professional look is the only look
+  var KEY = 'staffly_theme';
   var THEMES = [
-    { id: 'premium', name: 'Professional' }
+    { id: 'mist', name: 'Lavender Mist (light)' },
+    { id: 'twilight', name: 'Twilight Violet (dark)' }
   ];
-
-  function festiveNow() { return null; }
-  function valid(mode) { return mode === 'premium'; }
-  function resolve() { return 'premium'; }
-  function getMode() { return 'premium'; }      // ignores any older saved choice (Durga / Hydrangea / Auto)
-  function setMode() {
-    document.documentElement.dataset.theme = 'premium';
-    document.documentElement.dataset.themeMode = 'premium';
-    try { localStorage.removeItem(KEY); } catch (e) { /* storage blocked */ }
-    return 'premium';
+  function valid(m) { return m === 'auto' || m === 'mist' || m === 'twilight'; }
+  function getMode() { try { var m = localStorage.getItem(KEY); if (valid(m)) return m; } catch (e) {} return 'mist'; }
+  function resolve(m) {
+    m = m || getMode();
+    if (m === 'auto') { try { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'twilight' : 'mist'; } catch (e) { return 'mist'; } }
+    return m;
   }
-
+  function apply(m) {
+    var r = resolve(m), h = document.documentElement;
+    h.dataset.theme = r; h.dataset.vt = '1'; h.dataset.themeMode = m;
+    h.style.colorScheme = r === 'twilight' ? 'dark' : 'light';
+    var mt = document.querySelector('meta[name=theme-color]');
+    if (mt) mt.setAttribute('content', r === 'twilight' ? '#150a26' : '#f4effb');
+  }
+  function setMode(m) {
+    if (!valid(m)) m = 'mist';
+    try { localStorage.setItem(KEY, m); } catch (e) {}
+    apply(m); try { window.dispatchEvent(new CustomEvent('staffly-theme', { detail: resolve(m) })); } catch (e) {}
+    return m;
+  }
   window.DCC_THEME = {
-    THEMES: THEMES,
-    MODES: ['auto'].concat(THEMES.map(function (t) { return t.id; })),
-    getMode: getMode, setMode: setMode, resolve: resolve, festiveNow: festiveNow,
-    name: function (id) { for (var i = 0; i < THEMES.length; i++) if (THEMES[i].id === id) return THEMES[i].name; return id; }
+    THEMES: THEMES, MODES: ['auto', 'mist', 'twilight'],
+    getMode: getMode, setMode: setMode, resolve: resolve, festiveNow: function () { return null; },
+    name: function (id) { for (var i = 0; i < THEMES.length; i++) if (THEMES[i].id === id) return THEMES[i].name; return id === 'auto' ? 'Auto' : id; }
   };
-  setMode(getMode(), false);
+  apply(getMode());
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { if (getMode() === 'auto') apply('auto'); }); } catch (e) {}
+  window.addEventListener('storage', function (e) { if (e.key === KEY) apply(getMode()); });
 })();

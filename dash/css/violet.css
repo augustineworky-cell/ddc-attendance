@@ -1,0 +1,216 @@
+/* =====================================================================
+   violet.css - Staffly colour themes for the PC dashboard.
+   html[data-theme="mist"]     Lavender Mist  (light)
+   html[data-theme="twilight"] Twilight Violet (dark)
+   Everything below is written once with variables; only the variable block differs.
+   Set by js/theme.js (shared with the phone app).
+   ===================================================================== */
+html[data-vt]{--font:"Plus Jakarta Sans",Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+
+html[data-theme="mist"]{color-scheme:light;
+  --v-bg:#f4effb;--v-glow:rgba(124,77,204,.16);--v-glow2:rgba(242,166,90,.14);
+  --v-card:#ffffff;--v-card2:#faf6ff;--v-ink:#2b1450;--v-muted:#6f5f8d;--v-line:#e4d9f4;
+  --v-acc:#7c4dcc;--v-acc-d:#6a3cc4;--v-acc2:#f2a65a;--v-acc-ink:#ffffff;--v-hi:#3a1d6e;
+  --v-side1:#3a1d6e;--v-side2:#2b1450;--v-side-ink:#e6dcff;--v-side-mut:#b9a6e0;
+  --v-input:#ffffff;--v-input-b:#d9caf0;--v-hover:rgba(124,77,204,.09);--v-shadow:0 1px 2px rgba(43,20,80,.05),0 12px 30px -16px rgba(43,20,80,.22);
+  --v-pr-bg:#e6f6f1;--v-pr-ink:#12705f;--v-pr-b:#bfe6da;
+  --v-ab-bg:#fdecef;--v-ab-ink:#b3263f;--v-ab-b:#f6c3cc;
+  --v-mi-bg:#fff3e2;--v-mi-ink:#a85d12;--v-mi-b:#f5d9b4;
+  --v-ha-bg:#e8f1ff;--v-ha-ink:#2562b8;--v-ha-b:#c9dcf7;
+  --v-ex-bg:#f0e7ff;--v-ex-ink:#6a3cc4;--v-ex-b:#d9c8f7;
+  --v-ip-bg:#e3f4fa;--v-ip-ink:#17708f;--v-ip-b:#bfe3ef;
+  --v-of-bg:#efe9f8;--v-of-ink:#6f5f8d;--v-of-b:#e0d5f1;
+  --v-fu-bg:#fbf8fe;--v-fu-b:#dccff0;--v-fu-ink:#9a8bb8;
+  --v-warn-bg:#fff3e2;--v-warn-ink:#8a4f10;--v-warn-b:#f5d9b4;
+  --v-bar:#7c4dcc;--v-bar2:#c9a7f0;
+  --ink:#2b1450;--muted:#6f5f8d;--line:#e4d9f4;--card:#ffffff;--blue:#7c4dcc;--accent:#f2a65a;--accent-ink:#2b1450;--plum:#2b1450;
+  --shadow:var(--v-shadow);--off:#efe9f8;--off-ink:#6f5f8d;
+  --present:#e6f6f1;--present-ink:#12705f;--absent:#fdecef;--absent-ink:#b3263f;--missing:#fff3e2;--missing-ink:#a85d12;
+  --half:#e8f1ff;--half-ink:#2562b8;--extra:#f0e7ff;--extra-ink:#6a3cc4;--prog:#e3f4fa;--prog-ink:#17708f}
+html[data-theme="twilight"]{color-scheme:dark;
+  --v-bg:#150a26;--v-glow:rgba(166,120,240,.22);--v-glow2:rgba(240,143,208,.14);
+  --v-card:#24133f;--v-card2:#2d1a4d;--v-ink:#f3ecff;--v-muted:#b3a1d4;--v-line:#3d2a62;
+  --v-acc:#a678f0;--v-acc-d:#b78df5;--v-acc2:#f08fd0;--v-acc-ink:#1a0b2e;--v-hi:#f3ecff;
+  --v-side1:#0d0618;--v-side2:#150a26;--v-side-ink:#d9c9f5;--v-side-mut:#9d8ac4;
+  --v-input:#1c0f33;--v-input-b:#4a3478;--v-hover:rgba(166,120,240,.14);--v-shadow:0 1px 2px rgba(0,0,0,.35),0 14px 34px -16px rgba(0,0,0,.65);
+  --v-pr-bg:rgba(63,208,192,.14);--v-pr-ink:#5fe3d3;--v-pr-b:rgba(63,208,192,.32);
+  --v-ab-bg:rgba(255,107,129,.14);--v-ab-ink:#ff9bab;--v-ab-b:rgba(255,107,129,.32);
+  --v-mi-bg:rgba(240,166,90,.15);--v-mi-ink:#f5b97a;--v-mi-b:rgba(240,166,90,.34);
+  --v-ha-bg:rgba(106,166,255,.15);--v-ha-ink:#8fbcff;--v-ha-b:rgba(106,166,255,.34);
+  --v-ex-bg:rgba(166,120,240,.2);--v-ex-ink:#cdb0f7;--v-ex-b:rgba(166,120,240,.4);
+  --v-ip-bg:rgba(74,163,216,.16);--v-ip-ink:#7cc7ec;--v-ip-b:rgba(74,163,216,.34);
+  --v-of-bg:rgba(255,255,255,.05);--v-of-ink:#a897c8;--v-of-b:rgba(255,255,255,.1);
+  --v-fu-bg:rgba(255,255,255,.02);--v-fu-b:#3d2a62;--v-fu-ink:#7e6da2;
+  --v-warn-bg:rgba(240,166,90,.14);--v-warn-ink:#f5b97a;--v-warn-b:rgba(240,166,90,.34);
+  --v-bar:#a678f0;--v-bar2:#f08fd0;
+  --ink:#f3ecff;--muted:#b3a1d4;--line:#3d2a62;--card:#24133f;--blue:#a678f0;--accent:#f08fd0;--accent-ink:#1a0b2e;--plum:#f3ecff;
+  --shadow:var(--v-shadow);--off:#2d1a4d;--off-ink:#a897c8;
+  --present:rgba(63,208,192,.14);--present-ink:#5fe3d3;--absent:rgba(255,107,129,.14);--absent-ink:#ff9bab;--missing:rgba(240,166,90,.15);--missing-ink:#f5b97a;
+  --half:rgba(106,166,255,.15);--half-ink:#8fbcff;--extra:rgba(166,120,240,.2);--extra-ink:#cdb0f7;--prog:rgba(74,163,216,.16);--prog-ink:#7cc7ec}
+
+/* page */
+html[data-vt] body{background:radial-gradient(900px 480px at 85% -5%,var(--v-glow),transparent 65%),radial-gradient(700px 420px at 0% 100%,var(--v-glow2),transparent 65%),var(--v-bg);background-attachment:fixed;color:var(--v-ink)}
+html[data-vt] .art,html[data-vt] .petals,html[data-vt] .puja,html[data-vt] .embers,html[data-vt] .sidepuja,html[data-vt] #fx{display:none!important}
+html[data-vt] .liquid{background:transparent}
+html[data-vt] main{border-top:3px solid transparent;border-image:linear-gradient(90deg,var(--v-acc) 0%,var(--v-acc2) 55%,transparent 100%) 1}
+html[data-vt] h1,html[data-vt] h2,html[data-vt] h3,html[data-vt] h4{color:var(--v-ink);letter-spacing:-.01em}
+html[data-vt] h1{font-weight:800;letter-spacing:-.02em;font-size:24px}
+html[data-vt] .sub,html[data-vt] .top .sub,html[data-vt] .top .ts,html[data-vt] #subt{color:var(--v-muted)}
+html[data-vt] .top .ts b{color:var(--v-ink)}
+html[data-vt] a{color:var(--v-acc-d)}
+html[data-vt] .fl,html[data-vt] .nav .grp{letter-spacing:.06em;font-weight:700;color:var(--v-muted)}
+
+/* sidebar */
+html[data-vt] .side{background:linear-gradient(180deg,var(--v-side1),var(--v-side2));border-right:1px solid rgba(255,255,255,.06)}
+html[data-vt] .logo{background:linear-gradient(135deg,var(--v-acc),var(--v-acc2));color:#1a0b2e;font-weight:800;box-shadow:0 6px 18px -6px var(--v-acc)}
+html[data-vt] .brand b{color:#fff}html[data-vt] .brand small,html[data-vt] .side .foot,html[data-vt] .nav .grp{color:var(--v-side-mut)!important}
+html[data-vt] .nav a{color:var(--v-side-ink);transition:background .18s,color .18s}
+html[data-vt] .nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+html[data-vt] .nav a.act,html[data-vt] .nav a.act:hover{background:linear-gradient(90deg,rgba(166,120,240,.32),rgba(240,143,208,.12));color:#fff;box-shadow:inset 3px 0 0 var(--v-acc2)}
+html[data-vt] .nav a .bd{background:rgba(255,255,255,.12);color:#fff}
+html[data-vt] .adminbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:var(--v-side-ink)}
+html[data-vt] .adminbtn small{color:var(--v-side-mut)!important}
+html[data-vt] .adminbtn.on{background:rgba(240,143,208,.2);border-color:var(--v-acc2)}
+
+/* cards, kpis */
+html[data-vt] .card,html[data-vt] .kpi{background:var(--v-card)!important;border:1px solid var(--v-line);border-radius:16px;box-shadow:var(--v-shadow);color:var(--v-ink)}
+html[data-vt] .card::before{display:none}
+html[data-vt] .kpi:hover{transform:translateY(-2px)}
+html[data-vt] .kpi .v{color:var(--v-ink);font-weight:800;letter-spacing:-.03em}html[data-vt] .kpi .l,html[data-vt] .kpi small{color:var(--v-muted)}
+html[data-vt] .card h3,html[data-vt] .emp-head h2,html[data-vt] .cardh h3,html[data-vt] .card .fh,html[data-vt] .card h4{color:var(--v-ink)!important;font-weight:700}
+html[data-vt] .emp-head .sub,html[data-vt] .emp-head small{color:var(--v-muted)}
+html[data-vt] .grid.wide #center{background:none;border:0;box-shadow:none}
+
+/* controls */
+html[data-vt] .btn,html[data-vt] .search,html[data-vt] .mini,html[data-vt] label.f select,html[data-vt] label.f input,html[data-vt] .mgadd input,html[data-vt] .mgadd select,html[data-vt] select,html[data-vt] input[type=text],html[data-vt] input[type=search],html[data-vt] input[type=date],html[data-vt] input[type=password],html[data-vt] input[type=time],html[data-vt] input[type=number],html[data-vt] textarea{background:var(--v-input);border:1px solid var(--v-input-b);color:var(--v-ink);box-shadow:none;border-radius:10px}
+html[data-vt] ::placeholder{color:var(--v-muted);opacity:.75}
+html[data-vt] .btn{font-weight:600;transition:border-color .18s,background .18s}
+html[data-vt] .btn:hover{border-color:var(--v-acc);background:var(--v-hover)}
+html[data-vt] .btn.primary{background:linear-gradient(135deg,var(--v-acc),var(--v-acc-d));border-color:transparent;color:var(--v-acc-ink)!important}
+html[data-vt] .btn.primary:hover{filter:brightness(1.08);background:linear-gradient(135deg,var(--v-acc),var(--v-acc-d))}
+html[data-vt] .search:focus,html[data-vt] select:focus,html[data-vt] input:focus,html[data-vt] textarea:focus{border-color:var(--v-acc)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--v-acc) 25%,transparent)!important;outline:none}
+html[data-vt] .searchwrap svg{color:var(--v-muted)}html[data-vt] .searchwrap kbd{background:var(--v-card2);color:var(--v-muted);border-color:var(--v-line)}
+html[data-vt] .chip{background:var(--v-input);border:1px solid var(--v-input-b);color:var(--v-ink);box-shadow:none;font-weight:600}
+html[data-vt] .chip:hover{border-color:var(--v-acc)}
+html[data-vt] .chip.on{background:var(--v-acc);border-color:var(--v-acc);color:var(--v-acc-ink)}
+html[data-vt] .seg{background:var(--v-card2);border:1px solid var(--v-line)}
+html[data-vt] .seg .chip{background:transparent;border-color:transparent;box-shadow:none}
+html[data-vt] .seg .chip.on{background:var(--v-acc);color:var(--v-acc-ink);box-shadow:0 2px 8px -2px var(--v-acc)}
+html[data-vt] .fh a,html[data-vt] details.cust summary{color:var(--v-acc-d)}
+html[data-vt] .chkrow input,html[data-vt] input[type=checkbox]{accent-color:var(--v-acc)}
+html[data-vt] .fgrp{border-top-color:var(--v-line)}
+html[data-vt] label.f,html[data-vt] .fl,html[data-vt] .chkrow{color:var(--v-ink)}
+html[data-vt] .fsum{background:var(--v-card2);color:var(--v-muted);border:1px solid var(--v-line)}html[data-vt] .fsum b{color:var(--v-ink)}
+
+/* employee list */
+html[data-vt] .list button{color:var(--v-ink)!important}html[data-vt] .list button small{color:var(--v-muted)!important}
+html[data-vt] .list button:not(.sel):hover{background:var(--v-hover)}
+html[data-vt] .list button.sel,html[data-vt] #list button.sel{background:linear-gradient(135deg,var(--v-acc),var(--v-acc-d));color:var(--v-acc-ink)!important}
+html[data-vt] #list button.sel small{color:var(--v-acc-ink)!important;opacity:.85}
+html[data-vt] .suggest{background:var(--v-card);border:1px solid var(--v-line);box-shadow:var(--v-shadow)}
+html[data-vt] .suggest *{color:var(--v-ink)}html[data-vt] .suggest .on,html[data-vt] .suggest button:hover,html[data-vt] .suggest div:hover{background:var(--v-hover)}
+
+/* calendar tiles */
+html[data-vt] .tile{border-radius:12px}
+html[data-vt] .tile.Present{background:var(--v-pr-bg);color:var(--v-pr-ink);border-color:var(--v-pr-b)}
+html[data-vt] .tile.Absent{background:var(--v-ab-bg);color:var(--v-ab-ink);border-color:var(--v-ab-b)}
+html[data-vt] .tile.MissingPunch{background:var(--v-mi-bg);color:var(--v-mi-ink);border-color:var(--v-mi-b)}
+html[data-vt] .tile.HalfDay{background:var(--v-ha-bg);color:var(--v-ha-ink);border-color:var(--v-ha-b)}
+html[data-vt] .tile.ExtraDay{background:var(--v-ex-bg);color:var(--v-ex-ink);border-color:var(--v-ex-b)}
+html[data-vt] .tile.InProgress{background:var(--v-ip-bg);color:var(--v-ip-ink);border-color:var(--v-ip-b)}
+html[data-vt] .tile.Sunday,html[data-vt] .tile.Holiday{background:var(--v-of-bg)!important;color:var(--v-of-ink)!important;border-color:var(--v-of-b)!important}
+html[data-vt] .tile.future,html[data-vt] .tile.none{background:var(--v-fu-bg);border:1px dashed var(--v-fu-b);color:var(--v-fu-ink)}
+html[data-vt] .tile.night{box-shadow:inset 0 0 0 2px var(--v-acc)}
+html[data-vt] .tile.click:hover{outline:2px solid var(--v-acc);transform:translateY(-1px)}
+html[data-vt] .dow{color:var(--v-muted);font-weight:600}
+html[data-vt] .legend,html[data-vt] .legend *{color:var(--v-muted)}
+
+/* tables */
+html[data-vt] table.t,html[data-vt] table.gt{color:var(--v-ink)}
+html[data-vt] table.t thead th,html[data-vt] table.gt thead th{background:var(--v-side1);color:#fff!important}
+html[data-vt] table.gt thead th small{color:var(--v-side-mut)!important}
+html[data-vt] table.t thead th[data-sort]:hover{background:var(--v-acc-d)}
+html[data-vt] table.gt thead th.sun{background:var(--v-acc-d)}html[data-vt] table.gt thead th.tdy{background:var(--v-acc)}
+html[data-vt] table.gt thead th.nm{background:var(--v-side1)}
+html[data-vt] table.t td,html[data-vt] table.gt td,html[data-vt] table.gt th{border-color:var(--v-line)}
+html[data-vt] table.t tbody td,html[data-vt] table.gt tbody td,html[data-vt] table.gt tbody th{background:transparent}
+html[data-vt] table.gt th.nm,html[data-vt] table.gt tbody th.nm{background:var(--v-card)}
+html[data-vt] table.t tbody tr:hover td{background:var(--v-hover)}
+html[data-vt] table.t tbody tr:hover td:first-child{box-shadow:inset 3px 0 0 var(--v-acc)}
+html[data-vt] .gwrap{background:var(--v-card);border-color:var(--v-line)}
+html[data-vt] .gc{color:var(--v-ink)}
+html[data-vt] .gc.exq{background:var(--v-warn-bg);color:var(--v-warn-ink);border-color:var(--v-warn-b)}
+
+/* notices */
+html[data-vt] .adminbar{background:var(--v-warn-bg);color:var(--v-warn-ink);border:1px solid var(--v-warn-b)}
+html[data-vt] .notes,html[data-vt] .hint,html[data-vt] .vnote,html[data-vt] .bnote.warn{background:var(--v-card2);border:1px solid var(--v-line);color:var(--v-muted)}
+html[data-vt] .dchips.am span,html[data-vt] .dchips.pu span.un{background:var(--v-warn-bg);color:var(--v-warn-ink);border-color:var(--v-warn-b)}
+
+/* drawers, modals, menus */
+html[data-vt] .modal,html[data-vt] .drawer,html[data-vt] #drawer,html[data-vt] #modal,html[data-vt] .dlg{background:var(--v-card);border:1px solid var(--v-line);color:var(--v-ink)}
+html[data-vt] .xbtn{background:var(--v-card2);border-color:var(--v-line);color:var(--v-ink)}
+html[data-vt] .bcard,html[data-vt] .bbig,html[data-vt] .brfind{background:var(--v-card2);border-color:var(--v-input-b);color:var(--v-ink)}
+html[data-vt] .bcard.on,html[data-vt] .bbig[aria-pressed=true]{border-color:var(--v-acc);background:var(--v-hover);box-shadow:0 0 0 3px color-mix(in srgb,var(--v-acc) 22%,transparent)}
+html[data-vt] #themeMenu{background:var(--v-card);border:1px solid var(--v-line);box-shadow:var(--v-shadow)}
+html[data-vt] #themeMenu button{color:var(--v-ink)}html[data-vt] #themeMenu button:hover{background:var(--v-hover)}
+html[data-vt] #themeMenu button i{border-color:var(--v-input-b)}html[data-vt] #themeMenu button.on i{background:var(--v-acc);border-color:var(--v-acc)}
+html[data-vt] .toast{background:var(--v-card);color:var(--v-ink);border:1px solid var(--v-line);box-shadow:var(--v-shadow)}
+html[data-vt] .menuscrim{background:rgba(10,4,20,.55)}
+html[data-vt] .busy,html[data-vt] #busy{background:var(--v-card);color:var(--v-ink);border:1px solid var(--v-line)}
+html[data-vt] #topbar{background:linear-gradient(90deg,var(--v-acc),var(--v-acc2))}
+
+/* charts: purple/pink instead of old blue/violet */
+html[data-vt] svg [fill="#7c4dc9"],html[data-vt] svg [fill="#2f6bff"],html[data-vt] svg [fill="#3f51b5"],html[data-vt] svg [fill="#1e3a8a"],html[data-vt] svg [fill="#4a5fb5"]{fill:var(--v-bar)}
+html[data-vt] svg [stroke="#7c4dc9"],html[data-vt] svg [stroke="#2f6bff"],html[data-vt] svg [stroke="#3f51b5"],html[data-vt] svg [stroke="#1e3a8a"],html[data-vt] svg [stroke="#4a5fb5"]{stroke:var(--v-bar)}
+html[data-vt] svg text{fill:var(--v-muted)}
+html[data-vt] svg line[stroke="#e3e8f0"],html[data-vt] svg line[stroke="#eef1f6"],html[data-vt] svg line[stroke="#e6e9ef"]{stroke:var(--v-line)}
+
+/* sign-in screen */
+html[data-vt] .sitegate{background:radial-gradient(900px 500px at 15% 10%,color-mix(in srgb,var(--v-acc2) 24%,transparent),transparent 60%),radial-gradient(800px 600px at 90% 95%,color-mix(in srgb,var(--v-acc) 40%,transparent),transparent 60%),linear-gradient(160deg,#1a0b2e 0%,#2b1450 55%,#0d0618 100%)}
+html[data-vt] .sg-card{background:var(--v-card);box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px var(--v-line)}
+html[data-vt] .sg-card::before{background:linear-gradient(90deg,var(--v-acc),var(--v-acc2),var(--v-acc))}
+html[data-vt] .sg-logo{background:linear-gradient(145deg,var(--v-acc),var(--v-acc2));color:#1a0b2e;box-shadow:0 10px 24px -6px var(--v-acc),inset 0 0 0 2px rgba(255,255,255,.35)}
+html[data-vt] .sg-card h3{color:var(--v-ink)}html[data-vt] .sg-sub,html[data-vt] .sg-foot,html[data-vt] .sg-or{color:var(--v-muted)}
+html[data-vt] .sg-or::before,html[data-vt] .sg-or::after{background:var(--v-line)}
+html[data-vt] .sg-field>span{color:var(--v-ink)}
+html[data-vt] .sg-in input{background:var(--v-input);border-color:var(--v-input-b);color:var(--v-ink)}
+html[data-vt] .sg-in input:focus{border-color:var(--v-acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--v-acc) 25%,transparent)}
+html[data-vt] .sg-in svg{stroke:var(--v-muted)}html[data-vt] .sg-eye{color:var(--v-muted)}
+html[data-vt] .sg-go{background:linear-gradient(135deg,var(--v-acc),var(--v-acc-d));color:var(--v-acc-ink);box-shadow:0 10px 22px -8px var(--v-acc)}
+html[data-vt] .sg-mob{border-color:var(--v-input-b);color:var(--v-ink)}html[data-vt] .sg-mob:hover{background:var(--v-hover)}
+html[data-vt] .sitegate .err{color:var(--v-ab-ink)}html[data-vt] .sitegate .err:not(:empty){background:var(--v-ab-bg);border-color:var(--v-ab-b)}
+
+/* ---- Daily board ---- */
+html[data-vt] .dbd{--bl:var(--v-acc);--bl-d:var(--v-acc-d);--bl-t:var(--v-hover);--ln:var(--v-line);--mu:var(--v-muted);color:var(--v-ink)}
+html[data-vt] .dbseg,html[data-vt] .dbk,html[data-vt] .dbcard,html[data-vt] .dbnote,html[data-vt] .dbsearch{background:var(--v-card);border-color:var(--v-line);color:var(--v-ink)}
+html[data-vt] .dbseg button,html[data-vt] .dbseg label,html[data-vt] .dbtab{color:var(--v-muted)}
+html[data-vt] .dbseg button:hover,html[data-vt] .dbseg label:hover,html[data-vt] .dbtab:hover,html[data-vt] .dbbr:hover,html[data-vt] .dbt tbody tr:hover td{background:var(--v-hover)}
+html[data-vt] .dbseg .on,html[data-vt] .dbtab.on{color:var(--v-acc-d)!important}
+html[data-vt] .dbk:hover{border-color:var(--v-acc)}
+html[data-vt] .dbtabs{border-color:var(--v-line)}html[data-vt] .dbtab b{color:var(--v-muted)}
+html[data-vt] .dbt th{background:var(--v-card2);color:var(--v-muted);border-color:var(--v-line)}
+html[data-vt] .dbt td{border-color:var(--v-line);color:var(--v-ink)}
+html[data-vt] .dbbr .tr,html[data-vt] .salcard .bar{background:var(--v-card2)}
+html[data-vt] .dbbr .tr i{background:var(--v-acc)}
+html[data-vt] .dbav{background:var(--v-hover);color:var(--v-acc-d)}
+html[data-vt] .dbch small,html[data-vt] .dbfoot{color:var(--v-muted)}
+html[data-vt] .dbsk{background:linear-gradient(90deg,var(--v-card2) 25%,var(--v-hover) 45%,var(--v-card2) 65%);background-size:300% 100%}
+html[data-vt] .dbdot{fill:var(--v-card)}
+html[data-vt] .dbp.p{background:var(--v-pr-bg);color:var(--v-pr-ink)}html[data-vt] .dbp.a{background:var(--v-ab-bg);color:var(--v-ab-ink)}
+html[data-vt] .dbp.h{background:var(--v-ha-bg);color:var(--v-ha-ink)}html[data-vt] .dbp.x{background:var(--v-ex-bg);color:var(--v-ex-ink)}html[data-vt] .dbp.m{background:var(--v-mi-bg);color:var(--v-mi-ink)}
+html[data-vt] .pill.Present{background:var(--v-pr-bg);color:var(--v-pr-ink)}html[data-vt] .pill.Absent{background:var(--v-ab-bg);color:var(--v-ab-ink)}
+html[data-vt] .pill.MissingPunch{background:var(--v-mi-bg);color:var(--v-mi-ink)}html[data-vt] .pill.HalfDay{background:var(--v-ha-bg);color:var(--v-ha-ink)}
+html[data-vt] .pill.ExtraDay{background:var(--v-ex-bg);color:var(--v-ex-ink)}html[data-vt] .pill.Holiday,html[data-vt] .pill.NotInYet{background:var(--v-of-bg);color:var(--v-of-ink)}
+html[data-vt] .pill.InProgress{background:var(--v-ip-bg);color:var(--v-ip-ink)}
+
+/* ---- day-detail drawer, salary cards ---- */
+html[data-vt] .vgrid div{background:var(--v-card2)}html[data-vt] .vgrid small{color:var(--v-muted)}html[data-vt] .vgrid b{color:var(--v-ink)}
+html[data-vt] .pcard{background:var(--v-card2);border:1px solid var(--v-line);color:var(--v-ink)}
+html[data-vt] .phload,html[data-vt] .pcard .phload{background:linear-gradient(90deg,var(--v-card2),var(--v-hover),var(--v-card2));background-size:200% 100%;color:var(--v-muted)}
+html[data-vt] .pcard{color:var(--v-ink)}html[data-vt] .pcard .sub,html[data-vt] .pcard small{color:var(--v-muted)}
+html[data-vt] #vdrawer,html[data-vt] #drawer,html[data-vt] .drawer,html[data-vt] #edrawer{background:var(--v-card)!important;color:var(--v-ink);border-color:var(--v-line)}
+html[data-vt] .salcard{background:var(--v-card);border-color:var(--v-line)}
+html[data-vt] .salcard .who b,html[data-vt] .salcard .amt b{color:var(--v-ink)}
+html[data-vt] .sc{background:var(--v-of-bg);color:var(--v-of-ink)}html[data-vt] .sc.h{background:var(--v-ha-bg);color:var(--v-ha-ink)}html[data-vt] .sc.e{background:var(--v-ex-bg);color:var(--v-ex-ink)}html[data-vt] .sc.a{background:var(--v-ab-bg);color:var(--v-ab-ink)}html[data-vt] .sc.m{background:var(--v-mi-bg);color:var(--v-mi-ink)}
+html[data-vt] .salwarn{background:var(--v-warn-bg);border-color:var(--v-warn-b);color:var(--v-warn-ink)}html[data-vt] .salwarn span{background:var(--v-card);border-color:var(--v-warn-b)}
+html[data-vt] .up{color:var(--v-pr-ink)}html[data-vt] .dn{color:var(--v-ab-ink)}

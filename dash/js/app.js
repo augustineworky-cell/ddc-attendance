@@ -1113,7 +1113,7 @@ function modeLabel(mode) {
 function applyTheme(mode, save) {
   mode = TH.setMode(mode, save);
   const next = TH.MODES[(TH.MODES.indexOf(mode) + 1) % TH.MODES.length];
-  $('#themeBtn').textContent = 'Theme: ' + modeLabel(mode);
+  $('#themeBtn').textContent = '◐ Theme';
   $('#themeBtn').title = 'Switch to ' + modeLabel(next);
   return mode;
 }

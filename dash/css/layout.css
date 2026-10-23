@@ -135,7 +135,7 @@ table.t[data-tid="sal"] td:first-child{min-width:120px}
 
 
 /* ================= PROFESSIONAL ONLY: no theme switching, no festive extras ================= */
-#themeBtn,#darshanBtn,#petalBtn,#themeMenu{display:none!important}
+#darshanBtn,#petalBtn{display:none!important}
 .puja,.embers,.sidepuja,.petals,.art{display:none!important}
 
 /* ================= LAPTOP FIT (1100-1440 wide, short screens) ================= */

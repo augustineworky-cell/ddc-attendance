@@ -43,7 +43,8 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1B2250">
+  <meta name="theme-color" content="#f4effb">
+  <script src="/dash/js/theme.js?v=66"></script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Staffly">
@@ -74,6 +75,7 @@
        deferred so their relative order is preserved - app.js reads
        window.supabase at its very top level and needs it defined first. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <link rel="stylesheet" href="theme-mobile.css?v=66">
 </head>
 <body>
 
@@ -809,6 +811,15 @@
                 <button type="button" id="viewSegPc" onclick="STAFFLY_VIEW.set('pc')">PC</button>
               </span>
             </div>
+            <div class="v2-row v2-row-static" id="themeRow">
+              <span class="v2-row-ic v2-bg-slate"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>
+              <span class="v2-row-text"><b>Appearance</b><small>Light, dark or auto</small></span>
+              <span class="view-seg" role="group" aria-label="Appearance">
+                <button type="button" data-th="auto">Auto</button>
+                <button type="button" data-th="mist">Light</button>
+                <button type="button" data-th="twilight">Dark</button>
+              </span>
+            </div>
             <button type="button" class="v2-row" onclick="v2Install()"><span class="v2-row-ic v2-bg-slate"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><span class="v2-row-text"><b>Install App</b><small>Add Staffly to your home screen</small></span><span class="v2-chev" aria-hidden="true"></span></button>
           </div>
 
@@ -1244,5 +1255,13 @@
       <p id="quickSetupStatus" class="loc-check-status" aria-live="polite"></p>
     </div>
   </div>
+<script>
+(function(){
+  var row=document.getElementById('themeRow'); if(!row||!window.DCC_THEME) return;
+  function mark(){var m=DCC_THEME.getMode();row.querySelectorAll('[data-th]').forEach(function(b){b.classList.toggle('on',b.dataset.th===m);});}
+  row.addEventListener('click',function(e){var b=e.target.closest('[data-th]'); if(!b) return; DCC_THEME.setMode(b.dataset.th); mark();});
+  window.addEventListener('storage',mark); mark();
+})();
+</script>
 </body>
 </html>
