@@ -1076,8 +1076,14 @@ async function loadMyPhoto(user) {
     var r = await callAPI('myPhoto', {});
     if (r && r.status === 'SUCCESS') {
       try { if (r.photo) localStorage.setItem(key, r.photo); else localStorage.removeItem(key); } catch (e) {}
-      applyMyPhoto(r.photo || '');
+      if (r.photo) { applyMyPhoto(r.photo); return; }
     }
+  } catch (e) {}
+  // Fallback: static photo shipped with the app (photos/<EMPLOYEE_ID>.jpg)
+  try {
+    var u = '/photos/' + encodeURIComponent(String(id).toUpperCase()) + '.jpg';
+    var h = await fetch(u, { method: 'HEAD', cache: 'no-cache' });
+    if (h.ok && /image/.test(h.headers.get('content-type') || '')) { applyMyPhoto(u); try { localStorage.setItem(key, u); } catch (e) {} }
   } catch (e) {}
 }
 
