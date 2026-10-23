@@ -214,3 +214,9 @@ html[data-vt] .salcard .who b,html[data-vt] .salcard .amt b{color:var(--v-ink)}
 html[data-vt] .sc{background:var(--v-of-bg);color:var(--v-of-ink)}html[data-vt] .sc.h{background:var(--v-ha-bg);color:var(--v-ha-ink)}html[data-vt] .sc.e{background:var(--v-ex-bg);color:var(--v-ex-ink)}html[data-vt] .sc.a{background:var(--v-ab-bg);color:var(--v-ab-ink)}html[data-vt] .sc.m{background:var(--v-mi-bg);color:var(--v-mi-ink)}
 html[data-vt] .salwarn{background:var(--v-warn-bg);border-color:var(--v-warn-b);color:var(--v-warn-ink)}html[data-vt] .salwarn span{background:var(--v-card);border-color:var(--v-warn-b)}
 html[data-vt] .up{color:var(--v-pr-ink)}html[data-vt] .dn{color:var(--v-ab-ink)}
+
+/* v69: real Staffly icon instead of the "DCC" text tile */
+html[data-vt] .logo{width:40px;height:40px;border-radius:12px;padding:0;background:none;overflow:hidden;box-shadow:0 8px 18px -8px var(--v-acc)}
+html[data-vt] .logo img{width:100%;height:100%;display:block;object-fit:cover}
+html[data-vt] .sg-logo{width:76px;height:76px;border-radius:22px;padding:0;background:none;overflow:hidden;box-shadow:0 14px 30px -10px var(--v-acc),0 0 0 1px rgba(255,255,255,.25)}
+html[data-vt] .sg-logo img{width:100%;height:100%;display:block;object-fit:cover}

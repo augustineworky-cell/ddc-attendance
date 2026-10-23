@@ -21,7 +21,7 @@ function askSitePassword() {
   return new Promise((resolve) => {
     const w = document.createElement('div'); w.className = 'sitegate';
     w.innerHTML = '<form class="sg-card" novalidate>'
-      + '<div class="sg-logo">DCC</div><h3>Staffly Dashboard</h3>'
+      + '<div class="sg-logo"><img src="/dash/img/staffly-icon.png" alt="Staffly"></div><h3>Staffly Dashboard</h3>'
       + '<p class="sg-sub">Sign in with your Admin, HR or Dev account<br>to view attendance.</p>'
       + '<label class="sg-field"><span>Employee ID</span><div class="sg-in"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><input name="id" type="text" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="e.g. DCC101" autofocus></div></label>'
       + '<label class="sg-field"><span>Password</span><div class="sg-in"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input name="pw" type="password" autocomplete="current-password" placeholder="Enter your password"><button type="button" class="sg-eye" tabindex="-1" aria-label="Show password"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></label>'
