@@ -20,26 +20,75 @@ function busyUpd(fn) {
 function askSitePassword() {
   return new Promise((resolve) => {
     const w = document.createElement('div'); w.className = 'sitegate';
-    w.innerHTML = '<form class="sg-card" novalidate>'
-      + '<div class="sg-logo"><img src="/dash/img/staffly-icon.png" alt="Staffly"></div><h3>Staffly Dashboard</h3>'
-      + '<p class="sg-sub">Sign in with your Admin, HR or Dev account<br>to view attendance.</p>'
-      + '<label class="sg-field"><span>Employee ID</span><div class="sg-in"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><input name="id" type="text" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="e.g. DCC101" autofocus></div></label>'
-      + '<label class="sg-field"><span>Password</span><div class="sg-in"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input name="pw" type="password" autocomplete="current-password" placeholder="Enter your password"><button type="button" class="sg-eye" tabindex="-1" aria-label="Show password"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></label>'
-      + '<button class="sg-go" type="submit">Sign in</button><div class="err" role="alert"></div>'
-      + '<div class="sg-or">or</div>'
-      + '<a href="#" id="sgMobile" class="sg-mob"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>Open the mobile punch-in app</a>'
-      + '<p class="sg-foot">DCC Supply Chain &amp; Distribution LLP<br>Authorised staff only</p></form>';
     document.body.appendChild(w);
-    const f = w.querySelector('form'), i = w.querySelector('input[name=id]'), p = w.querySelector('input[name=pw]'), er = w.querySelector('.err'), b = w.querySelector('.sg-go'), eye = w.querySelector('.sg-eye');
-    eye.addEventListener('click', () => { const s = p.type === 'password'; p.type = s ? 'text' : 'password'; eye.setAttribute('aria-label', s ? 'Hide password' : 'Show password'); p.focus(); });
-    w.querySelector('#sgMobile').addEventListener('click', (ev) => { ev.preventDefault(); StafflyAPI.goMobile(); });
-    f.addEventListener('submit', async (ev) => {
-      ev.preventDefault(); er.textContent = ''; if (!i.value.trim() || !p.value) { er.textContent = 'Enter your Employee ID and password.'; (i.value.trim() ? p : i).focus(); return; }
-      b.disabled = true; b.innerHTML = '<span class="sp"></span>Signing in…';
-      try { await StafflyAPI.login(i.value.trim(), p.value); w.remove(); resolve(); }
-      catch (e) { er.textContent = e.message; b.disabled = false; b.textContent = 'Sign in'; p.select(); }
-    });
-    setTimeout(() => i.focus(), 50);
+    const logo = '<div class="sg-logo"><img src="/dash/img/staffly-icon.png" alt="Staffly"></div>';
+    const foot = '<p class="sg-foot">DCC Supply Chain &amp; Distribution LLP<br>Authorised staff only</p>';
+    const finish = () => { w.remove(); resolve(); };
+    const eyeSvg = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const pinField = (label) => '<label class="sg-field"><span>' + label + '</span><div class="sg-in"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4-digit PIN" style="letter-spacing:.5em;font-weight:700"></div></label>';
+
+    function showPassword() {
+      w.innerHTML = '<form class="sg-card" novalidate>' + logo + '<h3>Staffly Attendance</h3>'
+        + '<p class="sg-sub">Sign in with your Employee ID and password<br>to see your attendance.</p>'
+        + '<label class="sg-field"><span>Employee ID</span><div class="sg-in"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><input name="id" type="text" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="e.g. DCC101" autofocus></div></label>'
+        + '<label class="sg-field"><span>Password</span><div class="sg-in"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input name="pw" type="password" autocomplete="current-password" placeholder="Enter your password"><button type="button" class="sg-eye" tabindex="-1" aria-label="Show password">' + eyeSvg + '</button></div></label>'
+        + '<button class="sg-go" type="submit">Sign in</button><div class="err" role="alert"></div>' + foot + '</form>';
+      const f = w.querySelector('form'), i = w.querySelector('input[name=id]'), p = w.querySelector('input[name=pw]'), er = w.querySelector('.err'), b = w.querySelector('.sg-go'), eye = w.querySelector('.sg-eye');
+      eye.addEventListener('click', () => { const s = p.type === 'password'; p.type = s ? 'text' : 'password'; p.focus(); });
+      f.addEventListener('submit', async (ev) => {
+        ev.preventDefault(); er.textContent = ''; if (!i.value.trim() || !p.value) { er.textContent = 'Enter your Employee ID and password.'; (i.value.trim() ? p : i).focus(); return; }
+        b.disabled = true; b.innerHTML = '<span class="sp"></span>Signing in…';
+        try { await StafflyAPI.login(i.value.trim(), p.value); showSetPin(); }
+        catch (e) { er.textContent = e.message; b.disabled = false; b.textContent = 'Sign in'; p.select(); }
+      });
+      setTimeout(() => i.focus(), 50);
+    }
+
+    function showSetPin() {
+      const u = StafflyAPI.user() || {};
+      w.innerHTML = '<form class="sg-card" novalidate>' + logo + '<h3>Set your PIN</h3>'
+        + '<p class="sg-sub">Hi ' + esc((u.name || '').split(' ')[0]) + '. Choose a 4-digit PIN for this computer.<br>Next time you only need the PIN.</p>'
+        + pinField('New PIN') + pinField('Confirm PIN').replace('name="pin"', 'name="pin2"')
+        + '<button class="sg-go" type="submit">Save PIN &amp; continue</button><div class="err" role="alert"></div>'
+        + '<div class="sg-or">or</div><a href="#" class="sg-mob" id="sgSkip">Skip for now</a>' + foot + '</form>';
+      const f = w.querySelector('form'), a = w.querySelector('input[name=pin]'), c = w.querySelector('input[name=pin2]'), er = w.querySelector('.err'), b = w.querySelector('.sg-go');
+      w.querySelector('#sgSkip').addEventListener('click', (ev) => { ev.preventDefault(); finish(); });
+      [a, c].forEach((x) => x.addEventListener('input', () => { x.value = x.value.replace(/\D/g, '').slice(0, 4); }));
+      f.addEventListener('submit', async (ev) => {
+        ev.preventDefault(); er.textContent = '';
+        if (!/^\d{4}$/.test(a.value)) { er.textContent = 'PIN must be exactly 4 digits.'; a.focus(); return; }
+        if (a.value !== c.value) { er.textContent = 'The two PINs do not match.'; c.select(); return; }
+        b.disabled = true; b.innerHTML = '<span class="sp"></span>Saving…';
+        try { await StafflyAPI.setPin(a.value); finish(); }
+        catch (e) { er.textContent = e.message; b.disabled = false; b.textContent = 'Save PIN & continue'; a.select(); }
+      });
+      setTimeout(() => a.focus(), 50);
+    }
+
+    function showPin() {
+      const dev = StafflyAPI.device() || {};
+      w.innerHTML = '<form class="sg-card" novalidate>' + logo + '<h3>Welcome back' + (dev.name ? ', ' + esc(dev.name.split(' ')[0]) : '') + '</h3>'
+        + '<p class="sg-sub">Enter your 4-digit PIN to open your attendance.</p>'
+        + pinField('PIN')
+        + '<button class="sg-go" type="submit">Open</button><div class="err" role="alert"></div>'
+        + '<div class="sg-or">forgot PIN or not you?</div><a href="#" class="sg-mob" id="sgPw">Sign in with ID &amp; password</a>' + foot + '</form>';
+      const f = w.querySelector('form'), p = w.querySelector('input[name=pin]'), er = w.querySelector('.err'), b = w.querySelector('.sg-go');
+      w.querySelector('#sgPw').addEventListener('click', (ev) => { ev.preventDefault(); StafflyAPI.forgetDevice(); showPassword(); });
+      const go = async () => {
+        er.textContent = ''; if (!/^\d{4}$/.test(p.value)) return;
+        b.disabled = true; b.innerHTML = '<span class="sp"></span>Checking…';
+        try { await StafflyAPI.loginPin(p.value); finish(); }
+        catch (e) {
+          if (e.code === 'NO_DEVICE') { showPassword(); const er2 = w.querySelector('.err'); if (er2) er2.textContent = e.message; return; }
+          er.textContent = e.message; b.disabled = false; b.textContent = 'Open'; p.value = ''; p.focus();
+        }
+      };
+      p.addEventListener('input', () => { p.value = p.value.replace(/\D/g, '').slice(0, 4); if (p.value.length === 4) go(); });
+      f.addEventListener('submit', (ev) => { ev.preventDefault(); go(); });
+      setTimeout(() => p.focus(), 50);
+    }
+
+    if (StafflyAPI.device()) showPin(); else showPassword();
   });
 }
 const callApi = (fn, args) => StafflyAPI.call(fn, args);
@@ -71,10 +120,20 @@ async function boot() {
     const d = await gas('webEmployees');
     S.emps = d.employees; S.locsAll = d.locations || []; S.today = d.today; S.dataStart = d.data_start; S.latest = d.latest_punch;
   } catch (e) { $('#fresh').textContent = 'Could not load: ' + e.message; return; }
+  const isEmp = !StafflyAPI.isAdmin();
   buildMonths(); buildLocations(); freshText();
   $('#month').value = S.month;
+  if (isEmp) {
+    document.body.classList.add('emp-mode');
+    TITLES.profile = ['My attendance', 'Your month calendar and day-by-day detail'];
+    NAV = [['profile', 'My attendance']]; buildNav();
+  }
   setRange('month');
   renderList();
+  if (isEmp) {
+    if (S.emps.length) openProfile(S.emps[0].id);
+    else $('#center').innerHTML = '<div class="empty"><b>No attendance record yet</b>Your attendance will appear here once you are added to the register. Ask HR if this looks wrong.</div>';
+  }
 }
 function buildMonths() {
   const sel = $('#month'); sel.innerHTML = '';

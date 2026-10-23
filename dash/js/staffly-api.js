@@ -18,7 +18,7 @@
     if (r.error) {
       var m = String(r.error.message || ''), c = String(r.error.code || '');
       if (/AUTH_EXPIRED/.test(m)) throw new Error('AUTH_EXPIRED');
-      if (c === '42501' || /FORBIDDEN/.test(m)) throw new Error('Only Admin, HR and Dev accounts can use the dashboard.');
+      if (c === '42501' || /FORBIDDEN/.test(m)) throw new Error('You do not have access to that.');
       if (c === '28000' || /SESSION_INVALID|INVALID_TOKEN|SESSION_EXPIRED|NOT_AUTHENTICATED|UNAUTHORI[SZ]ED/i.test(m)) { saveUser(null); throw lock(); }
       throw new Error(m || 'Request failed');
     }
@@ -35,11 +35,35 @@
     if (d.status === 'LOCKED') throw new Error('Too many wrong attempts. Try again in ' + (d.retry_after_minutes || 15) + ' minutes.');
     if (d.status === 'APP_PAUSED') throw new Error(d.message || 'The app is paused right now.');
     if (d.status !== 'SUCCESS') throw new Error('Incorrect Employee ID or password.');
-    if (ADMIN_ROLES.indexOf(d.role) < 0) {
-      try { await sb.rpc('app_logout', { p_token: d.token }); } catch (x) {}
-      throw new Error('This dashboard is for Admin, HR and Dev accounts. Use the mobile app to mark attendance.');
-    }
     saveUser({ token: d.token, employeeId: d.employee_id, name: d.employee_name, role: d.role });
+  }
+
+  /* ---- 4-digit PIN for this computer (same idea as the phone app) ---- */
+  var DEV_KEY = 'STAFFLY_DASH_DEV';
+  function getDevice() { try { var j = localStorage.getItem(DEV_KEY); return j ? JSON.parse(j) : null; } catch (e) { return null; } }
+  function setDevice(d) { try { if (d) localStorage.setItem(DEV_KEY, JSON.stringify(d)); else localStorage.removeItem(DEV_KEY); } catch (e) {} }
+  async function loginPin(pin) {
+    var dev = getDevice(); if (!dev) throw new Error('NO_DEVICE');
+    if (!/^\d{4}$/.test(pin || '')) throw new Error('Enter your 4-digit PIN.');
+    var r;
+    try { r = await sb.rpc('app_login_pin', { p_device_secret: dev.secret, p_pin: pin }); } catch (e) { throw new Error('No internet connection. Try again.'); }
+    if (r.error) throw new Error('Could not sign in. Check your connection and try again.');
+    var d = r.data || {};
+    if (d.status === 'INVALID_DEVICE') { setDevice(null); var e1 = new Error('This computer is no longer registered. Sign in with your ID and password.'); e1.code = 'NO_DEVICE'; throw e1; }
+    if (d.status === 'PIN_LOCKED') { setDevice(null); var e2 = new Error('PIN locked after too many wrong tries. Sign in with your ID and password.'); e2.code = 'NO_DEVICE'; throw e2; }
+    if (d.status === 'APP_PAUSED') throw new Error(d.message || 'The app is paused right now.');
+    if (d.status === 'INVALID_PIN') throw new Error('Wrong PIN. ' + (d.attempts_left != null ? d.attempts_left + ' tries left.' : ''));
+    if (d.status !== 'SUCCESS') throw new Error('Could not sign in.');
+    saveUser({ token: d.token, employeeId: d.employee_id, name: d.employee_name, role: d.role });
+  }
+  async function setPin(pin) {
+    if (!USER) throw lock();
+    if (!/^\d{4}$/.test(pin || '')) throw new Error('PIN must be exactly 4 digits.');
+    var r = await sb.rpc('app_register_device', { p_token: USER.token, p_pin: pin, p_label: 'Desktop dashboard' });
+    if (r.error) throw new Error('Could not save the PIN. Try again.');
+    var d = r.data || {};
+    if (d.status !== 'SUCCESS') throw new Error(d.message || 'Could not save the PIN.');
+    setDevice({ secret: d.device_secret, id: d.employee_id, name: d.employee_name });
   }
   async function logout() {
     var t = USER && USER.token; saveUser(null);
@@ -83,7 +107,7 @@
     return f(args || []);
   }
 
-  window.StafflyAPI = { call: call, login: login, logout: logout, goMobile: goMobile, user: function () { return USER; } };
+  window.StafflyAPI = { call: call, login: login, loginPin: loginPin, setPin: setPin, device: getDevice, forgetDevice: function () { setDevice(null); }, isAdmin: function () { return !!USER && ADMIN_ROLES.indexOf(USER.role) >= 0; },  logout: logout, goMobile: goMobile, user: function () { return USER; } };
 
   document.addEventListener('DOMContentLoaded', function () {
     var m = document.getElementById('mobBtn'), o = document.getElementById('outBtn');

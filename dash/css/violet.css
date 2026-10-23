@@ -220,3 +220,8 @@ html[data-vt] .logo{width:40px;height:40px;border-radius:12px;padding:0;backgrou
 html[data-vt] .logo img{width:100%;height:100%;display:block;object-fit:cover}
 html[data-vt] .sg-logo{width:76px;height:76px;border-radius:22px;padding:0;background:none;overflow:hidden;box-shadow:0 14px 30px -10px var(--v-acc),0 0 0 1px rgba(255,255,255,.25)}
 html[data-vt] .sg-logo img{width:100%;height:100%;display:block;object-fit:cover}
+
+/* employee (non-admin) view: own attendance only */
+body.emp-mode .grid,body.emp-mode .grid.wide,body.emp-mode.focus .grid{grid-template-columns:minmax(0,1fr) 232px!important}
+body.emp-mode .grid>.listcard,body.emp-mode #adminBtn,body.emp-mode .searchwrap,body.emp-mode #csv,body.emp-mode #adminbar,body.emp-mode #nav,body.emp-mode .filt .fgrp:has(#loc){display:none!important}
+@media (max-width:1180px){body.emp-mode .grid,body.emp-mode .grid.wide,body.emp-mode.focus .grid{grid-template-columns:minmax(0,1fr)!important}}
