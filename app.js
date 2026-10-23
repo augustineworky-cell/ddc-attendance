@@ -19,18 +19,19 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // DDC Safdarjung HQ Geofence Coordinates
-const OFFICE_LAT = 28.56616;
-const OFFICE_LNG = 77.19904;
+let OFFICE_LAT = 28.56616;
+let OFFICE_LNG = 77.19904;
+let OFFICE_NAME = 'DDC Safdarjung HQ';   // replaced by the person's own office after login (setMyOffice)
 // Set to 500m - wide enough to absorb normal GPS error across devices
 // (typical phone accuracy is 10-50m outdoors, 50-150m indoors), while
 // still meaningfully tied to "near the office" rather than the wider
 // 1km radius previously used.
-const OFFICE_RADIUS_M = 500; // 500-meter coverage radius
+let OFFICE_RADIUS_M = 200; // overwritten with the person's real office radius after login
 
 // Aliases used by geofence-checking helpers
-const HQ_LAT = OFFICE_LAT;
-const HQ_LNG = OFFICE_LNG;
-const MAX_GEOFENCE_RADIUS_METERS = OFFICE_RADIUS_M;
+let HQ_LAT = OFFICE_LAT;
+let HQ_LNG = OFFICE_LNG;
+let MAX_GEOFENCE_RADIUS_METERS = OFFICE_RADIUS_M;
 
 // A GPS fix's reported coordinate always comes with a horizontal error
 // margin (pos.coords.accuracy, in meters). Two employees standing at the
@@ -96,6 +97,7 @@ let myLocationMapInstance = null;
 let myLocationMarker = null;
 let myLocationAccuracyCircle = null;
 let myLocationGeofenceCircle = null;
+let myLocationOfficeMarker = null;
 
 // Utility: escape anything user-typed before it goes into innerHTML.
 // Leave reasons, names, emails etc. are written by staff - without this a
@@ -473,7 +475,7 @@ function showPunchRejected(action, reason, distanceM) {
     const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     const detail = reason === 'NO_LOCATION'
       ? "We couldn't get your location. Turn on precise location or connect to the office Wi-Fi."
-      : `You're ${formatDistance(distanceM)} from DDC Safdarjung HQ. Allowed: ${OFFICE_RADIUS_M} m. Move to the office or connect to the office Wi-Fi.`;
+      : `You're ${formatDistance(distanceM)} from ${OFFICE_NAME}. Allowed: ${OFFICE_RADIUS_M} m. Move to the office or connect to the office Wi-Fi.`;
     note.innerHTML = `
       <span class="punch-reject-icon" aria-hidden="true">✕</span>
       <span class="punch-reject-body">
@@ -523,7 +525,7 @@ function clearPunchRejected() {
 // where the employee is standing - say so, with the fix.
 function buildOutOfRangeMessage(action, distanceM, accuracyM) {
   const dist = (distanceM !== undefined && distanceM !== null)
-    ? ` Your phone says you are about ${Math.round(distanceM)} m from DDC Safdarjung HQ (allowed: ${OFFICE_RADIUS_M} m).`
+    ? ` Your phone says you are about ${Math.round(distanceM)} m from ${OFFICE_NAME} (allowed: ${OFFICE_RADIUS_M} m).`
     : '';
   if (accuracyM && accuracyM > GPS_ROUGH_ACCURACY_M) {
     return `Your phone is giving only a ROUGH location (accuracy ±${Math.round(accuracyM)} m), not real GPS, so it thinks you are far away.${dist}\n\n` +
@@ -534,7 +536,7 @@ function buildOutOfRangeMessage(action, distanceM, accuracyM) {
       `4. Stand near a window for 10-20 seconds, then try ${action} again.\n\n` +
       `OR connect this phone to the OFFICE Wi-Fi (not mobile data) and try again.`;
   }
-  return `You're outside the office area.${dist} Please move within range of DDC Safdarjung HQ, or connect to the OFFICE Wi-Fi, and try ${action} again.`;
+  return `You're outside the office area.${dist} Please move within range of ${OFFICE_NAME}, or connect to the OFFICE Wi-Fi, and try ${action} again.`;
 }
 
 // ==========================================================================
@@ -691,6 +693,8 @@ const RPC_MAP = {
   pingLocation:       p => ['ping_location', { p_lat: p.lat, p_lng: p.lng }],
   applyLeave:         p => ['apply_leave', { p_from_date: p.fromDate, p_to_date: p.toDate, p_leave_type: p.leaveType, p_reason: p.reason, p_doc_pending: p.docPending || false }],
   attachLeaveDocument:p => ['attach_leave_document', { p_doc_path: p.docPath }],
+  myPhoto:            () => ['app_my_photo', {}],
+  myOffice:           () => ['app_my_office', {}],
   getTodayAttendance: () => ['get_today_attendance', {}],
   getMyTodaySelfies:  () => ['get_my_today_selfies', {}],
   getEmployeeLeaves:  p => ['get_employee_leaves', { p_employee_id: p.employeeId }],
@@ -1003,6 +1007,78 @@ function renderUserBadge(user) {
 
   applyRoleBasedUIRestrictions(user.role);
   if (typeof v2RenderUser === 'function') v2RenderUser(user);
+  loadMyPhoto(user);
+  loadMyOffice(user);
+}
+
+// Each person is checked against THEIR OWN office (Safdarjung / Okhla / Gurgaon), exactly like the server does.
+// Cached per employee so the right office shows instantly; refreshed from the server each time.
+function setMyOffice(o) {
+  if (!o || o.lat == null || o.lng == null) return;
+  OFFICE_LAT = Number(o.lat); OFFICE_LNG = Number(o.lng);
+  OFFICE_RADIUS_M = Number(o.radius_m) || OFFICE_RADIUS_M;
+  OFFICE_NAME = o.name || OFFICE_NAME;
+  HQ_LAT = OFFICE_LAT; HQ_LNG = OFFICE_LNG; MAX_GEOFENCE_RADIUS_METERS = OFFICE_RADIUS_M;
+  var sub = document.getElementById('geofenceSubtitle');
+  if (sub && /^Calculating distance/i.test(sub.textContent.trim())) sub.textContent = 'Calculating distance to ' + OFFICE_NAME;
+  var leg = document.querySelector('.v2-map-legend');
+  if (leg) leg.lastChild.textContent = 'Office zone ' + OFFICE_RADIUS_M + ' m';
+  var site = document.querySelector('.v2-profile-site');
+  if (site) site.textContent = OFFICE_NAME;
+  try {
+    if (myLocationMapInstance) {
+      if (myLocationGeofenceCircle) { myLocationGeofenceCircle.setLatLng([OFFICE_LAT, OFFICE_LNG]); myLocationGeofenceCircle.setRadius(OFFICE_RADIUS_M); }
+      if (myLocationOfficeMarker) { myLocationOfficeMarker.setLatLng([OFFICE_LAT, OFFICE_LNG]); myLocationOfficeMarker.bindPopup(OFFICE_NAME); }
+      myLocationMapInstance.setView([OFFICE_LAT, OFFICE_LNG], 16);
+      window.MY_MAP_FITTED = false;
+    }
+  } catch (e) {}
+}
+async function loadMyOffice(user) {
+  var id = user && (user.employeeId || user.employee_id);
+  if (!id) return;
+  var key = 'staffly_office_' + id;
+  try { var c = localStorage.getItem(key); if (c) setMyOffice(JSON.parse(c)); } catch (e) {}
+  try {
+    var r = await callAPI('myOffice', {});
+    if (r && r.status === 'SUCCESS') {
+      try { localStorage.setItem(key, JSON.stringify(r)); } catch (e) {}
+      setMyOffice(r);
+      if (typeof checkGeofence === 'function') { try { checkGeofence(); } catch (e) {} }
+    }
+  } catch (e) {}
+}
+
+// Profile photo (added by the admin in Staffly) -> small header icon + profile card.
+// Cached per employee on this phone so it shows instantly; refreshed from the server each time.
+function applyMyPhoto(src) {
+  ['userAvatar', 'mobileUserAvatar', 'v2ProfileAvatar'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (src) {
+      el.style.setProperty('background-image', 'url("' + src + '")', 'important');
+      el.style.setProperty('background-size', 'cover', 'important');
+      el.style.setProperty('background-position', 'center', 'important');
+      el.style.setProperty('color', 'transparent', 'important');
+      el.classList.add('has-photo');
+    } else {
+      ['background-image', 'background-size', 'background-position', 'color'].forEach(function (k) { el.style.removeProperty(k); });
+      el.classList.remove('has-photo');
+    }
+  });
+}
+async function loadMyPhoto(user) {
+  var id = user && (user.employeeId || user.employee_id);
+  if (!id) return;
+  var key = 'staffly_photo_' + id;
+  try { applyMyPhoto(localStorage.getItem(key) || ''); } catch (e) {}
+  try {
+    var r = await callAPI('myPhoto', {});
+    if (r && r.status === 'SUCCESS') {
+      try { if (r.photo) localStorage.setItem(key, r.photo); else localStorage.removeItem(key); } catch (e) {}
+      applyMyPhoto(r.photo || '');
+    }
+  } catch (e) {}
 }
 
 // Restrict .admin-only UI elements based on the current user's role
@@ -2641,15 +2717,15 @@ async function checkGeofence() {
       if (subtitle) {
         subtitle.textContent = lowAccuracy
           ? `${Math.round(dist)}m away, but your GPS signal is weak (±${Math.round(currentAccuracy)}m). Move near a window or open sky for a more reliable reading.`
-          : `${Math.round(dist)}m from DDC Safdarjung HQ (±${Math.round(currentAccuracy || 0)}m accuracy)`;
+          : `${Math.round(dist)}m from ${OFFICE_NAME} (±${Math.round(currentAccuracy || 0)}m accuracy)`;
       }
     } else {
       if (icon) icon.innerHTML = PRO_ICONS.pin;
       if (title) title.textContent = "Outside Geofence";
       if (subtitle) {
         subtitle.textContent = lowAccuracy
-          ? `${Math.round(dist)}m from DDC Safdarjung HQ, with a weak GPS signal (±${Math.round(currentAccuracy)}m). Try moving outdoors or near a window and wait a few seconds before punching in.`
-          : `${Math.round(dist)}m from DDC Safdarjung HQ (allowed radius: ${OFFICE_RADIUS_M}m)`;
+          ? `${Math.round(dist)}m from ${OFFICE_NAME}, with a weak GPS signal (±${Math.round(currentAccuracy)}m). Try moving outdoors or near a window and wait a few seconds before punching in.`
+          : `${Math.round(dist)}m from ${OFFICE_NAME} (allowed radius: ${OFFICE_RADIUS_M}m)`;
       }
     }
 
@@ -2663,7 +2739,7 @@ async function checkGeofence() {
       if (icon) icon.innerHTML = PRO_ICONS.globe;
       if (title) title.textContent = "Punch from Anywhere ✓";
       if (subtitle) subtitle.textContent =
-        `You can punch from any location. Your current location will be saved (${formatDistance(dist)} from DDC Safdarjung HQ, ±${Math.round(currentAccuracy || 0)}m).`;
+        `You can punch from any location. Your current location will be saved (${formatDistance(dist)} from ${OFFICE_NAME}, ±${Math.round(currentAccuracy || 0)}m).`;
       markPunchRetryReady();
       if (typeof v2SetZone === 'function') v2SetZone('any');
       return;
@@ -2733,8 +2809,8 @@ function initMyLocationMap() {
     fillOpacity: 0.08
   }).addTo(myLocationMapInstance);
 
-  L.marker([OFFICE_LAT, OFFICE_LNG]).addTo(myLocationMapInstance)
-    .bindPopup('DDC Safdarjung HQ');
+  myLocationOfficeMarker = L.marker([OFFICE_LAT, OFFICE_LNG]).addTo(myLocationMapInstance)
+    .bindPopup(OFFICE_NAME);
 
   // The map can be created while Home is still hidden behind the login
   // screen (0px wide). Re-measure whenever the box changes size, otherwise
