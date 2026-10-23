@@ -139,3 +139,17 @@ html[data-vt] #v2Hero[data-punch="done"] #punchInBtn.v2-orb,html[data-vt] #v2Her
 html[data-vt] #v2Hero[data-zone="out"]:not([data-punch="done"]):not([data-punch="unknown"]) #punchInBtn.v2-orb,
 html[data-vt] #v2Hero[data-zone="nogps"]:not([data-punch="done"]):not([data-punch="unknown"]) #punchInBtn.v2-orb{background:rgba(255,255,255,.88)!important;color:#5b4a82;box-shadow:none}
 html[data-vt] #homeView .v2-hint{margin-top:10px}
+
+/* ---- v68: purple loading splash ---- */
+html[data-vt] .app-loading-splash{background:radial-gradient(60% 40% at 85% 8%,rgba(240,143,208,.35),transparent 70%),radial-gradient(70% 45% at 10% 95%,rgba(138,99,224,.35),transparent 70%),var(--m-bg)}
+html[data-vt] .food-item{opacity:.7;filter:drop-shadow(0 4px 8px rgba(90,47,176,.35))}
+html[data-vt] .loading-splash-logo{border-radius:26px;box-shadow:0 18px 40px -12px rgba(90,47,176,.6)}
+html[data-vt] .loading-splash-word{color:var(--m-ink);letter-spacing:.32em}
+html[data-vt] .loading-splash-sub{color:var(--m-muted)}
+
+/* ---- v68: richer punch hero (gradient + soft shapes + depth) ---- */
+html[data-vt] #homeView .v2-hero.geofence-status-card{background:linear-gradient(150deg,var(--m-deep1) 0%,var(--m-deep2) 62%,color-mix(in srgb,var(--m-acc2) 60%,var(--m-deep2)) 130%)!important;border:1px solid rgba(255,255,255,.14);border-radius:28px;box-shadow:0 22px 40px -16px rgba(90,47,176,.65),inset 0 1px 0 rgba(255,255,255,.18)}
+html[data-vt] #homeView .v2-hero::before{right:-50px;top:-70px;width:240px;height:240px;background:radial-gradient(closest-side,rgba(240,143,208,.55),rgba(240,143,208,0))}
+html[data-vt] #homeView .v2-hero::after{content:'';position:absolute;left:-70px;bottom:-90px;width:260px;height:260px;border-radius:50%;background:radial-gradient(closest-side,rgba(138,99,224,.6),rgba(138,99,224,0));pointer-events:none}
+html[data-vt] #homeView .v2-selfie .btn-action-outline .btn-icon{display:none}
+html[data-vt] #homeView .v2-card,html[data-vt] #homeView .card{border-radius:20px;box-shadow:0 14px 30px -18px rgba(90,47,176,.45)}
