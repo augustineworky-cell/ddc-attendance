@@ -21,9 +21,22 @@ function askSitePassword() {
   return new Promise((resolve) => {
     const w = document.createElement('div'); w.className = 'sitegate';
     document.body.appendChild(w);
+    let boy = null, placeBoy = null;
+    if (window.innerWidth >= 1100) {
+      boy = document.createElement('img'); boy.src = '/dash/img/boy.png'; boy.alt = ''; boy.className = 'gate-boy'; boy.setAttribute('aria-hidden', 'true');
+      boy.onerror = () => boy.remove(); document.body.appendChild(boy);
+      /* same maths as "background: cover, right" on login-door.jpg (1920x1031) so he stays next to the door */
+      placeBoy = () => {
+        const vw = window.innerWidth, vh = window.innerHeight, k = Math.max(vw / 1920, vh / 1031);
+        const ox = vw - 1920 * k, oy = (vh - 1031 * k) / 2, h = 480 * k;
+        boy.style.height = h + 'px'; boy.style.left = (ox + 1318 * k) + 'px'; boy.style.top = (oy + 950 * k - h) + 'px';
+        boy.style.display = vw >= 1100 ? 'block' : 'none';
+      };
+      window.addEventListener('resize', placeBoy); placeBoy();
+    }
     const logo = '<div class="sg-logo"><img src="/dash/img/staffly-icon.png" alt="Staffly"></div>';
     const foot = '<p class="sg-foot">DCC Supply Chain &amp; Distribution LLP<br>Authorised staff only</p>';
-    const finish = () => { w.remove(); resolve(); };
+    const finish = () => { if (boy) { boy.remove(); window.removeEventListener('resize', placeBoy); } w.remove(); resolve(); };
     const eyeSvg = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
     const pinField = (label) => '<label class="sg-field"><span>' + label + '</span><div class="sg-in"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4-digit PIN" style="letter-spacing:.5em;font-weight:700"></div></label>';
 

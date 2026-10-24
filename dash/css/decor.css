@@ -5,26 +5,39 @@
    Art panel picture: put your image at dash/img/side-art.jpg (any size, tall portrait works best).
    ===================================================================== */
 html[data-theme="mist"]{
-  --v-pr-bg:#6b8f67;--v-pr-ink:#ffffff;--v-pr-b:#5c7e59;
-  --v-ab-bg:#b9645c;--v-ab-ink:#ffffff;--v-ab-b:#a3554e;
-  --v-mi-bg:#d5a548;--v-mi-ink:#2a2530;--v-mi-b:#bf9239;
-  --v-ha-bg:#5f9aa0;--v-ex-bg:#8d7fb0;--v-of-bg:#cdc6d6;--v-of-b:#bdb5c9;
-  --present:#6b8f67;--absent:#b9645c;--missing:#d5a548;--half:#5f9aa0;--extra:#8d7fb0;--off:#cdc6d6}
-html[data-theme="twilight"]{--v-pr-bg:#6b8f67;--v-ab-bg:#bb6a61;--v-mi-bg:#d5a548;--present:#6b8f67;--absent:#bb6a61;--missing:#d5a548}
+  --v-pr-bg:#e6f4ea;--v-pr-ink:#1f5b36;--v-pr-b:#b9dcc4;
+  --v-ab-bg:#fbe6e3;--v-ab-ink:#a23a2c;--v-ab-b:#efc0b9;
+  --v-mi-bg:#fcf1d4;--v-mi-ink:#7a5410;--v-mi-b:#ecd393;
+  --v-ha-bg:#e0eff2;--v-ha-ink:#26666e;--v-ha-b:#b5d5db;
+  --v-ex-bg:#ece6f4;--v-ex-ink:#5a4a86;--v-ex-b:#d0c6e4;
+  --v-of-bg:#eae5eb;--v-of-ink:#5b5560;--v-of-b:#d9d1dc;
+  --present:#5f8d6a;--absent:#b9645c;--missing:#d5a548;--half:#5f9aa0;--extra:#8d7fb0;--off:#cdc6d6}
+html[data-theme="twilight"]{
+  --v-pr-bg:rgba(95,141,106,.22);--v-pr-ink:#bfe6c9;--v-pr-b:rgba(95,141,106,.45);
+  --v-ab-bg:rgba(185,100,92,.22);--v-ab-ink:#ffb8ae;--v-ab-b:rgba(185,100,92,.45);
+  --v-mi-bg:rgba(213,165,72,.2);--v-mi-ink:#f0c877;--v-mi-b:rgba(213,165,72,.42);
+  --present:#6b8f67;--absent:#bb6a61;--missing:#d5a548}
 
-/* ---- coloured KPI cards (order: Present, Absent, Missing, Overtime, Nights) ---- */
-html[data-vt] .kpi{position:relative;overflow:visible!important;border:0!important;border-radius:20px!important;color:#fff!important;box-shadow:0 10px 24px -12px rgba(42,37,48,.45)!important}
-html[data-vt] .kpis>.kpi:nth-child(1),html[data-vt] .kpis>.kpi:nth-child(5){background:linear-gradient(160deg,#648a68,#4a7050)!important}
-html[data-vt] .kpis>.kpi:nth-child(2),html[data-vt] .kpis>.kpi:nth-child(4){background:linear-gradient(160deg,#c47c72,#a4554d)!important}
-html[data-vt] .kpis>.kpi:nth-child(3){background:linear-gradient(160deg,#f7efe2,#efe3cf);color:#2a2530!important;border:1px solid #d9c9a8!important}
-html[data-vt] .kpi .l,html[data-vt] .kpi .s{color:rgba(255,255,255,.92)!important}
-html[data-vt] .kpis>.kpi:nth-child(3) .l,html[data-vt] .kpis>.kpi:nth-child(3) .s{color:#6c6370!important}
-html[data-vt] .kpi .v{color:inherit!important;-webkit-text-fill-color:currentColor!important;background:none!important;opacity:1!important}
-html[data-vt] .kpi .ico{background:rgba(255,255,255,.25)!important;color:#fff!important}
-html[data-vt] .kpis>.kpi:nth-child(3) .ico{background:#f1dcae!important;color:#9a6a12!important}
-html[data-vt] .kpi svg.sp polyline,html[data-vt] .kpi svg.sp path{stroke:#fff!important}
-html[data-vt] .kpis>.kpi:nth-child(3) svg.sp polyline,html[data-vt] .kpis>.kpi:nth-child(3) svg.sp path{stroke:#5f8564!important}
-/* painted garlands (real artwork from Gemini) on the coloured cards and big panels */
+/* ---- KPI cards: calm paper cards with a coloured number (order: Present, Absent, Missing, Overtime, Nights) ---- */
+html[data-vt] .kpi{position:relative;overflow:visible!important;border:1px solid var(--v-line)!important;border-radius:20px!important;box-shadow:var(--v-shadow)!important}
+html[data-vt] .kpi .l,html[data-vt] .kpi .s{color:var(--v-muted)!important}
+html[data-vt] .kpi .v{-webkit-text-fill-color:currentColor!important;background:none!important;opacity:1!important}
+html[data-vt] .kpis>.kpi:nth-child(1) .v{color:#1f5b36!important}
+html[data-vt] .kpis>.kpi:nth-child(2) .v{color:#a23a2c!important}
+html[data-vt] .kpis>.kpi:nth-child(3) .v{color:#8a5a10!important}
+html[data-vt] .kpis>.kpi:nth-child(4) .v{color:#26666e!important}
+html[data-vt] .kpis>.kpi:nth-child(5) .v{color:#5a4a86!important}
+html[data-vt] .kpis>.kpi:nth-child(1) .ico{background:#e6f4ea!important;color:#1f5b36!important}
+html[data-vt] .kpis>.kpi:nth-child(2) .ico{background:#fbe6e3!important;color:#a23a2c!important}
+html[data-vt] .kpis>.kpi:nth-child(3) .ico{background:#fcf1d4!important;color:#8a5a10!important}
+html[data-vt] .kpis>.kpi:nth-child(4) .ico{background:#e0eff2!important;color:#26666e!important}
+html[data-vt] .kpis>.kpi:nth-child(5) .ico{background:#ece6f4!important;color:#5a4a86!important}
+html[data-vt] .kpis>.kpi:nth-child(1) svg.sp polyline,html[data-vt] .kpis>.kpi:nth-child(1) svg.sp path{stroke:#5f8d6a!important}
+html[data-vt] .kpis>.kpi:nth-child(2) svg.sp polyline,html[data-vt] .kpis>.kpi:nth-child(2) svg.sp path{stroke:#b9645c!important}
+html[data-vt] .kpis>.kpi:nth-child(3) svg.sp polyline,html[data-vt] .kpis>.kpi:nth-child(3) svg.sp path{stroke:#d5a548!important}
+html[data-vt] .kpis>.kpi:nth-child(4) svg.sp polyline,html[data-vt] .kpis>.kpi:nth-child(4) svg.sp path{stroke:#5f9aa0!important}
+html[data-vt] .kpis>.kpi:nth-child(5) svg.sp polyline,html[data-vt] .kpis>.kpi:nth-child(5) svg.sp path{stroke:#8d7fb0!important}
+html[data-theme="twilight"][data-vt] .kpi .v{filter:brightness(1.5)}
 html[data-vt] .kpi::before,html[data-vt] .card::before,html[data-vt] .kpi::after,html[data-vt] .card::after{content:"";position:absolute;pointer-events:none;background-repeat:no-repeat;background-size:contain;z-index:2}
 /* garlands: only on the FIRST and LAST KPI card (like the Gemini design), not all five */
 html[data-vt] .kpi::before,html[data-vt] .kpi::after{display:none}
@@ -48,4 +61,3 @@ html[data-theme="twilight"][data-vt] .side{background:linear-gradient(rgba(8,18,
 /* cream paper cards */
 html[data-theme="mist"][data-vt] .card,html[data-theme="mist"][data-vt] .modal{background:url(/dash/img/paper-tile.png) #fbf6ec!important}
 .sideart{display:none!important}
-html[data-vt] .kpi .v,html[data-vt] .kpi .v *{color:inherit!important;-webkit-text-fill-color:currentColor!important;background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;text-shadow:none!important;opacity:1!important}
