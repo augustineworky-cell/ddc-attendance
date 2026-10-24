@@ -3536,7 +3536,7 @@ async function handleCaptureSelfie() {
   // Step 1: Request camera permission & display video preview
   try {
     webcamStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 400 }, height: { ideal: 400 } },
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
       audio: false
     });
 

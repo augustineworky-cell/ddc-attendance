@@ -1,0 +1,115 @@
+/* =====================================================================
+   theme-door-mobile.css - "Door & Roses" for the PHONE app (teal + cream + rose + amber).
+   Loaded AFTER theme-mobile.css; same palette as the PC dashboard (dash/css/door.css).
+   Remove its <link> in index.html to go back to Lavender/Twilight.
+   ===================================================================== */
+html[data-vt]{--font:"Plus Jakarta Sans",system-ui,sans-serif;--serif:"Fraunces","Playfair Display",Georgia,serif}
+html[data-theme="mist"]{color-scheme:light;
+  --m-bg:#f4ead8;--m-surface:#fbf6ec;--m-surface2:#f6eddc;--m-line:#e3d6bf;--m-ink:#2a2530;--m-muted:#6c6370;
+  --m-acc:#2f6f73;--m-acc2:#e0a94f;--m-hi:#e0a94f;--m-deep1:#2f6f73;--m-deep2:#245a5d;--m-on-acc:#ffffff;--m-tint:#e8e3d0;
+  --m-ok:#3f6b2d;--m-ok-bg:#e4efd9;--m-bad:#a53a2a;--m-bad-bg:#f8e4de;--m-warn:#7a4d0a;--m-warn-bg:#fbeacb;
+  --m-shadow:0 1px 2px rgba(42,37,48,.06),0 10px 24px -14px rgba(42,37,48,.28);
+  --m-orb:linear-gradient(160deg,#3f8f96 0%,#2f6f73 55%,#245a5d 100%);--m-orb-glow:47,111,115;
+  --bg-cream:#f4ead8;--coral-primary:#2f6f73;--coral-light:#8fbcbc;--navy-dark:#2a2530;--navy-text:#2a2530;--mint-green:#3f8f96;
+  --purple-accent:#2f6f73;--gold-yellow:#e0a94f;--white-card:#fbf6ec;--text-muted:#6c6370;
+  --glass-bg:#fbf6ec;--glass-bg-strong:#fbf6ec;--glass-border:#e3d6bf;
+  --v2-cream:#f4ead8;--v2-ink:#2a2530;--v2-ink-2:#6c6370;--v2-line:#e3d6bf;
+  --pro-bg:#f4ead8;--pro-surface:#fbf6ec;--pro-border:#e3d6bf;--pro-navy:#2a2530;--pro-navy-2:#2f6f73;--pro-tint:#e8e3d0;
+  --pro-shadow:0 1px 2px rgba(42,37,48,.06),0 10px 24px -14px rgba(42,37,48,.28);--pro-shadow-lg:0 14px 32px -16px rgba(42,37,48,.4)}
+html[data-theme="twilight"]{color-scheme:dark;
+  --m-bg:#131f20;--m-surface:#1b2d2f;--m-surface2:#223739;--m-line:#2f4648;--m-ink:#f4ead8;--m-muted:#a9b8b4;
+  --m-acc:#6fa3a3;--m-acc2:#e0a94f;--m-hi:#e0a94f;--m-deep1:#245a5d;--m-deep2:#173d40;--m-on-acc:#10201f;--m-tint:#223739;
+  --m-ok:#9fd08a;--m-ok-bg:rgba(111,174,86,.16);--m-bad:#ff9d8c;--m-bad-bg:rgba(194,76,56,.18);--m-warn:#f0c277;--m-warn-bg:rgba(224,169,79,.16);
+  --m-shadow:0 1px 2px rgba(0,0,0,.4),0 12px 28px -14px rgba(0,0,0,.7);
+  --m-orb:linear-gradient(160deg,#86b6b6 0%,#6fa3a3 50%,#e0a94f 140%);--m-orb-glow:111,163,163;
+  --bg-cream:#131f20;--coral-primary:#6fa3a3;--coral-light:#a9cbcb;--navy-dark:#f4ead8;--navy-text:#e6dcc8;--mint-green:#7fc6c6;
+  --purple-accent:#6fa3a3;--gold-yellow:#e0a94f;--white-card:#1b2d2f;--text-muted:#a9b8b4;
+  --glass-bg:#1b2d2f;--glass-bg-strong:#1b2d2f;--glass-border:#2f4648;
+  --v2-cream:#131f20;--v2-ink:#f4ead8;--v2-ink-2:#a9b8b4;--v2-line:#2f4648;
+  --pro-bg:#131f20;--pro-surface:#1b2d2f;--pro-border:#2f4648;--pro-navy:#f4ead8;--pro-navy-2:#a9cbcb;--pro-tint:#223739;
+  --pro-shadow:0 1px 2px rgba(0,0,0,.4),0 12px 28px -14px rgba(0,0,0,.7);--pro-shadow-lg:0 16px 36px -16px rgba(0,0,0,.8);
+  --m-map-filter:invert(.92) hue-rotate(150deg) saturate(.6) brightness(.85) contrast(.95)}
+
+/* serif headings */
+html[data-vt] h1,html[data-vt] h2,html[data-vt] h3,html[data-vt] .brand-title,html[data-vt] .loading-splash-word,html[data-vt] #homeView .v2-hero .v2-name,html[data-vt] .card-title{font-family:var(--serif);font-weight:600;letter-spacing:.005em}
+
+/* sunlit-wall page background */
+html[data-theme="mist"][data-vt] body{background:linear-gradient(rgba(251,246,236,.80),rgba(244,234,216,.86)),url(/dash/img/page-wall.jpg) center top/cover no-repeat fixed,#f4ead8;background-attachment:fixed}
+html[data-theme="twilight"][data-vt] body{background:linear-gradient(rgba(10,20,21,.84),rgba(19,31,32,.9)),url(/dash/img/page-wall.jpg) center top/cover no-repeat fixed,#131f20;background-attachment:fixed}
+
+/* paper cards */
+html[data-theme="mist"][data-vt] .kpi,html[data-theme="mist"][data-vt] #homeView .v2-card,html[data-theme="mist"][data-vt] .card,html[data-theme="mist"][data-vt] .v2-card,html[data-theme="mist"][data-vt] .modal-content,html[data-theme="mist"][data-vt] #homeView .v2-tile,html[data-theme="mist"][data-vt] #profileView .v2-list,html[data-theme="mist"][data-vt] .person-card{background:url(/dash/img/paper-tile.png) #fbf6ec!important}
+html[data-vt] #homeView .v2-card,html[data-vt] #homeView .card{border-radius:20px;box-shadow:0 14px 30px -18px rgba(42,37,48,.4)}
+html[data-vt] #homeView .v2-tile .v2-tile-ic,html[data-vt] #profileView .v2-row-ic{background:#e3eeec!important;color:#2f6f73}
+html[data-theme="twilight"][data-vt] #homeView .v2-tile .v2-tile-ic,html[data-theme="twilight"][data-vt] #profileView .v2-row-ic{background:#223739!important;color:#9fcaca}
+
+/* teal hero / profile card with a rose garland in the corner */
+html[data-vt] #homeView .v2-hero.geofence-status-card{background:linear-gradient(150deg,var(--m-deep1) 0%,var(--m-deep2) 70%,color-mix(in srgb,var(--m-acc2) 35%,var(--m-deep2)) 150%)!important;box-shadow:0 22px 40px -16px rgba(23,61,64,.7),inset 0 1px 0 rgba(255,255,255,.18);border-radius:26px;overflow:hidden}
+html[data-vt] #homeView .v2-hero::before{background:radial-gradient(closest-side,rgba(224,169,79,.45),rgba(224,169,79,0))}
+html[data-vt] #homeView .v2-hero::after{background:radial-gradient(closest-side,rgba(143,188,188,.45),rgba(143,188,188,0))}
+html[data-vt] #profileView .v2-profile-card,html[data-vt] #sidebar .sidebar-coral-header{background:linear-gradient(150deg,var(--m-deep1),var(--m-deep2))!important;position:relative;overflow:hidden}
+html[data-vt] #homeView .v2-hero > *,html[data-vt] #profileView .v2-profile-card > *{position:relative;z-index:1}
+html[data-vt] #homeView .v2-hero > .ds-rose,html[data-vt] #profileView .v2-profile-card > .ds-rose{position:absolute;z-index:0}
+html[data-vt] #homeView #v2Hero{background-image:url(/dash/img/garland-tr.png),linear-gradient(150deg,var(--m-deep1) 0%,var(--m-deep2) 70%,color-mix(in srgb,var(--m-acc2) 35%,var(--m-deep2)) 150%)!important;background-repeat:no-repeat,no-repeat!important;background-position:right -26px top -22px,0 0!important;background-size:150px auto,cover!important}
+html[data-vt] #profileView .v2-profile-card{background-image:url(/dash/img/garland-tr.png),linear-gradient(150deg,var(--m-deep1),var(--m-deep2))!important;background-repeat:no-repeat,no-repeat!important;background-position:right -30px top -26px,0 0!important;background-size:140px auto,cover!important}
+
+/* buttons & punch */
+html[data-vt] .btn-primary,html[data-vt] .btn-primary-mobile,html[data-vt] .loc-check-primary{background:linear-gradient(135deg,#2f6f73,#245a5d)!important;color:#fff!important;box-shadow:0 10px 22px -10px rgba(36,90,93,.7)}
+html[data-theme="twilight"][data-vt] .btn-primary,html[data-theme="twilight"][data-vt] .btn-primary-mobile{background:linear-gradient(135deg,#6fa3a3,#4a8587)!important;color:#10201f!important}
+html[data-vt] #homeView #punchInBtn.v2-orb{background:#fbf6ec!important;color:#245a5d}
+html[data-vt] #v2Hero[data-punch="out"] #punchInBtn.v2-orb{background:linear-gradient(135deg,#f7dca0,#e0a94f)!important;color:#3b2a06}
+html[data-vt] #homeView .v2-selfie.camera-verification-card{background:rgba(255,255,255,.12)}
+html[data-vt] .user-avatar,html[data-vt] .mobile-user-avatar,html[data-vt] .selfie-frame,html[data-vt] #profileView .v2-avatar-ring{background:linear-gradient(135deg,#2f6f73,#e0a94f)!important}
+html[data-vt] .stat-card:nth-child(1){background:#2f6f73}html[data-vt] .stat-card:nth-child(2){background:#e0a94f}html[data-vt] .stat-card:nth-child(3){background:#245a5d}
+html[data-vt] .hq-pin,html[data-vt] .toast{background:#245a5d!important}
+html[data-vt] .chip.on,html[data-vt] .chip.active,html[data-vt] .seg-btn.on{background:#2f6f73!important;border-color:#2f6f73!important;color:#fff!important}
+
+/* bottom nav: cream with a teal active item */
+html[data-vt] #bottomNav,html[data-vt] #bottomNav.v2-nav{background:rgba(251,246,236,.96)!important;border-top:1px solid var(--m-line)!important}
+html[data-theme="twilight"][data-vt] #bottomNav{background:rgba(27,45,47,.97)!important}
+
+/* ---- login: your door picture, form card at the bottom ---- */
+html[data-vt] #loginView{background:none}
+html[data-vt] #loginView .mobile-login-wrapper{background:url(/dash/img/login-door-phone.jpg) center top/cover no-repeat #f4ead8!important;box-shadow:none;border-color:transparent;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:flex-end;padding:0 14px 18px;box-sizing:border-box}
+html[data-vt] #loginView .login-header-banner,html[data-vt] #loginView .login-header-banner.v2-welcome{position:absolute;top:calc(12px + var(--banners-h,0px));left:14px;right:14px;padding:12px 16px!important;border-radius:20px!important;background:linear-gradient(150deg,rgba(47,111,115,.94),rgba(36,90,93,.94))!important;box-shadow:0 14px 30px -14px rgba(23,61,64,.7);backdrop-filter:blur(3px)}
+html[data-vt] #loginView .login-header-banner .v2-scene,html[data-vt] #loginView .login-header-banner .v2-welcome-leaf{display:none!important}
+html[data-vt] #loginView{padding:0!important}
+html[data-vt] #loginView .login-card-container{background:none!important;border:0!important;box-shadow:none!important;margin:0!important;padding:0!important;display:flex;flex-direction:column;justify-content:flex-end;flex:1}
+html[data-vt] #loginView .login-card{background:rgba(251,246,236,.94)!important;border:1px solid rgba(227,214,191,.95);border-radius:24px;box-shadow:0 22px 40px -18px rgba(42,37,48,.55);margin:0!important;position:relative;z-index:1}
+html[data-vt] #loginView .login-fill-space{flex:0 0 auto;min-height:0;height:0;overflow:visible;pointer-events:none}
+html[data-vt] #loginView .login-fill-space > *{display:none}
+html[data-vt] #loginView a{color:#2f6f73!important}
+html[data-theme="twilight"][data-vt] #loginView .login-card{background:rgba(27,45,47,.94)!important;border-color:#2f4648}
+html[data-theme="twilight"][data-vt] #loginView .mobile-login-wrapper{background:linear-gradient(rgba(10,20,21,.62),rgba(10,20,21,.62)),url(/dash/img/login-door-phone.jpg) center top/cover no-repeat #131f20!important}
+
+/* ---- loading splash: falling rose petals, leaves and roses ---- */
+html[data-theme="mist"][data-vt] .app-loading-splash{background:linear-gradient(rgba(251,246,236,.55),rgba(244,234,216,.7)),url(/dash/img/login-door-phone.jpg) center/cover no-repeat,#f4ead8}
+html[data-theme="twilight"][data-vt] .app-loading-splash{background:linear-gradient(rgba(10,20,21,.78),rgba(19,31,32,.86)),url(/dash/img/login-door-phone.jpg) center/cover no-repeat,#131f20}
+html[data-vt] .loading-splash-logo{border-radius:22px;box-shadow:0 18px 40px -14px rgba(23,61,64,.55);width:96px;height:96px;object-fit:cover}
+html[data-vt] .loading-splash-word{color:var(--m-ink);letter-spacing:.3em}
+html[data-vt] .petal-rain .petal{position:absolute;top:-60px;display:block;background:url(/dash/img/petals.png) no-repeat;background-size:1400% 100%;opacity:.92;
+  filter:drop-shadow(0 3px 4px rgba(42,37,48,.28));will-change:transform;animation:petalFall linear infinite}
+@keyframes petalFall{
+  0%{transform:translate3d(0,-12vh,0) rotate(0deg)}
+  25%{transform:translate3d(var(--dx),24vh,0) rotate(calc(var(--rot)*.25))}
+  50%{transform:translate3d(calc(var(--dx)*-.6),56vh,0) rotate(calc(var(--rot)*.5))}
+  75%{transform:translate3d(calc(var(--dx)*.8),86vh,0) rotate(calc(var(--rot)*.75))}
+  100%{transform:translate3d(0,114vh,0) rotate(var(--rot))}}
+@media (prefers-reduced-motion:reduce){html[data-vt] .petal-rain .petal{animation-duration:14s!important}}
+html[data-vt] #loginView .portal-legal-footer{color:#4b4452!important;font-weight:600;text-shadow:0 1px 0 rgba(251,246,236,.8)}
+html[data-theme="twilight"][data-vt] #loginView .portal-legal-footer{color:#d9cfbd!important;text-shadow:none}
+
+/* ---- boy standing on the login card ---- */
+html[data-vt] #loginView .login-card{overflow:visible}
+html[data-vt] #loginView .login-boy{position:absolute;right:20px;bottom:calc(100% - 4px);height:min(300px,34vh);width:auto;pointer-events:none;z-index:2;filter:drop-shadow(0 8px 10px rgba(42,37,48,.35))}
+@media (max-height:700px){html[data-vt] #loginView .login-boy{display:none}}
+
+/* ---- selfie: big live preview + capsule button ---- */
+html[data-vt] #homeView .v2-selfie.camera-verification-card{flex-direction:column;align-items:center;gap:12px;padding:14px 14px 12px}
+html[data-vt] #homeView .v2-selfie .selfie-frame{width:min(210px,62vw);height:min(210px,62vw);flex:0 0 auto;border-radius:30px;padding:3px;margin:0 auto;border:2px solid rgba(255,255,255,.75);background:rgba(255,255,255,.18)!important;box-shadow:0 14px 26px -12px rgba(0,0,0,.5)!important;overflow:hidden}
+html[data-vt] #homeView .v2-selfie .selfie-frame img,html[data-vt] #homeView .v2-selfie .selfie-frame video{width:100%;height:100%;object-fit:cover;border-radius:26px}
+html[data-vt] #homeView .v2-selfie .selfie-frame video{transform:scaleX(-1)}
+html[data-vt] #homeView .v2-selfie .selfie-frame img[src*="default-avatar"]{object-fit:contain;padding:18px;opacity:.85}
+html[data-vt] #homeView .v2-selfie .btn-action-outline{flex:none;width:100%;min-height:50px;border-radius:999px;font-size:15px;font-weight:700;letter-spacing:.01em;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.55);color:#fff}
+html[data-vt] #homeView .v2-selfie .btn-action-outline .btn-icon{display:inline-flex!important;margin-right:8px}
+html[data-vt] #homeView .v2-selfie:has(#webcam[style*="block"]) .btn-action-outline{background:#e0a94f;border-color:#e0a94f;color:#2a2530;box-shadow:0 10px 22px -10px rgba(224,169,79,.9)}

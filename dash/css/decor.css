@@ -26,11 +26,18 @@ html[data-vt] .kpi svg.sp polyline,html[data-vt] .kpi svg.sp path{stroke:#fff!im
 html[data-vt] .kpis>.kpi:nth-child(3) svg.sp polyline,html[data-vt] .kpis>.kpi:nth-child(3) svg.sp path{stroke:#5f8564!important}
 /* painted garlands (real artwork from Gemini) on the coloured cards and big panels */
 html[data-vt] .kpi::before,html[data-vt] .card::before,html[data-vt] .kpi::after,html[data-vt] .card::after{content:"";position:absolute;pointer-events:none;background-repeat:no-repeat;background-size:contain;z-index:2}
-html[data-vt] .kpi::before{left:-24px;top:-24px;width:92px;height:69px;background-image:url(/dash/img/garland-tl.png)}
-html[data-vt] .kpi::after{right:-24px;bottom:-22px;width:92px;height:71px;background-image:url(/dash/img/garland-br.png);background-position:right bottom}
+/* garlands: only on the FIRST and LAST KPI card (like the Gemini design), not all five */
+html[data-vt] .kpi::before,html[data-vt] .kpi::after{display:none}
+html[data-vt] .kpis>.kpi:first-child::before{display:block;left:-30px;top:-14px;width:118px;height:89px;background-image:url(/dash/img/garland-tl.png)}
+html[data-vt] .kpis>.kpi:last-child::after{display:block;right:-34px;bottom:-34px;width:150px;height:116px;background-image:url(/dash/img/garland-br.png);background-position:right bottom}
 html[data-vt] .card{position:relative}
-html[data-vt] .card::before{left:-22px;top:-22px;width:120px;height:90px;background-image:url(/dash/img/garland-tl.png)}
-html[data-vt] .card::after{right:-22px;bottom:-22px;width:120px;height:93px;background-image:url(/dash/img/garland-br.png);background-position:right bottom}
+html[data-vt] .card::before{left:-26px;top:-26px;width:150px;height:113px;background-image:url(/dash/img/garland-tl.png)}
+html[data-vt] .card::after{right:-26px;bottom:-26px;width:150px;height:116px;background-image:url(/dash/img/garland-br.png);background-position:right bottom}
+/* page-corner garlands, fixed to the window like the frame in the design */
+html[data-vt] body::before,html[data-vt] body::after{content:"";position:fixed;pointer-events:none;z-index:40;background-repeat:no-repeat;background-size:contain}
+html[data-vt] body::before{left:-28px;bottom:-24px;width:250px;height:187px;background-image:url(/dash/img/garland-bl.png);background-position:left bottom}
+html[data-vt] body::after{right:-30px;bottom:-26px;width:290px;height:224px;background-image:url(/dash/img/garland-br.png);background-position:right bottom}
+@media (max-width:1100px){html[data-vt] body::before,html[data-vt] body::after{display:none}}
 html[data-vt] #center.card::before,html[data-vt] #center.card::after,html[data-vt] .filt::before,html[data-vt] .filt::after,html[data-vt] .listcard::before,html[data-vt] .listcard::after{display:none}
 /* the page itself: sunlit wall with leaf shadows */
 html[data-theme="mist"][data-vt] body{background:linear-gradient(rgba(246,238,222,.42),rgba(246,238,222,.42)),url(/dash/img/page-wall.jpg) center/cover fixed no-repeat,#f4ead8}
@@ -40,14 +47,5 @@ html[data-theme="mist"][data-vt] .side{background:linear-gradient(rgba(30,80,84,
 html[data-theme="twilight"][data-vt] .side{background:linear-gradient(rgba(8,18,19,.62),rgba(8,18,19,.62)),url(/dash/img/side-teal.jpg) center/cover no-repeat,#0e1a1b!important}
 /* cream paper cards */
 html[data-theme="mist"][data-vt] .card,html[data-theme="mist"][data-vt] .modal{background:url(/dash/img/paper-tile.png) #fbf6ec!important}
-/* ---- tall art panel on the right ---- */
-.sideart{display:none}
-@media (min-width:1560px){
-  .sideart{display:block;grid-row:1;grid-column:-2/-1;position:sticky;top:16px;height:min(640px,calc(100vh - 140px));border-radius:26px;overflow:hidden;
-    background:url(/dash/img/garland-tl.png) left top/92% auto no-repeat,url(/dash/img/garland-br.png) right bottom/92% auto no-repeat,url(/dash/img/paper-tile.png) #efe2cc;border:1px solid rgba(196,188,172,.6);box-shadow:0 18px 40px -18px rgba(42,37,48,.5)}
-  .sideart img{width:100%;height:100%;object-fit:cover;display:block}
-  html[data-vt] .grid{grid-template-columns:232px minmax(0,1fr) 232px 250px!important}
-  html[data-vt] .grid.wide{grid-template-columns:minmax(0,1fr) 232px 250px!important}
-  body.emp-mode .grid,body.emp-mode .grid.wide,body.emp-mode.focus .grid{grid-template-columns:minmax(0,1fr) 232px 250px!important}
-}
+.sideart{display:none!important}
 html[data-vt] .kpi .v,html[data-vt] .kpi .v *{color:inherit!important;-webkit-text-fill-color:currentColor!important;background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;text-shadow:none!important;opacity:1!important}
