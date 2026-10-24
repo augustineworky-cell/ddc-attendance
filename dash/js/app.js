@@ -29,7 +29,7 @@ function askSitePassword() {
       placeBoy = () => {
         const vw = window.innerWidth, vh = window.innerHeight, k = Math.max(vw / 1920, vh / 1031);
         const ox = vw - 1920 * k, oy = (vh - 1031 * k) / 2, h = 480 * k;
-        boy.style.height = h + 'px'; boy.style.left = (ox + 1318 * k) + 'px'; boy.style.top = (oy + 950 * k - h) + 'px';
+        boy.style.cssText = 'position:fixed;width:auto;max-width:none;pointer-events:none;z-index:2147483000;filter:drop-shadow(0 10px 12px rgba(42,37,48,.38));'; boy.style.height = h + 'px'; boy.style.left = (ox + 1318 * k) + 'px'; boy.style.top = (oy + 950 * k - h) + 'px';
         boy.style.display = vw >= 1100 ? 'block' : 'none';
       };
       window.addEventListener('resize', placeBoy); placeBoy();
