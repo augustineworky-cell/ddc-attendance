@@ -74,3 +74,7 @@ html[data-vt] .tile.future,html[data-vt] .tile.none{border:1.5px dashed var(--v-
 .sg-logo{background:transparent!important;box-shadow:none!important}
 @media (min-width:1100px){.sitegate{justify-items:start!important;padding-left:9vw!important}}
 @media (max-width:1099px){.sitegate{background-position:78% center!important}}
+/* boy standing in front of the door on the PC login (hidden on narrow screens) */
+@media (min-width:1100px){
+  .sitegate::after{content:"";position:fixed;right:31vw;bottom:3vh;height:44vh;width:calc(44vh*.268);background:url(/dash/img/boy.png) center bottom/contain no-repeat;pointer-events:none;z-index:1;filter:drop-shadow(0 10px 12px rgba(42,37,48,.38))}
+}
