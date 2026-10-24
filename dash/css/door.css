@@ -1,0 +1,76 @@
+/* =====================================================================
+   door.css - "Door & Roses" theme for the PC dashboard (teal + cream + rose + amber).
+   Loaded AFTER violet.css; overrides its colour variables. Light = default, dark = night.
+   ===================================================================== */
+html[data-vt]{--font:"Plus Jakarta Sans",Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--serif:"Fraunces","Playfair Display",Georgia,serif}
+
+html[data-theme="mist"]{color-scheme:light;
+  --v-bg:#f4ead8;--v-glow:rgba(224,169,79,.20);--v-glow2:rgba(47,111,115,.10);
+  --v-card:#fbf6ec;--v-card2:#f6eddc;--v-ink:#2a2530;--v-muted:#6c6370;--v-line:#e3d6bf;
+  --v-acc:#2f6f73;--v-acc-d:#245a5d;--v-acc2:#e0a94f;--v-acc-ink:#ffffff;--v-hi:#2a2530;
+  --v-side1:#2f6f73;--v-side2:#255a5e;--v-side-ink:#eaf3f2;--v-side-mut:#a9cbcb;
+  --v-input:#fffaf1;--v-input-b:#d6c9b0;--v-hover:rgba(47,111,115,.10);--v-shadow:0 8px 24px rgba(42,37,48,.06),0 2px 6px rgba(42,37,48,.04);
+  --v-pr-bg:#4f7a3a;--v-pr-ink:#ffffff;--v-pr-b:#436a31;
+  --v-ab-bg:#b5412f;--v-ab-ink:#ffffff;--v-ab-b:#9c3626;
+  --v-mi-bg:#e0a94f;--v-mi-ink:#2a2530;--v-mi-b:#c9943f;
+  --v-ha-bg:#3f8f96;--v-ha-ink:#ffffff;--v-ha-b:#357a80;
+  --v-ex-bg:#7c6aa8;--v-ex-ink:#ffffff;--v-ex-b:#6a5a94;
+  --v-ip-bg:#d3e6e6;--v-ip-ink:#1f5558;--v-ip-b:#b4d3d4;
+  --v-of-bg:#b9aecf;--v-of-ink:#2a2530;--v-of-b:#a79bc0;
+  --v-fu-bg:#f4ead8;--v-fu-b:#c8bcac;--v-fu-ink:#6c6370;
+  --v-warn-bg:#fbeacb;--v-warn-ink:#7a4d0a;--v-warn-b:#ecd09a;
+  --v-bar:#2f6f73;--v-bar2:#6fa3a3;
+  --ink:#2a2530;--muted:#6c6370;--line:#e3d6bf;--card:#fbf6ec;--blue:#2f6f73;--accent:#e0a94f;--accent-ink:#2a2530;--plum:#2a2530;
+  --shadow:var(--v-shadow);--off:#b9aecf;--off-ink:#2a2530;
+  --present:#4f7a3a;--present-ink:#fff;--absent:#b5412f;--absent-ink:#fff;--missing:#e0a94f;--missing-ink:#2a2530;
+  --half:#3f8f96;--half-ink:#fff;--extra:#7c6aa8;--extra-ink:#fff;--prog:#d3e6e6;--prog-ink:#1f5558}
+html[data-theme="twilight"]{color-scheme:dark;
+  --v-bg:#131f20;--v-glow:rgba(224,169,79,.12);--v-glow2:rgba(47,111,115,.22);
+  --v-card:#1b2d2f;--v-card2:#223739;--v-ink:#f4ead8;--v-muted:#a9b8b4;--v-line:#2f4648;
+  --v-acc:#6fa3a3;--v-acc-d:#86b6b6;--v-acc2:#e0a94f;--v-acc-ink:#10201f;--v-hi:#f4ead8;
+  --v-side1:#0e1a1b;--v-side2:#131f20;--v-side-ink:#dbe9e6;--v-side-mut:#8fa9a6;
+  --v-input:#16282a;--v-input-b:#3a5658;--v-hover:rgba(111,163,163,.14);--v-shadow:0 1px 2px rgba(0,0,0,.35),0 14px 34px -16px rgba(0,0,0,.65);
+  --v-pr-bg:#5d8a47;--v-pr-ink:#fff;--v-pr-b:#4f7a3a;
+  --v-ab-bg:#c24c38;--v-ab-ink:#fff;--v-ab-b:#a93f2d;
+  --v-mi-bg:#e0a94f;--v-mi-ink:#241c0c;--v-mi-b:#c9943f;
+  --v-ha-bg:#3f8f96;--v-ha-ink:#fff;--v-ha-b:#357a80;
+  --v-ex-bg:#8a78b8;--v-ex-ink:#fff;--v-ex-b:#7766a6;
+  --v-ip-bg:#27474a;--v-ip-ink:#bfe0e0;--v-ip-b:#35595c;
+  --v-of-bg:#4a4560;--v-of-ink:#dcd5ee;--v-of-b:#5c5676;
+  --v-fu-bg:rgba(255,255,255,.02);--v-fu-b:#3a5658;--v-fu-ink:#8fa9a6;
+  --v-warn-bg:rgba(224,169,79,.14);--v-warn-ink:#f0c47a;--v-warn-b:rgba(224,169,79,.34);
+  --v-bar:#6fa3a3;--v-bar2:#e0a94f;
+  --ink:#f4ead8;--muted:#a9b8b4;--line:#2f4648;--card:#1b2d2f;--blue:#6fa3a3;--accent:#e0a94f;--accent-ink:#10201f;--plum:#f4ead8;
+  --shadow:var(--v-shadow);--off:#4a4560;--off-ink:#dcd5ee;
+  --present:#5d8a47;--present-ink:#fff;--absent:#c24c38;--absent-ink:#fff;--missing:#e0a94f;--missing-ink:#241c0c;
+  --half:#3f8f96;--half-ink:#fff;--extra:#8a78b8;--extra-ink:#fff;--prog:#27474a;--prog-ink:#bfe0e0}
+
+/* page: warm plaster with soft window light */
+html[data-vt] body{background:
+  linear-gradient(115deg,transparent 0 38%,rgba(255,244,222,.55) 38% 52%,transparent 52% 100%),
+  linear-gradient(115deg,transparent 0 62%,rgba(255,244,222,.35) 62% 70%,transparent 70% 100%),
+  radial-gradient(900px 480px at 85% -5%,var(--v-glow),transparent 65%),radial-gradient(700px 420px at 0% 100%,var(--v-glow2),transparent 65%),var(--v-bg);background-attachment:fixed}
+html[data-theme="twilight"][data-vt] body{background:radial-gradient(900px 480px at 85% -5%,var(--v-glow),transparent 65%),radial-gradient(700px 420px at 0% 100%,var(--v-glow2),transparent 65%),var(--v-bg);background-attachment:fixed}
+html[data-vt] h1,html[data-vt] h2,html[data-vt] .emp-head h2{font-family:var(--serif);font-weight:600;letter-spacing:-.01em}
+html[data-vt] h1{font-size:32px;line-height:40px}
+html[data-vt] main{border-image:linear-gradient(90deg,#2f6f73 0%,#e0a94f 55%,transparent 100%) 1}
+html[data-vt] .card{border-radius:18px;border:1px solid rgba(196,188,172,.45)}
+html[data-theme="twilight"][data-vt] .card{border-color:var(--v-line)}
+html[data-vt] .tile{border-radius:10px}
+html[data-vt] .tile.future,html[data-vt] .tile.none{border:1.5px dashed var(--v-fu-b)}
+
+/* login / PIN screens */
+.sitegate{background:#e8dcc6 url(/dash/img/login-door.jpg) center right/cover no-repeat!important}
+.sg-card{background:rgba(251,246,236,.94)!important;border-radius:22px!important;box-shadow:0 24px 70px rgba(42,37,48,.28),0 0 0 1px rgba(196,188,172,.6)!important}
+.sg-card::before{background:linear-gradient(90deg,#2f6f73,#e0a94f,#2f6f73)!important}
+.sg-card h3{font-family:"Fraunces","Playfair Display",Georgia,serif!important;font-weight:600!important;color:#2a2530!important;font-size:27px!important}
+.sg-sub,.sg-foot{color:#6c6370!important}
+.sg-field>span{color:#2a2530!important}
+.sg-in{background:#fffaf1!important;border-color:#d6c9b0!important}
+.sg-go{background:#2f6f73!important;box-shadow:0 12px 26px rgba(47,111,115,.35)!important}
+.sg-go:hover{background:#245a5d!important}
+.sg-mob{color:#2f6f73!important;border-color:#b9cfcf!important}
+.sg-mob:hover{background:rgba(47,111,115,.08)!important}
+.sg-logo{background:transparent!important;box-shadow:none!important}
+@media (min-width:1100px){.sitegate{justify-items:start!important;padding-left:9vw!important}}
+@media (max-width:1099px){.sitegate{background-position:78% center!important}}
