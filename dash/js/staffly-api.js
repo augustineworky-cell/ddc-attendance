@@ -77,6 +77,12 @@
     webRange: function (a) { return rpc('dash_range', { p_token: tok(), p_from: a[0], p_to: a[1] }); },
     webCalendar: function (a) { return rpc('dash_calendar', { p_token: tok(), p_emp: +a[0], p_month: a[1] }); },
     webDayPunches: function (a) { return rpc('dash_day_punches', { p_token: tok(), p_emp: +a[0], p_date: a[1] }); },
+    webApprMe: function () { return rpc('dash_appr_me', { p_token: tok() }); },
+    webApprStaff: function () { return rpc('dash_appr_staff', { p_token: tok() }); },
+    webApprList: function () { return rpc('dash_appr_list', { p_token: tok() }); },
+    webApprRequest: function (a) { return rpc('dash_appr_request', { p_token: tok(), p_emp: +a[0], p_date: a[1], p_kind: a[2], p_reason: a[3] }); },
+    webApprDecide: function (a) { return rpc('dash_appr_decide', { p_token: tok(), p_id: +a[0], p_decision: a[1], p_note: a[2] || null }); },
+    webApprCancel: function (a) { return rpc('dash_appr_cancel', { p_token: tok(), p_id: +a[0] }); },
     webAdminLogin: async function (a) {
       var d = await rpc('dash_admin_login', { p_token: tok(), p_password: a[0] || '' });
       if (d && d.error) throw new Error(d.error);

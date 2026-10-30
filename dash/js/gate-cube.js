@@ -232,7 +232,9 @@ export function startCube(el) {
   }
   cube.rotation.set(-0.45, 0.65, 0.08);
 
-  const composer = new EffectComposer(renderer);
+  /* render target with 4x MSAA: without it the post-processing chain draws the cube with jagged, blurry edges */
+  const rt = new THREE.WebGLRenderTarget(W() * renderer.getPixelRatio(), H() * renderer.getPixelRatio(), { type: THREE.HalfFloatType, samples: 4 });
+  const composer = new EffectComposer(renderer, rt);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(W(), H()), CFG.bloom.strength, CFG.bloom.radius, CFG.bloom.threshold);
   composer.addPass(bloom);
