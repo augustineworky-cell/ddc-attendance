@@ -21,27 +21,28 @@ function askSitePassword() {
   return new Promise((resolve) => {
     const w = document.createElement('div'); w.className = 'sitegate';
     document.body.appendChild(w);
-    let boy = null, placeBoy = null;
-    if (window.innerWidth >= 1100) {
-      boy = document.createElement('img'); boy.src = '/dash/img/boy.png'; boy.alt = ''; boy.className = 'gate-boy'; boy.setAttribute('aria-hidden', 'true');
-      boy.onerror = () => boy.remove(); document.body.appendChild(boy);
-      /* same maths as "background: cover, right" on login-door.jpg (1920x1031) so he stays next to the door */
-      placeBoy = () => {
-        const vw = window.innerWidth, vh = window.innerHeight, k = Math.max(vw / 1920, vh / 1031);
-        const ox = vw - 1920 * k, oy = (vh - 1031 * k) / 2, h = 480 * k;
-        boy.style.cssText = 'position:fixed;width:auto;max-width:none;pointer-events:none;z-index:2147483000;filter:drop-shadow(0 10px 12px rgba(42,37,48,.38));'; boy.style.height = h + 'px'; boy.style.left = (ox + 1318 * k) + 'px'; boy.style.top = (oy + 950 * k - h) + 'px';
-        boy.style.display = vw >= 1100 ? 'block' : 'none';
-      };
-      window.addEventListener('resize', placeBoy); placeBoy();
+    /* design-v1: black & white login with a 3D cube hero (wide screens only). The form logic below is unchanged. */
+    w.innerHTML = '<div class="sg-stage" aria-hidden="true"></div><div class="sg-veil" aria-hidden="true"></div>'
+      + '<div class="sg-hero" aria-hidden="true"><div class="sg-brand"><b>Staffly</b><i></i><span>DCC Supply Chain &amp; Distribution</span></div>'
+      + '<div><span class="sg-badge"><s></s>Safdarjung · Okhla · Gurgaon</span>'
+      + '<h1><span style="animation-delay:.3s">Every</span> <span style="animation-delay:.42s">punch.</span><br><span style="animation-delay:.56s">Every</span> <span style="animation-delay:.68s">person.</span><br><span style="animation-delay:.84s;font-style:italic">on time.</span></h1>'
+      + '<p>Attendance, leave and payroll for the whole DCC team. GPS-verified punches, selfie check-in, one calendar.</p></div>'
+      + '<div class="sg-feat"><span>GPS geofence</span><span>Selfie verified</span><span>Leave &amp; payroll</span><span>Installs as an app</span></div></div>'
+      + '<div class="sg-slot"></div>';
+    const slot = w.querySelector('.sg-slot');
+    let stopCube = null, closed = false;
+    const canWebGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
+    if (window.innerWidth >= 1100 && canWebGL) {
+      import('/dash/js/gate-cube.js?v=1').then((m) => { if (!closed) stopCube = m.startCube(w.querySelector('.sg-stage')); }).catch(() => { /* no cube: the login still works */ });
     }
     const logo = '<div class="sg-logo"><img src="/dash/img/staffly-icon.png" alt="Staffly"></div>';
     const foot = '<p class="sg-foot">DCC Supply Chain &amp; Distribution LLP<br>Authorised staff only</p>';
-    const finish = () => { if (boy) { boy.remove(); window.removeEventListener('resize', placeBoy); } w.remove(); resolve(); };
+    const finish = () => { closed = true; if (stopCube) { try { stopCube(); } catch (e) {} } w.remove(); resolve(); };
     const eyeSvg = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
     const pinField = (label) => '<label class="sg-field"><span>' + label + '</span><div class="sg-in"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4-digit PIN" style="letter-spacing:.5em;font-weight:700"></div></label>';
 
     function showPassword() {
-      w.innerHTML = '<form class="sg-card" novalidate>' + logo + '<h3>Staffly Attendance</h3>'
+      slot.innerHTML = '<form class="sg-card" novalidate>' + logo + '<h3>Staffly Attendance</h3>'
         + '<p class="sg-sub">Sign in with your Employee ID and password<br>to see your attendance.</p>'
         + '<label class="sg-field"><span>Employee ID</span><div class="sg-in"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><input name="id" type="text" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="e.g. DCC101" autofocus></div></label>'
         + '<label class="sg-field"><span>Password</span><div class="sg-in"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input name="pw" type="password" autocomplete="current-password" placeholder="Enter your password"><button type="button" class="sg-eye" tabindex="-1" aria-label="Show password">' + eyeSvg + '</button></div></label>'
@@ -59,7 +60,7 @@ function askSitePassword() {
 
     function showSetPin() {
       const u = StafflyAPI.user() || {};
-      w.innerHTML = '<form class="sg-card" novalidate>' + logo + '<h3>Set your PIN</h3>'
+      slot.innerHTML = '<form class="sg-card" novalidate>' + logo + '<h3>Set your PIN</h3>'
         + '<p class="sg-sub">Hi ' + esc((u.name || '').split(' ')[0]) + '. Choose a 4-digit PIN for this computer.<br>Next time you only need the PIN.</p>'
         + pinField('New PIN') + pinField('Confirm PIN').replace('name="pin"', 'name="pin2"')
         + '<button class="sg-go" type="submit">Save PIN &amp; continue</button><div class="err" role="alert"></div>'
@@ -80,7 +81,7 @@ function askSitePassword() {
 
     function showPin() {
       const dev = StafflyAPI.device() || {};
-      w.innerHTML = '<form class="sg-card" novalidate>' + logo + '<h3>Welcome back' + (dev.name ? ', ' + esc(dev.name.split(' ')[0]) : '') + '</h3>'
+      slot.innerHTML = '<form class="sg-card" novalidate>' + logo + '<h3>Welcome back' + (dev.name ? ', ' + esc(dev.name.split(' ')[0]) : '') + '</h3>'
         + '<p class="sg-sub">Enter your 4-digit PIN to open your attendance.</p>'
         + pinField('PIN')
         + '<button class="sg-go" type="submit">Open</button><div class="err" role="alert"></div>'
