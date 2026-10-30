@@ -2,7 +2,7 @@
 // Caches only the static app shell. Updates install, activate and reload
 // the page automatically — no "Update Now" prompt is ever shown.
 
-const CACHE_NAME = 'staffly-shell-v88';
+const CACHE_NAME = 'staffly-shell-v89';
 
 const SHELL_ASSETS = [
   '/',
@@ -13,6 +13,7 @@ const SHELL_ASSETS = [
   '/theme-mobile.css',
   '/theme-door-mobile.css',
   '/theme-mono-mobile.css',
+  '/login-stars.js',
   '/dash/js/theme.js',
   '/dash/css/violet.css',
   '/app.js',

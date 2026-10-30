@@ -33,7 +33,7 @@ function askSitePassword() {
     let stopCube = null, closed = false;
     const canWebGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
     if (window.innerWidth >= 1100 && canWebGL) {
-      import('/dash/js/gate-cube.js?v=1').then((m) => { if (!closed) stopCube = m.startCube(w.querySelector('.sg-stage')); }).catch(() => { /* no cube: the login still works */ });
+      import('/dash/js/gate-cube.js?v=2').then((m) => { if (!closed) stopCube = m.startCube(w.querySelector('.sg-stage')); }).catch(() => { /* no cube: the login still works */ });
     }
     const logo = '<div class="sg-logo"><img src="/dash/img/staffly-icon.png" alt="Staffly"></div>';
     const foot = '<p class="sg-foot">DCC Supply Chain &amp; Distribution LLP<br>Authorised staff only</p>';
