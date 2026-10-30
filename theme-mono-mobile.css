@@ -1,0 +1,74 @@
+/* =====================================================================
+   theme-mono-mobile.css - Staffly design-v1 for the PHONE app: black & white.
+   Loaded LAST in index.html (after theme-door-mobile.css). One dark palette for both
+   theme modes; switches off the door picture, boy, garlands, petals and wall photo.
+   To go back: remove the <link> to this file.
+   ===================================================================== */
+html[data-theme]{color-scheme:dark;
+  --m-bg:#050505;--m-surface:#0f0f0f;--m-surface2:#151515;--m-line:#1f1f1f;--m-ink:#f2f2f2;--m-muted:#8a8a8a;
+  --m-acc:#fafafa;--m-acc2:#a3a3a3;--m-hi:#fafafa;--m-deep1:#1c1c1c;--m-deep2:#0b0b0b;--m-on-acc:#0a0a0a;--m-tint:#151515;
+  --m-ok:#86efac;--m-ok-bg:rgba(74,222,128,.10);--m-bad:#fca5a5;--m-bad-bg:rgba(248,113,113,.11);--m-warn:#fde68a;--m-warn-bg:rgba(250,204,21,.10);
+  --m-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 14px 30px -18px #000;
+  --m-orb:linear-gradient(160deg,#ffffff 0%,#e5e5e5 60%,#bdbdbd 100%);--m-orb-glow:255,255,255;
+  --bg-cream:#050505;--coral-primary:#fafafa;--coral-light:#a3a3a3;--navy-dark:#f2f2f2;--navy-text:#e5e5e5;--mint-green:#86efac;
+  --purple-accent:#fafafa;--gold-yellow:#d4d4d4;--white-card:#0f0f0f;--text-muted:#8a8a8a;
+  --glass-bg:#0f0f0f;--glass-bg-strong:#0f0f0f;--glass-border:#1f1f1f;
+  --v2-cream:#050505;--v2-ink:#f2f2f2;--v2-ink-2:#8a8a8a;--v2-line:#1f1f1f;
+  --pro-bg:#050505;--pro-surface:#0f0f0f;--pro-border:#1f1f1f;--pro-navy:#f2f2f2;--pro-navy-2:#d4d4d4;--pro-tint:#151515;
+  --pro-shadow:0 14px 30px -18px #000;--pro-shadow-lg:0 18px 40px -18px #000;
+  --m-map-filter:invert(.92) grayscale(1) brightness(.8) contrast(1.05);
+  --serif:"Fraunces",Georgia,serif}
+
+/* page */
+html[data-theme][data-vt] body,html[data-theme] body{background:#050505!important;background-image:none!important;color:#f2f2f2}
+html[data-theme][data-vt] h1,html[data-theme][data-vt] h2,html[data-theme][data-vt] h3,html[data-theme][data-vt] .card-title{font-family:var(--serif);font-weight:400;letter-spacing:-.015em}
+
+/* cards */
+html[data-theme][data-vt] .kpi,html[data-theme][data-vt] .card,html[data-theme][data-vt] .v2-card,html[data-theme][data-vt] #homeView .v2-card,html[data-theme][data-vt] #homeView .card,html[data-theme][data-vt] .modal-content{background:#0f0f0f!important;background-image:none!important;border:1px solid #1f1f1f!important;box-shadow:var(--m-shadow)!important;color:#f2f2f2}
+html[data-theme][data-vt] #homeView .v2-tile .v2-tile-ic,html[data-theme][data-vt] #profileView .v2-row-ic{background:#1a1a1a!important;color:#e5e5e5!important}
+
+/* hero (geofence + punch) and profile card: graphite, no garland */
+html[data-theme][data-vt] #homeView .v2-hero.geofence-status-card,html[data-theme][data-vt] #homeView #v2Hero,html[data-theme][data-vt] #profileView .v2-profile-card,html[data-theme][data-vt] #sidebar .sidebar-coral-header{
+  background:radial-gradient(ellipse at 50% 0%,#262626,#0b0b0b 72%)!important;background-image:radial-gradient(ellipse at 50% 0%,#262626,#0b0b0b 72%)!important;border:1px solid #1f1f1f!important;box-shadow:0 22px 40px -20px #000!important;color:#fafafa!important}
+html[data-theme][data-vt] #homeView .v2-hero::before,html[data-theme][data-vt] #homeView .v2-hero::after{background:radial-gradient(closest-side,rgba(255,255,255,.08),rgba(255,255,255,0))!important}
+html[data-theme][data-vt] .ds-rose{display:none!important}
+
+/* punch orb: white, dark text; light grey while punched in */
+html[data-theme][data-vt] #homeView #punchInBtn.v2-orb{background:#fafafa!important;color:#0a0a0a!important;box-shadow:0 18px 40px -14px rgba(255,255,255,.25),inset 0 1px 0 #fff!important}
+html[data-theme][data-vt] #v2Hero[data-punch="out"] #punchInBtn.v2-orb{background:#d4d4d4!important;color:#0a0a0a!important}
+
+/* buttons, chips, avatars */
+html[data-theme][data-vt] .btn-primary,html[data-theme][data-vt] .btn-primary-mobile,html[data-theme][data-vt] .loc-check-primary{background:#ededed!important;color:#0a0a0a!important;box-shadow:none!important;border:0!important}
+html[data-theme][data-vt] .chip.on,html[data-theme][data-vt] .chip.active,html[data-theme][data-vt] .seg-btn.on{background:#fafafa!important;border-color:#fafafa!important;color:#0a0a0a!important}
+html[data-theme][data-vt] .user-avatar,html[data-theme][data-vt] .mobile-user-avatar,html[data-theme][data-vt] .selfie-frame,html[data-theme][data-vt] #profileView .v2-avatar-ring{background:linear-gradient(135deg,#3a3a3a,#141414)!important}
+html[data-theme][data-vt] .stat-card:nth-child(1),html[data-theme][data-vt] .stat-card:nth-child(2),html[data-theme][data-vt] .stat-card:nth-child(3){background:#151515!important;border:1px solid #262626!important}
+html[data-theme][data-vt] .hq-pin,html[data-theme][data-vt] .toast{background:#1a1a1a!important;color:#fafafa!important;border:1px solid #2a2a2a}
+html[data-theme][data-vt] input,html[data-theme][data-vt] select,html[data-theme][data-vt] textarea{background:#0f0f0f!important;border-color:#262626!important;color:#f2f2f2!important}
+html[data-theme][data-vt] input::placeholder,html[data-theme][data-vt] textarea::placeholder{color:#555!important}
+
+/* selfie card */
+html[data-theme][data-vt] #homeView .v2-selfie.camera-verification-card{background:rgba(255,255,255,.04)!important;border:1px solid #1f1f1f}
+html[data-theme][data-vt] #homeView .v2-selfie .btn-action-outline{background:rgba(255,255,255,.06)!important;border-color:rgba(255,255,255,.35)!important;color:#fafafa!important}
+html[data-theme][data-vt] #homeView .v2-selfie:has(#webcam[style*="block"]) .btn-action-outline{background:#fafafa!important;border-color:#fafafa!important;color:#0a0a0a!important;box-shadow:none!important}
+
+/* bottom nav */
+html[data-theme][data-vt] #bottomNav,html[data-theme][data-vt] #bottomNav.v2-nav{background:rgba(8,8,8,.94)!important;border-top:1px solid #1a1a1a!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+
+/* ---- login: black, drifting light, glass card (no door, no boy) ---- */
+html[data-theme][data-vt] #loginView .mobile-login-wrapper{background:radial-gradient(ellipse 120% 60% at 50% 0%,#1c1c1c 0%,#050505 60%)!important;background-image:radial-gradient(ellipse 120% 60% at 50% 0%,#1c1c1c 0%,#050505 60%)!important}
+html[data-theme][data-vt] #loginView .login-boy{display:none!important}
+html[data-theme][data-vt] #loginView .login-header-banner,html[data-theme][data-vt] #loginView .login-header-banner.v2-welcome{background:rgba(255,255,255,.04)!important;border:1px solid rgba(255,255,255,.08)!important;box-shadow:none!important;color:#fafafa!important}
+html[data-theme][data-vt] #loginView .login-card{background:rgba(14,14,14,.86)!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:0 30px 70px -30px #000,inset 0 1px 0 rgba(255,255,255,.06)!important;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);animation:monoUp .8s cubic-bezier(.16,1,.3,1) both}
+html[data-theme][data-vt] #loginView a{color:#d4d4d4!important}
+html[data-theme][data-vt] #loginView .portal-legal-footer{color:#5a5a5a!important;text-shadow:none!important}
+
+/* ---- loading splash: black, logo breathing, no petals ---- */
+html[data-theme][data-vt] .app-loading-splash,html[data-theme] .app-loading-splash{background:#050505!important;background-image:none!important}
+html[data-theme] .petal-rain,html[data-theme] .food-rain{display:none!important}
+html[data-theme][data-vt] .loading-splash-logo{border-radius:22px;box-shadow:0 0 0 1px #262626,0 18px 50px -12px rgba(255,255,255,.15)!important;animation:monoBreathe 2.4s ease-in-out infinite}
+html[data-theme][data-vt] .loading-splash-word{color:#fafafa!important;letter-spacing:.32em}
+html[data-theme][data-vt] .loading-splash-sub{color:#7a7a7a!important}
+
+@keyframes monoUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes monoBreathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.04);opacity:1}}
+@media (prefers-reduced-motion:reduce){html[data-theme][data-vt] #loginView .login-card,html[data-theme][data-vt] .loading-splash-logo{animation:none!important}}

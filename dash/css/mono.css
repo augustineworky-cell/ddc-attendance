@@ -1,0 +1,91 @@
+/* =====================================================================
+   mono.css - Staffly design-v1: black & white PC dashboard.
+   Loaded LAST in dashboard.html. Replaces the door/rose/violet colours with one dark
+   monochrome palette for both theme modes, and switches off every decoration
+   (wall photo, garlands, teal sidebar, paper cards, puja art, lanterns, petals).
+   To go back: remove the <link> to mono.css.
+   ===================================================================== */
+html[data-theme][data-vt]{color-scheme:dark;
+  --v-bg:#050505;--v-glow:transparent;--v-glow2:transparent;
+  --v-card:#0d0d0d;--v-card2:#131313;--v-ink:#f2f2f2;--v-muted:#8a8a8a;--v-line:#1f1f1f;
+  --v-acc:#fafafa;--v-acc-d:#e5e5e5;--v-acc2:#a3a3a3;--v-acc-ink:#0a0a0a;--v-hi:#fafafa;
+  --v-side1:#070707;--v-side2:#070707;--v-side-ink:#e5e5e5;--v-side-mut:#7a7a7a;
+  --v-input:#0f0f0f;--v-input-b:#262626;--v-hover:rgba(255,255,255,.06);
+  --v-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 18px 40px -26px #000;
+  --v-pr-bg:rgba(74,222,128,.09);--v-pr-ink:#86efac;--v-pr-b:rgba(74,222,128,.26);
+  --v-ab-bg:rgba(248,113,113,.10);--v-ab-ink:#fca5a5;--v-ab-b:rgba(248,113,113,.28);
+  --v-mi-bg:rgba(250,204,21,.09);--v-mi-ink:#fde68a;--v-mi-b:rgba(250,204,21,.26);
+  --v-ha-bg:rgba(147,197,253,.09);--v-ha-ink:#bfdbfe;--v-ha-b:rgba(147,197,253,.26);
+  --v-ex-bg:rgba(196,181,253,.10);--v-ex-ink:#ddd6fe;--v-ex-b:rgba(196,181,253,.28);
+  --v-ip-bg:rgba(255,255,255,.06);--v-ip-ink:#d4d4d4;--v-ip-b:rgba(255,255,255,.14);
+  --v-of-bg:rgba(255,255,255,.035);--v-of-ink:#9a9a9a;--v-of-b:rgba(255,255,255,.08);
+  --v-fu-bg:transparent;--v-fu-b:#262626;--v-fu-ink:#525252;
+  --v-warn-bg:rgba(250,204,21,.09);--v-warn-ink:#fde68a;--v-warn-b:rgba(250,204,21,.26);
+  --v-bar:#fafafa;--v-bar2:#525252;
+  --ink:#f2f2f2;--muted:#8a8a8a;--line:#1f1f1f;--card:#0d0d0d;--blue:#fafafa;--accent:#d4d4d4;--accent-ink:#0a0a0a;--plum:#f2f2f2;
+  --shadow:var(--v-shadow);--off:#262626;--off-ink:#a3a3a3;
+  --present:#4ade80;--present-ink:#052e16;--absent:#f87171;--absent-ink:#2a0606;--missing:#facc15;--missing-ink:#2a2002;
+  --half:#93c5fd;--half-ink:#0a1a2e;--extra:#c4b5fd;--extra-ink:#1a1030;--prog:#262626;--prog-ink:#d4d4d4;
+  --serif:"Fraunces",Georgia,serif}
+
+/* page + decorations off */
+html[data-theme][data-vt] body{background:#050505!important;background-image:none!important;color:var(--v-ink)}
+html[data-theme][data-vt] body::before,html[data-theme][data-vt] body::after{display:none!important;content:none!important}
+.liquid,.art,.puja,.sidepuja,.sideart,#fx,.decor,.lant,.garland,.dhak{display:none!important}
+html[data-theme][data-vt] .kpi::before,html[data-theme][data-vt] .kpi::after,html[data-theme][data-vt] .card::before,html[data-theme][data-vt] .card::after,
+html[data-theme][data-vt] .kpis>.kpi:first-child::before,html[data-theme][data-vt] .kpis>.kpi:last-child::after{display:none!important;background-image:none!important;content:none!important}
+html[data-theme][data-vt] main{border-image:linear-gradient(90deg,#2e2e2e,transparent 70%) 1!important}
+
+/* sidebar */
+html[data-theme][data-vt] .side{background:#070707!important;background-image:none!important;border-right:1px solid #161616!important;box-shadow:none!important}
+html[data-theme][data-vt] .side .brand b{color:#fafafa!important;font-family:var(--serif);font-weight:500}
+html[data-theme][data-vt] .side .brand small{color:#7a7a7a!important}
+html[data-theme][data-vt] .side .logo{background:#fafafa!important;border-radius:12px!important;overflow:hidden;box-shadow:none!important}
+html[data-theme][data-vt] .side .logo img{filter:none}
+html[data-theme][data-vt] .side .foot{color:#4d4d4d!important}
+
+/* cards, panels, modals */
+html[data-theme][data-vt] .card,html[data-theme][data-vt] .modal,html[data-theme][data-vt] .kpi,html[data-theme][data-vt] .filt,html[data-theme][data-vt] .listcard{background:var(--v-card)!important;background-image:none!important;border:1px solid var(--v-line)!important;box-shadow:var(--v-shadow)!important}
+html[data-theme][data-vt] .card:hover{border-color:#2a2a2a!important}
+html[data-theme][data-vt] h1,html[data-theme][data-vt] h2,html[data-theme][data-vt] .emp-head h2{font-family:var(--serif)!important;font-weight:400!important;letter-spacing:-.02em!important;color:#f2f2f2}
+html[data-theme][data-vt] .sub,html[data-theme][data-vt] .ts{color:#7a7a7a!important}
+
+/* KPI numbers: white, small coloured marks only */
+html[data-theme][data-vt] .kpis>.kpi .v{color:#f2f2f2!important;filter:none!important}
+html[data-theme][data-vt] .kpis>.kpi .ico{background:rgba(255,255,255,.06)!important;color:#d4d4d4!important}
+html[data-theme][data-vt] .kpis>.kpi:nth-child(1) svg.sp polyline,html[data-theme][data-vt] .kpis>.kpi:nth-child(1) svg.sp path{stroke:#86efac!important}
+html[data-theme][data-vt] .kpis>.kpi:nth-child(2) svg.sp polyline,html[data-theme][data-vt] .kpis>.kpi:nth-child(2) svg.sp path{stroke:#fca5a5!important}
+html[data-theme][data-vt] .kpis>.kpi:nth-child(3) svg.sp polyline,html[data-theme][data-vt] .kpis>.kpi:nth-child(3) svg.sp path{stroke:#fde68a!important}
+html[data-theme][data-vt] .kpis>.kpi:nth-child(4) svg.sp polyline,html[data-theme][data-vt] .kpis>.kpi:nth-child(4) svg.sp path{stroke:#e5e5e5!important}
+html[data-theme][data-vt] .kpis>.kpi:nth-child(5) svg.sp polyline,html[data-theme][data-vt] .kpis>.kpi:nth-child(5) svg.sp path{stroke:#a3a3a3!important}
+
+/* buttons, inputs, chips */
+html[data-theme][data-vt] .btn{background:#0f0f0f!important;border:1px solid #262626!important;color:#e5e5e5!important;box-shadow:none!important}
+html[data-theme][data-vt] .btn:hover{background:#171717!important;border-color:#3a3a3a!important}
+html[data-theme][data-vt] .btn.pri,html[data-theme][data-vt] .btn.primary,html[data-theme][data-vt] .btn-primary{background:#ededed!important;color:#0a0a0a!important;border-color:#ededed!important}
+html[data-theme][data-vt] input,html[data-theme][data-vt] select,html[data-theme][data-vt] textarea{background:#0f0f0f!important;border-color:#262626!important;color:#f2f2f2!important}
+html[data-theme][data-vt] input::placeholder{color:#555!important}
+html[data-theme][data-vt] input:focus,html[data-theme][data-vt] select:focus{border-color:#5a5a5a!important;box-shadow:0 0 0 3px rgba(255,255,255,.06)!important;outline:none}
+html[data-theme][data-vt] kbd{background:#141414!important;border-color:#2a2a2a!important;color:#8a8a8a!important}
+html[data-theme][data-vt] .chip.on,html[data-theme][data-vt] .chip.active,html[data-theme][data-vt] .seg button.on,html[data-theme][data-vt] .seg .on,html[data-theme][data-vt] .nav a.on,html[data-theme][data-vt] .nav button.on{background:#fafafa!important;color:#0a0a0a!important;border-color:#fafafa!important}
+
+/* calendar day details */
+html[data-theme][data-vt] .tile{border-radius:12px!important;transition:transform .15s cubic-bezier(.16,1,.3,1),border-color .15s}
+html[data-theme][data-vt] .tile:hover{transform:translateY(-2px)}
+html[data-theme][data-vt] .tile.sel,html[data-theme][data-vt] .tile.on{outline:2px solid #fafafa!important;outline-offset:-2px}
+
+/* scrollbars */
+html[data-theme][data-vt] ::-webkit-scrollbar{width:10px;height:10px}
+html[data-theme][data-vt] ::-webkit-scrollbar-thumb{background:#262626;border-radius:10px;border:2px solid #050505}
+html[data-theme][data-vt] ::-webkit-scrollbar-track{background:transparent}
+
+/* entrance motion for the main panels */
+@keyframes monoRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+html[data-theme][data-vt] .kpis>.kpi,html[data-theme][data-vt] #center,html[data-theme][data-vt] .listcard,html[data-theme][data-vt] .filt{animation:monoRise .6s cubic-bezier(.16,1,.3,1) both}
+html[data-theme][data-vt] .kpis>.kpi:nth-child(2){animation-delay:.05s}html[data-theme][data-vt] .kpis>.kpi:nth-child(3){animation-delay:.1s}
+html[data-theme][data-vt] .kpis>.kpi:nth-child(4){animation-delay:.15s}html[data-theme][data-vt] .kpis>.kpi:nth-child(5){animation-delay:.2s}
+@media (prefers-reduced-motion:reduce){html[data-theme][data-vt] .kpis>.kpi,html[data-theme][data-vt] #center,html[data-theme][data-vt] .listcard,html[data-theme][data-vt] .filt{animation:none}}
+
+/* one look now: hide the theme switcher (no effect any more) */
+#themeBtn{display:none!important}
+html[data-theme][data-vt] .eav,html[data-theme][data-vt] .av,html[data-theme][data-vt] .dbav{background:linear-gradient(160deg,#3a3a3a,#141414)!important;color:#fafafa!important;box-shadow:0 0 0 1px #2a2a2a!important}
