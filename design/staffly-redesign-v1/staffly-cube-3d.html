@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staffly · 3D cube prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #050505; --ink: #fafafa; --muted: #8a8a8a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; overflow: hidden; }
+  #stage { position: fixed; inset: 0; }
+  #stage canvas { display: block; width: 100%; height: 100%; }
+  /* fade the edges into black, like the cube is lit in a dark room */
+  .vignette { position: fixed; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 55% 60% at 68% 50%, rgba(5,5,5,0) 35%, rgba(5,5,5,.75) 75%, #050505 100%),
+      linear-gradient(90deg, #050505 0%, rgba(5,5,5,.85) 28%, rgba(5,5,5,0) 55%); }
+  .copy { position: fixed; left: clamp(20px, 6vw, 96px); top: 50%; transform: translateY(-50%); max-width: 560px; z-index: 2; }
+  .badge { display: inline-flex; gap: 8px; align-items: center; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.03); font-size: 13px; color: #b5b5b5; }
+  .badge i { width: 6px; height: 6px; border-radius: 50%; background: #fafafa; animation: breathe 2.4s ease-in-out infinite; }
+  h1 { margin: 24px 0 18px; font-family: Fraunces, serif; font-weight: 400; font-size: clamp(44px, 6vw, 84px); line-height: 1.02; letter-spacing: -.035em;
+       color: #fafafa; }
+  h1 span { background: linear-gradient(180deg, #fff 35%, #9a9a9a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; display: inline-block; opacity: 0; filter: blur(14px); transform: translateY(16px); animation: reveal 1s cubic-bezier(.16,1,.3,1) forwards; }
+  p { margin: 0; font-size: 18px; line-height: 1.65; color: var(--muted); max-width: 460px; opacity: 0; animation: rise .9s cubic-bezier(.16,1,.3,1) 1.1s forwards; }
+  .hint { position: fixed; right: 24px; bottom: 20px; font-size: 12px; color: #4d4d4d; z-index: 2; }
+  @keyframes reveal { to { opacity: 1; filter: blur(0); transform: none; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  @keyframes breathe { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+  @media (max-width: 760px) { .copy { top: auto; bottom: 48px; transform: none; } .vignette { background: radial-gradient(ellipse 80% 50% at 50% 35%, rgba(5,5,5,0) 30%, #050505 90%); } }
+  @media (prefers-reduced-motion: reduce) { h1 span, p { animation: none; opacity: 1; filter: none; transform: none; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="stage" aria-hidden="true"></div>
+<div class="vignette"></div>
+
+<main class="copy">
+  <span class="badge"><i></i>Safdarjung · Okhla · Gurgaon</span>
+  <h1><span style="animation-delay:.25s">Every</span> <span style="animation-delay:.37s">punch.</span><br>
+      <span style="animation-delay:.5s">Every</span> <span style="animation-delay:.62s">person.</span><br>
+      <span style="animation-delay:.8s;font-style:italic">on time.</span></h1>
+  <p>Attendance, leave and payroll for the whole DCC team.</p>
+</main>
+<div class="hint">Drag to turn the cube</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* ---------------- settings you can tune ---------------- */
+const CFG = {
+  size: 1,            // one block
+  gap: 0.06,          // space between blocks
+  bevel: 0.12,        // rounded edge radius
+  turnTime: 0.85,     // seconds per 90° layer twist
+  pauseTime: 0.9,     // seconds between twists
+  spinSpeed: 0.12,    // whole-cube rotation, radians/sec
+  bloom: { strength: 0.35, radius: 0.6, threshold: 0.82 },
+  offsetX: 2.0        // move the cube right of the headline (0 = centre)
+};
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- renderer, scene, camera ---------------- */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050505);
+scene.fog = new THREE.Fog(0x050505, 9, 16);           // far blocks fade into black
+
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0, 0.6, 12);
+
+/* reflections: a soft studio room baked into an environment map */
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.environmentIntensity = 0.55;
+
+/* lights: one strong key from top-left, a cool rim from behind, faint fill */
+const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(-5, 6, 5); scene.add(key);
+const rim = new THREE.DirectionalLight(0xbfd4ff, 1.6); rim.position.set(6, 2, -6); scene.add(rim);
+scene.add(new THREE.AmbientLight(0xffffff, 0.06));
+
+/* ---------------- procedural surface textures ---------------- */
+function canvasTex(draw, size = 256) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+const grainTex = canvasTex((g, s) => {            // fine noise -> sand-blasted metal
+  const img = g.createImageData(s, s);
+  for (let i = 0; i < img.data.length; i += 4) { const v = 150 + Math.random() * 90; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+  g.putImageData(img, 0, 0);
+});
+const brushTex = canvasTex((g, s) => {            // horizontal streaks -> brushed metal
+  g.fillStyle = '#9a9a9a'; g.fillRect(0, 0, s, s);
+  for (let y = 0; y < s; y++) { g.fillStyle = `rgba(${Math.random() > .5 ? 255 : 0},${Math.random() > .5 ? 255 : 0},255,${Math.random() * .12})`; g.fillRect(0, y, s, 1); }
+});
+const meshTex = canvasTex((g, s) => {             // perforated dot grid
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, s, s); g.fillStyle = '#000000';
+  const step = s / 16; for (let y = step / 2; y < s; y += step) for (let x = step / 2; x < s; x += step) { g.beginPath(); g.arc(x, y, step * .28, 0, Math.PI * 2); g.fill(); }
+});
+
+/* a small palette of materials so the cube looks crafted, not uniform */
+const MATS = [
+  new THREE.MeshPhysicalMaterial({ color: 0x141414, metalness: 1, roughness: 0.32, roughnessMap: grainTex, clearcoat: 0.4, clearcoatRoughness: 0.35 }),   // obsidian
+  new THREE.MeshPhysicalMaterial({ color: 0x0c0c0c, metalness: 0.9, roughness: 0.55, roughnessMap: grainTex }),                                       // matte graphite
+  new THREE.MeshPhysicalMaterial({ color: 0x8c8c8c, metalness: 1, roughness: 0.28, roughnessMap: brushTex }),                                          // brushed steel (accent)
+  new THREE.MeshPhysicalMaterial({ color: 0x1a1a1a, metalness: 1, roughness: 0.45, roughnessMap: meshTex, bumpMap: meshTex, bumpScale: 0.6 }),       // perforated
+  new THREE.MeshPhysicalMaterial({ color: 0x0f0f0f, metalness: 1, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05 })                           // polished chrome-black
+];
+const pickMat = () => { const r = Math.random(); return r < .45 ? MATS[0] : r < .7 ? MATS[1] : r < .8 ? MATS[2] : r < .9 ? MATS[3] : MATS[4]; };
+
+/* ---------------- the 3 x 3 x 3 cube ---------------- */
+const STEP = CFG.size + CFG.gap;
+const geo = new RoundedBoxGeometry(CFG.size, CFG.size, CFG.size, 4, CFG.bevel);
+const cube = new THREE.Group();                 // whole-cube wrapper (spins)
+const holder = new THREE.Group();               // floats + follows the pointer
+holder.add(cube); holder.position.x = CFG.offsetX; scene.add(holder);
+const blocks = [];
+for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) for (let z = -1; z <= 1; z++) {
+  const m = new THREE.Mesh(geo, pickMat());
+  m.position.set(x * STEP, y * STEP, z * STEP);
+  cube.add(m); blocks.push(m);
+}
+cube.rotation.set(-0.45, 0.65, 0.08);
+
+/* ---------------- post-processing: subtle bloom on highlights ---------------- */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), CFG.bloom.strength, CFG.bloom.radius, CFG.bloom.threshold);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+/* ---------------- layer twists (90° steps, eased) ---------------- */
+const AXES = ['x', 'y', 'z'];
+const pivot = new THREE.Object3D(); cube.add(pivot);
+let move = null, idle = 0.6, lastAxis = null;
+const ease = (t) => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);   // easeInOutCubic
+
+function startMove() {
+  let axis; do { axis = AXES[(Math.random() * 3) | 0]; } while (axis === lastAxis);
+  lastAxis = axis;
+  const layer = [-1, 0, 1][(Math.random() * 3) | 0];
+  const dir = Math.random() > .5 ? 1 : -1;
+  pivot.rotation.set(0, 0, 0); pivot.updateMatrixWorld();
+  const group = blocks.filter((b) => Math.round(b.position[axis] / STEP) === layer);
+  group.forEach((b) => pivot.attach(b));
+  move = { axis, dir, group, t: 0 };
+}
+function endMove() {
+  pivot.updateMatrixWorld();
+  move.group.forEach((b) => {
+    cube.attach(b);
+    b.position.set(Math.round(b.position.x / STEP) * STEP, Math.round(b.position.y / STEP) * STEP, Math.round(b.position.z / STEP) * STEP);
+    const e = new THREE.Euler().setFromQuaternion(b.quaternion);                    // snap rotation to exact 90°s
+    const q = Math.PI / 2; b.rotation.set(Math.round(e.x / q) * q, Math.round(e.y / q) * q, Math.round(e.z / q) * q);
+  });
+  pivot.rotation.set(0, 0, 0);
+  move = null; idle = CFG.pauseTime;
+}
+
+/* ---------------- pointer: parallax + drag ---------------- */
+const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+let drag = null, spinVel = CFG.spinSpeed;
+addEventListener('pointermove', (e) => {
+  pointer.tx = (e.clientX / innerWidth - .5) * 2; pointer.ty = (e.clientY / innerHeight - .5) * 2;
+  if (drag) { const dx = e.clientX - drag.x; spinVel = dx * 0.01; drag.x = e.clientX; cube.rotation.y += dx * 0.008; cube.rotation.x += (e.clientY - drag.y) * 0.004; drag.y = e.clientY; }
+});
+renderer.domElement.style.touchAction = 'none';
+addEventListener('pointerdown', (e) => { if (e.target === renderer.domElement) drag = { x: e.clientX, y: e.clientY }; });
+addEventListener('pointerup', () => { drag = null; });
+
+/* ---------------- loop ---------------- */
+const clock = new THREE.Clock();
+let running = true;
+document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) clock.getDelta(); });
+
+function tick() {
+  requestAnimationFrame(tick);
+  if (!running) return;
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+
+  if (!reduceMotion) {
+    if (move) {
+      move.t = Math.min(1, move.t + dt / CFG.turnTime);
+      pivot.rotation[move.axis] = move.dir * (Math.PI / 2) * ease(move.t);
+      if (move.t >= 1) endMove();
+    } else if ((idle -= dt) <= 0) startMove();
+
+    if (!drag) { spinVel += (CFG.spinSpeed - spinVel) * Math.min(1, dt * 1.5); cube.rotation.y += spinVel * dt; }
+    holder.position.y = Math.sin(t * 0.8) * 0.12;                      // gentle float
+  }
+  pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 3);          // damped parallax
+  pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 3);
+  holder.rotation.y = pointer.x * 0.25; holder.rotation.x = pointer.y * 0.15;
+  key.position.x = -5 + pointer.x * 2;                                   // highlights slide over the metal
+
+  composer.render();
+}
+tick();
+
+/* ---------------- resize ---------------- */
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  renderer.setSize(w, h); composer.setSize(w, h); bloom.setSize(w, h);
+  holder.position.x = w < 760 ? 0 : CFG.offsetX;                          // centre the cube on phones
+  camera.position.y = w < 760 ? -1.6 : 0.6;
+}
+addEventListener('resize', resize); resize();
+</script>
+</body>
+</html>

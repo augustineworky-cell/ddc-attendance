@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staffly phone home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#d4d4d4}a:hover{color:#ffffff}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes ring{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.55);opacity:0}}
+@keyframes breathe{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes swap{from{opacity:0;filter:blur(6px);transform:translateY(8px)}to{opacity:1;filter:blur(0);transform:none}}
+.rise{animation:rise .7s cubic-bezier(.16,1,.3,1) both}
+.ring{animation:ring 2.4s cubic-bezier(.16,1,.3,1) infinite}
+.live{animation:breathe 2s ease-in-out infinite}
+.swap{animation:swap .45s cubic-bezier(.16,1,.3,1) both}
+.punch{transition:transform .15s cubic-bezier(.16,1,.3,1)}
+.punch:hover{transform:scale(1.03)}
+.punch:active{transform:scale(.96)}
+.nav{transition:color .15s,background .15s}
+@media (prefers-reduced-motion:reduce){.rise,.ring,.live,.swap{animation:none!important;opacity:1;filter:none}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #050505; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #f2f2f2; display: flex; flex-direction: column">
+  <div style="padding: 22px 22px 0; display: flex; flex-direction: column; gap: 18px; flex: 1; overflow: hidden">
+    <div class="rise" style="display: flex; align-items: center; justify-content: space-between">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 13px; color: #8a8a8a">Fri, 30 Oct · Safdarjung HO</span>
+        <span style="font-family: Fraunces, serif; font-size: 26px; font-weight: 500">Hi, Augustine</span>
+      </div>
+      <button type="button" aria-label="Notifications" style="position: relative; width: 44px; height: 44px; border-radius: 50%; border: 1px solid #222222; background: #0f0f0f; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #f2f2f2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8"></path><path d="M10 20a2 2 0 004 0"></path></svg>
+        <span style="position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: #f87171; border: 2px solid #0f0f0f"></span>
+      </button>
+    </div>
+
+    <div class="rise" style="border-radius: 28px; padding: 22px; background: radial-gradient(ellipse at 50% 0%, #262626, #0b0b0b 70%); border: 1px solid #1f1f1f; color: #fafafa; display: flex; flex-direction: column; align-items: center; gap: 16px; position: relative; overflow: hidden; animation-delay: .08s">
+      <div style="align-self: stretch; display: flex; justify-content: space-between; align-items: center; font-size: 13px">
+        <span style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.12)"><span class="live" style="width: 8px; height: 8px; border-radius: 50%; background: #86efac"></span>Inside office · 38 m</span>
+        <span style="color: rgba(255,255,255,0.7)">GPS ±12 m</span>
+      </div>
+      <div style="position: relative; width: 196px; height: 196px; display: flex; align-items: center; justify-content: center">
+        <span aria-hidden="true" class="ring" style="position: absolute; inset: 22px; border-radius: 50%; border: 2px solid {{ringColor}}"></span>
+        <span aria-hidden="true" class="ring" style="position: absolute; inset: 22px; border-radius: 50%; border: 2px solid {{ringColor}}; animation-delay: 1.2s"></span>
+        <svg width="196" height="196" viewBox="0 0 110 110" aria-hidden="true" style="position: absolute; inset: 0; transform: rotate(-90deg)">
+          <circle cx="55" cy="55" r="48" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="5"></circle>
+          <circle cx="55" cy="55" r="48" fill="none" stroke="#fafafa" stroke-width="5" stroke-linecap="round" stroke-dasharray="302" stroke-dashoffset="{{dash}}" style="transition: stroke-dashoffset 1s cubic-bezier(.16,1,.3,1)"></circle>
+        </svg>
+        <button class="punch" type="button" onClick="{{toggle}}" style="width: 148px; height: 148px; border-radius: 50%; border: 0; background: {{btnBg}}; color: {{btnInk}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; box-shadow: 0 18px 40px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4)">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>
+          <span class="swap" style="font: 700 17px 'Plus Jakarta Sans', sans-serif">{{btnLabel}}</span>
+          <span style="font-size: 12px; opacity: .75">{{btnSub}}</span>
+        </button>
+      </div>
+      <div class="swap" style="font-family: Fraunces, serif; font-size: 20px">{{statusLine}}</div>
+    </div>
+
+    <div class="rise" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; animation-delay: .16s">
+      <div style="background: #0f0f0f; border: 1px solid #1f1f1f; border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #8a8a8a">In</span><span style="font-weight: 700; font-size: 17px">{{inTime}}</span></div>
+      <div style="background: #0f0f0f; border: 1px solid #1f1f1f; border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #8a8a8a">Out</span><span style="font-weight: 700; font-size: 17px">{{outTime}}</span></div>
+      <div style="background: #0f0f0f; border: 1px solid #1f1f1f; border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #8a8a8a">Hours</span><span style="font-weight: 700; font-size: 17px">{{hours}}</span></div>
+    </div>
+
+    <div class="rise" style="background: #0f0f0f; border: 1px solid #1f1f1f; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px; animation-delay: .24s">
+      <div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-weight: 700; font-size: 15px">This week</span><a href="#" style="font-size: 13px; text-decoration: none; font-weight: 600">Full calendar</a></div>
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{week}}" as="d" hint-placeholder-count="6">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+            <span style="font-size: 11px; color: #8a8a8a">{{d.day}}</span>
+            <span style="width: 38px; height: 38px; border-radius: 12px; background: {{d.bg}}; color: {{d.ink}}; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; box-shadow: {{d.ring}}">{{d.num}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 12px; font-size: 11px; color: #8a8a8a"><span style="color: #86efac">● Present</span><span style="color: #fca5a5">● Absent</span><span style="color: #fde68a">● Missing</span></div>
+    </div>
+  </div>
+
+  <nav aria-label="Main" style="display: flex; justify-content: space-around; padding: 10px 16px 22px; background: rgba(10,10,10,0.92); border-top: 1px solid #1f1f1f">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+      <a class="nav" href="#" aria-current="{{t.current}}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; padding: 6px 8px; border-radius: 14px; text-decoration: none; font-size: 11px; font-weight: 600; color: {{t.color}}; background: {{t.bg}}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg>{{t.label}}
+      </a>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { step: 1 }; }
+  renderVals() {
+    const s = this.state.step; // 0 not in, 1 punched in, 2 done
+    const cfg = [
+      { btnLabel: 'Punch In', btnSub: 'Selfie next', btnBg: '#fafafa', btnInk: '#0a0a0a', status: 'Ready when you are', dash: 302, ring: 'rgba(255,255,255,0.45)', inT: '—', outT: '—', hrs: '0.0 h' },
+      { btnLabel: 'Punch Out', btnSub: 'Running 6 h 18 m', btnBg: '#d4d4d4', btnInk: '#0a0a0a', status: 'Punched in at 09:42', dash: 90, ring: 'rgba(255,255,255,0.6)', inT: '09:42', outT: '—', hrs: '6.3 h' },
+      { btnLabel: 'Done', btnSub: 'See you tomorrow', btnBg: '#1c1c1c', btnInk: '#fafafa', status: 'Shift complete · 9.4 h', dash: 0, ring: 'rgba(255,255,255,0.2)', inT: '09:42', outT: '19:08', hrs: '9.4 h' }
+    ][s];
+    const P = { bg: 'rgba(74,222,128,0.12)', ink: '#86efac' }, A = { bg: 'rgba(248,113,113,0.14)', ink: '#fca5a5' }, M = { bg: 'rgba(250,204,21,0.12)', ink: '#fde68a' };
+    const week = [['Mon', 26, P], ['Tue', 27, P], ['Wed', 28, M], ['Thu', 29, P], ['Fri', 30, s === 0 ? { bg: '#1a1a1a', ink: '#8a8a8a' } : P], ['Sat', 31, { bg: 'transparent', ink: '#4a4a4a' }]].map(([day, num, c]) => ({ day, num, bg: c.bg, ink: c.ink, ring: num === 30 ? '0 0 0 2px #fafafa' : 'none' }));
+    const tabs = [['Home', 'M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z'], ['Leave', 'M4 5h16v15H4zM4 10h16M9 3v4M15 3v4'], ['Training', 'M3 7l9-4 9 4-9 4-9-4zM7 9v5c3 2 7 2 10 0V9'], ['Profile', 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c1-4 4-6 8-6s7 2 8 6']].map(([label, icon], i) => ({ label, icon, current: i === 0 ? 'page' : 'false', color: i === 0 ? '#fafafa' : '#7a7a7a', bg: i === 0 ? '#1c1c1c' : 'transparent' }));
+    return {
+      btnLabel: cfg.btnLabel, btnSub: cfg.btnSub, btnBg: cfg.btnBg, btnInk: cfg.btnInk, statusLine: cfg.status, dash: cfg.dash, ringColor: cfg.ring,
+      inTime: cfg.inT, outTime: cfg.outT, hours: cfg.hrs, week, tabs,
+      toggle: () => this.setState({ step: (s + 1) % 3 })
+    };
+  }
+}
+</script>
+</body>
+</html>

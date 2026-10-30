@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staffly dashboard employee month</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#d4d4d4}a:hover{color:#ffffff}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes cell{from{opacity:0;transform:scale(.92);filter:blur(4px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes reveal{from{opacity:0;filter:blur(10px);transform:translateY(10px)}to{opacity:1;filter:blur(0);transform:none}}
+@keyframes draw{from{stroke-dashoffset:400}to{stroke-dashoffset:0}}
+@keyframes slidein{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.rise{animation:rise .7s cubic-bezier(.16,1,.3,1) both}
+.cell{animation:cell .55s cubic-bezier(.16,1,.3,1) both;transition:transform .15s cubic-bezier(.16,1,.3,1),box-shadow .15s}
+.cell:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px rgba(0,0,0,.9)}
+.w{display:inline-block;animation:reveal .8s cubic-bezier(.16,1,.3,1) both}
+.spark{stroke-dasharray:400;animation:draw 1.4s cubic-bezier(.16,1,.3,1) .4s both}
+.drawer{animation:slidein .45s cubic-bezier(.16,1,.3,1) both}
+.chip{transition:background .15s,color .15s}
+.chip:hover{background:#1a1a1a}
+.emp{transition:background .15s}
+.emp:hover{background:#151515}
+@media (prefers-reduced-motion:reduce){.rise,.cell,.w,.spark,.drawer{animation:none!important;opacity:1;filter:none}}
+</style>
+</helmet>
+<div style="min-height: 1180px; background: #050505; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #ededed">
+  <header style="position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; padding: 14px clamp(16px, 3vw, 40px); background: rgba(5,5,5,0.85); border-bottom: 1px solid #1a1a1a">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <svg width="28" height="28" viewBox="0 0 48 48" role="img" aria-label="DCC"><rect width="22" height="22" rx="5" fill="#fafafa"></rect><rect x="26" width="22" height="22" rx="5" fill="#fafafa"></rect><rect y="26" width="22" height="22" rx="5" fill="#fafafa"></rect><rect x="26" y="26" width="22" height="22" rx="5" fill="#fafafa"></rect><g fill="none" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5L11 5l7 5.5V18H4z"></path><path d="M30 10.5L37 5l7 5.5V18H30z"></path><path d="M3.5 32.5h10v8h-10zM13.5 35.5h4l2.5 3V40.5h-6.5z"></path><path d="M30.5 30.5v12.5M30.5 43h5M32.5 34h4.5l2 4.5v3.5h-6.5z"></path></g></svg>
+      <span style="font-family: Fraunces, serif; font-size: 22px; font-weight: 600">Staffly</span>
+    </div>
+    <nav aria-label="Sections" style="display: flex; flex-wrap: wrap; gap: 4px">
+      <sc-for list="{{sections}}" as="s" hint-placeholder-count="5">
+        <a class="chip" href="#" aria-current="{{s.current}}" style="padding: 8px 14px; border-radius: 999px; text-decoration: none; font-size: 14px; font-weight: 600; color: {{s.color}}; background: {{s.bg}}">{{s.label}}</a>
+      </sc-for>
+    </nav>
+    <label style="flex: 1 1 220px; max-width: 420px; display: flex; align-items: center; gap: 10px; padding: 0 14px; min-height: 42px; border-radius: 12px; background: #0e0e0e; border: 1px solid #1f1f1f; margin-left: auto">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8a8a" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+      <input aria-label="Find employee" placeholder="Find employee…" style="flex: 1; border: 0; outline: none; background: transparent; font: 14px 'Plus Jakarta Sans', sans-serif; color: #ededed">
+      <span style="font-size: 12px; color: #8a8a8a; border: 1px solid #1f1f1f; border-radius: 6px; padding: 1px 7px">/</span>
+    </label>
+    <button type="button" aria-label="Account menu" style="width: 42px; height: 42px; border-radius: 50%; border: 1px solid #2a2a2a; background: #1a1a1a; color: #fafafa; font: 600 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">AR</button>
+  </header>
+
+  <main style="max-width: 1520px; margin: 0 auto; padding: 26px clamp(16px, 3vw, 40px) 48px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+    <aside class="rise" aria-label="Employees" style="flex: 1 1 240px; max-width: 280px; background: #0e0e0e; border: 1px solid #1f1f1f; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; gap: 6px; flex-wrap: wrap">
+        <sc-for list="{{locs}}" as="l" hint-placeholder-count="4">
+          <button class="chip" type="button" style="padding: 6px 12px; border-radius: 999px; border: 1px solid #1f1f1f; background: {{l.bg}}; color: {{l.color}}; font: 600 12px 'Plus Jakarta Sans', sans-serif; cursor: pointer">{{l.label}}</button>
+        </sc-for>
+      </div>
+      <sc-for list="{{emps}}" as="e" hint-placeholder-count="8">
+        <a class="emp" href="#" style="display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; text-decoration: none; color: #ededed; background: {{e.bg}}">
+          <span style="width: 32px; height: 32px; border-radius: 50%; background: {{e.av}}; color: #fafafa; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex: none">{{e.ini}}</span>
+          <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 14px; font-weight: 600">{{e.name}}</span><span style="font-size: 12px; color: #8a8a8a">{{e.loc}}</span></span>
+          <span style="margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: {{e.dot}}"></span>
+        </a>
+      </sc-for>
+    </aside>
+
+    <section style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+      <div class="rise" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; justify-content: space-between; animation-delay: .05s">
+        <div style="display: flex; align-items: center; gap: 16px">
+          <span style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(160deg, #3a3a3a, #141414); border: 1px solid #2a2a2a; color: #fafafa; display: flex; align-items: center; justify-content: center; font-family: Fraunces, serif; font-size: 24px">AR</span>
+          <div>
+            <h1 style="margin: 0; font-family: Fraunces, serif; font-weight: 500; font-size: 38px; letter-spacing: -0.02em"><span class="w" style="animation-delay: .1s">Augustine</span> <span class="w" style="animation-delay: .2s">Rozario</span></h1>
+            <span style="font-size: 14px; color: #8a8a8a">Safdarjung HO · MIS · Oct 2026</span>
+          </div>
+        </div>
+        <div role="group" aria-label="Period" style="display: flex; padding: 4px; border-radius: 12px; background: #0e0e0e; border: 1px solid #1f1f1f">
+          <sc-for list="{{periods}}" as="p" hint-placeholder-count="4">
+            <button type="button" onClick="{{p.pick}}" style="min-height: 36px; padding: 0 14px; border: 0; border-radius: 9px; background: {{p.bg}}; color: {{p.color}}; font: 600 13px 'Plus Jakarta Sans', sans-serif; cursor: pointer; transition: all .15s">{{p.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+        <sc-for list="{{kpis}}" as="k" hint-placeholder-count="5">
+          <div class="rise" style="background: #0e0e0e; border: 1px solid #1f1f1f; border-radius: 20px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; animation-delay: {{k.delay}}">
+            <span style="font-size: 13px; color: #8a8a8a; display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 3px; background: {{k.color}}"></span>{{k.label}}</span>
+            <span style="font-family: Fraunces, serif; font-size: 34px; font-weight: 500; color: {{k.ink}}">{{k.value}}</span>
+            <svg width="100%" height="30" viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true"><path class="spark" d="{{k.path}}" fill="none" stroke="{{k.color}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="font-size: 12px; color: #8a8a8a">{{k.sub}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div class="rise" style="background: #0e0e0e; border: 1px solid #1f1f1f; border-radius: 24px; padding: 18px; animation-delay: .2s">
+        <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px">
+          <sc-for list="{{dows}}" as="d" hint-placeholder-count="7"><span style="text-align: center; font-size: 12px; font-weight: 600; color: #8a8a8a">{{d}}</span></sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{cells}}" as="c" hint-placeholder-count="35">
+            <button class="cell" type="button" onClick="{{c.pick}}" aria-label="{{c.aria}}" style="min-height: 92px; border-radius: 16px; border: {{c.border}}; background: {{c.bg}}; color: {{c.ink}}; padding: 10px 12px; text-align: left; display: flex; flex-direction: column; gap: 3px; cursor: {{c.cursor}}; opacity: {{c.op}}; animation-delay: {{c.delay}}; font-family: 'Plus Jakarta Sans', sans-serif; width: 91px; height: 79px">
+              <span style="font-weight: 700; font-size: 16px">{{c.num}}</span>
+              <span style="font-size: 12px; font-weight: 600">{{c.l1}}</span>
+              <span style="font-size: 11px; opacity: .8">{{c.l2}}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 12px; color: #8a8a8a">
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #86efac"></span>Present</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #fca5a5"></span>Absent</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #fde68a"></span>Missing punch</span>
+          <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #525252"></span>Sunday / holiday</span>
+        </div>
+      </div>
+    </section>
+
+    <aside class="drawer" aria-label="Day detail" style="flex: 1 1 280px; max-width: 320px; background: #0e0e0e; border: 1px solid #1f1f1f; color: #fafafa; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+      <span style="font-size: 13px; color: rgba(255,255,255,0.65)">Day detail</span>
+      <span style="font-family: Fraunces, serif; font-size: 28px">{{sel.title}}</span>
+      <span style="align-self: flex-start; padding: 5px 12px; border-radius: 999px; background: {{sel.badgeBg}}; color: {{sel.badgeInk}}; font-size: 13px; font-weight: 700">{{sel.status}}</span>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <div style="background: rgba(255,255,255,0.08); border-radius: 14px; padding: 12px"><span style="display: block; font-size: 12px; color: rgba(255,255,255,0.6)">Punch in</span><span style="font-size: 20px; font-weight: 700">{{sel.inT}}</span></div>
+        <div style="background: rgba(255,255,255,0.08); border-radius: 14px; padding: 12px"><span style="display: block; font-size: 12px; color: rgba(255,255,255,0.6)">Punch out</span><span style="font-size: 20px; font-weight: 700">{{sel.outT}}</span></div>
+        <div style="background: rgba(255,255,255,0.08); border-radius: 14px; padding: 12px"><span style="display: block; font-size: 12px; color: rgba(255,255,255,0.6)">Hours</span><span style="font-size: 20px; font-weight: 700">{{sel.hrs}}</span></div>
+        <div style="background: rgba(255,255,255,0.08); border-radius: 14px; padding: 12px"><span style="display: block; font-size: 12px; color: rgba(255,255,255,0.6)">Overtime</span><span style="font-size: 20px; font-weight: 700">{{sel.ot}}</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.75)">
+        <span>Location: Safdarjung HO · 38 m from office</span>
+        <span>Selfie: verified at punch in</span>
+      </div>
+      <button type="button" style="margin-top: 6px; min-height: 44px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: #fafafa; font: 600 14px 'Plus Jakarta Sans', sans-serif; cursor: pointer">Correct this day (admin)</button>
+    </aside>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { day: 23, period: 2 }; }
+  renderVals() {
+    const ST = {
+      P: { bg: 'rgba(74,222,128,0.07)', ink: '#86efac', badgeBg: 'rgba(74,222,128,0.18)', label: 'Present' },
+      A: { bg: 'rgba(248,113,113,0.09)', ink: '#fca5a5', badgeBg: 'rgba(248,113,113,0.2)', label: 'Absent' },
+      M: { bg: 'rgba(250,204,21,0.08)', ink: '#fde68a', badgeBg: 'rgba(250,204,21,0.18)', label: 'Missing punch' },
+      S: { bg: 'rgba(255,255,255,0.035)', ink: '#8a8a8a', badgeBg: 'rgba(255,255,255,0.1)', label: 'Sunday' },
+      H: { bg: 'rgba(255,255,255,0.035)', ink: '#a3a3a3', badgeBg: 'rgba(255,255,255,0.1)', label: 'Holiday' },
+      F: { bg: 'transparent', ink: '#4a4a4a', badgeBg: '#1a1a1a', label: 'Upcoming' }
+    };
+    const pattern = { 1: 'M', 2: 'H', 4: 'S', 6: 'A', 11: 'S', 18: 'S', 22: 'M', 23: 'P', 25: 'S', 31: 'F' };
+    const times = { P: ['10:05', '19:24', '9.3 h', '+0.3 h'], A: ['—', '—', '0 h', '—'], M: ['10:06', '—', '—', '—'], S: ['—', '—', '—', '—'], H: ['—', '—', '—', '—'], F: ['—', '—', '—', '—'] };
+    const cells = [];
+    for (let i = 0; i < 3; i++) cells.push({ num: '', l1: '', l2: '', bg: 'transparent', ink: 'transparent', border: '0', cursor: 'default', op: 0, delay: '0s', aria: 'Empty', pick: () => {} });
+    for (let d = 1; d <= 31; d++) {
+      const k = pattern[d] || 'P';
+      const st = ST[k], t = times[k];
+      const sel = d === this.state.day;
+      cells.push({
+        num: d, l1: k === 'P' ? t[0] + '→' + t[1] : st.label, l2: k === 'P' ? t[2] + ' · ' + t[3] : (k === 'M' ? 'In ' + t[0] : ''),
+        bg: st.bg, ink: st.ink, border: sel ? '2px solid #fafafa' : (k === 'F' ? '1px dashed #2a2a2a' : '1px solid transparent'),
+        cursor: 'pointer', op: 1, delay: (0.25 + (d + 3) * 0.018).toFixed(3) + 's', aria: d + ' October, ' + st.label,
+        pick: () => this.setState({ day: d })
+      });
+    }
+    cells.push({ num: '', l1: '', l2: '', bg: 'transparent', ink: 'transparent', border: '0', cursor: 'default', op: 0, delay: '0s', aria: 'Empty', pick: () => {} });
+    const k = pattern[this.state.day] || 'P', st = ST[k], t = times[k];
+    const sel = { title: this.state.day + ' October', status: st.label, badgeBg: st.badgeBg, badgeInk: st.ink, inT: t[0], outT: t[1], hrs: t[2], ot: t[3] };
+    const spark = (pts) => 'M' + pts.map((y, i) => (i * 160 / (pts.length - 1)).toFixed(1) + ' ' + y).join(' L');
+    const kpis = [
+      { label: 'Present', value: '18', sub: '82% attendance · 23 payable', color: '#86efac', ink: '#f2f2f2', path: spark([20, 8, 22, 6, 20, 8, 22, 22, 6]), delay: '.08s' },
+      { label: 'Absent', value: '1', sub: 'No-punch working days', color: '#fca5a5', ink: '#f2f2f2', path: spark([24, 24, 24, 6, 24, 24, 24, 24, 24]), delay: '.12s' },
+      { label: 'Missing punches', value: '2', sub: '1 In · 1 Out', color: '#fde68a', ink: '#f2f2f2', path: spark([24, 6, 24, 24, 24, 24, 24, 6, 24]), delay: '.16s' },
+      { label: 'Overtime', value: '4.1 h', sub: 'avg 9.2 h/day', color: '#d4d4d4', ink: '#f2f2f2', path: spark([18, 10, 14, 8, 16, 9, 12, 14, 10]), delay: '.2s' },
+      { label: 'Nights & Sundays', value: '0', sub: 'No extra days', color: '#737373', ink: '#f2f2f2', path: spark([24, 24, 24, 24, 24, 24, 24, 24, 24]), delay: '.24s' }
+    ];
+    const sections = ['Overview', 'Daily board', 'Employees', 'Reports', 'Corrections'].map((l, i) => ({ label: l, current: i === 2 ? 'page' : 'false', color: i === 2 ? '#0a0a0a' : '#bdbdbd', bg: i === 2 ? '#fafafa' : 'transparent' }));
+    const periods = ['Today', '7 days', 'Month', 'All'].map((l, i) => ({ label: l, bg: i === this.state.period ? '#fafafa' : 'transparent', color: i === this.state.period ? '#0a0a0a' : '#bdbdbd', pick: () => this.setState({ period: i }) }));
+    const locs = ['All', 'HO', 'Okhla', 'Gurgaon'].map((l, i) => ({ label: l, bg: i === 0 ? '#fafafa' : 'transparent', color: i === 0 ? '#0a0a0a' : '#bdbdbd' }));
+    const emps = [['Augustine Rozario', 'Safdarjung HO', '#86efac'], ['[Employee 2]', 'Okhla', '#86efac'], ['[Employee 3]', 'Gurgaon', '#fde68a'], ['[Employee 4]', 'Safdarjung HO', '#86efac'], ['[Employee 5]', 'Okhla', '#fca5a5'], ['[Employee 6]', 'Gurgaon', '#86efac'], ['[Employee 7]', 'Payment Collector', '#86efac'], ['[Employee 8]', 'Safdarjung HO', '#fde68a']].map(([name, loc, dot], i) => ({ name, loc, dot, ini: name.startsWith('[') ? 'E' + (i + 1) : 'AR', av: ['#2a2a2a', '#333333', '#242424', '#3a3a3a'][i % 4], bg: i === 0 ? '#161616' : 'transparent' }));
+    return { cells, sel, kpis, sections, periods, locs, emps, dows: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] };
+  }
+}
+</script>
+</body>
+</html>

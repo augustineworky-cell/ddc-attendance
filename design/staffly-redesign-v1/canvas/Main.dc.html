@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staffly PC login</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#d4d4d4}a:hover{color:#ffffff}
+@keyframes reveal{from{opacity:0;filter:blur(14px);transform:translateY(16px)}to{opacity:1;filter:blur(0);transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes spin{0%{transform:rotateX(-28deg) rotateY(38deg) rotateZ(-6deg)}50%{transform:rotateX(-18deg) rotateY(218deg) rotateZ(4deg)}100%{transform:rotateX(-28deg) rotateY(398deg) rotateZ(-6deg)}}
+@keyframes twist{0%,20%{transform:rotateY(0deg)}30%,45%{transform:rotateY(90deg)}55%,70%{transform:rotateY(180deg)}80%,95%{transform:rotateY(270deg)}100%{transform:rotateY(360deg)}}
+@keyframes twistB{0%,35%{transform:rotateY(0deg)}50%,85%{transform:rotateY(-90deg)}100%{transform:rotateY(-180deg)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes sweep{0%{transform:translate(-40%,10%) rotate(-24deg);opacity:0}25%{opacity:1}70%{opacity:1}100%{transform:translate(40%,-10%) rotate(-24deg);opacity:0}}
+@keyframes caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-260px,-360px,0)}}
+@keyframes breathe{0%,100%{opacity:.5}50%{opacity:1}}
+.w{display:inline-block;opacity:0;animation:reveal 1s cubic-bezier(.16,1,.3,1) both}
+.rise{animation:rise .9s cubic-bezier(.16,1,.3,1) both}
+.stage{animation:fadein 2.2s ease .2s both}
+.float{animation:float 7s ease-in-out infinite}
+.spin{animation:spin 40s linear infinite}
+.lt{animation:twist 18s cubic-bezier(.83,0,.17,1) infinite}
+.lb{animation:twistB 26s cubic-bezier(.83,0,.17,1) infinite}
+.sweep{animation:sweep 10s ease-in-out infinite}
+.caret{animation:caret 1s steps(1) infinite}
+.plane{animation:drift 70s ease-in-out infinite alternate}
+.live{animation:breathe 2.4s ease-in-out infinite}
+.cta{transition:transform .15s cubic-bezier(.16,1,.3,1),background .15s}
+.cta:hover{transform:translateY(-1px);background:#ffffff}
+.ghost{transition:background .15s,border-color .15s}
+.ghost:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.28)}
+@media (prefers-reduced-motion:reduce){.w,.rise,.stage,.float,.spin,.lt,.lb,.sweep,.caret,.plane,.live{animation:none!important;opacity:1;filter:none}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; background: #050505; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #fafafa">
+
+  <div aria-hidden="true" style="position: absolute; inset: 0; perspective: 1600px; overflow: hidden; opacity: .35">
+    <div style="position: absolute; left: -15%; top: -45%; width: 150%; height: 190%; transform: rotateX(54deg) rotateZ(-12deg)">
+      <div class="plane" style="display: grid; grid-template-columns: repeat(6, 300px); gap: 22px; padding: 40px">
+        <sc-for list="{{tiles}}" as="t" hint-placeholder-count="30">
+          <div style="height: 140px; border-radius: 16px; padding: 18px 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; background: #0d0d0d; border: 1px solid rgba(255,255,255,0.05)">
+            <span style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #5a5a5a">{{t.kicker}}</span>
+            <span style="font-family: Fraunces, serif; font-size: 24px; color: #8a8a8a">{{t.main}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div aria-hidden="true" class="stage" style="position: absolute; left: 640px; top: 40px; width: 640px; height: 820px; perspective: 1400px; display: flex; align-items: center; justify-content: center; -webkit-mask-image: radial-gradient(ellipse 52% 50% at 50% 48%, #000 45%, rgba(0,0,0,0.55) 68%, transparent 92%); mask-image: radial-gradient(ellipse 52% 50% at 50% 48%, #000 45%, rgba(0,0,0,0.55) 68%, transparent 92%)">
+    <div style="position: absolute; width: 520px; height: 520px; border-radius: 50%; background: radial-gradient(circle at 45% 40%, rgba(255,255,255,0.10), rgba(255,255,255,0) 60%)"></div>
+    <div class="float" style="transform-style: preserve-3d">
+      <div class="spin" style="position: relative; width: 324px; height: 324px; transform-style: preserve-3d">
+        <div class="lt" style="position: absolute; inset: 0; transform-style: preserve-3d">
+          <sc-for list="{{cubeTop}}" as="c" hint-placeholder-count="4">
+            <div style="position: absolute; left: 87px; top: 87px; width: 150px; height: 150px; transform-style: preserve-3d; transform: {{c.t}}">
+              <sc-for list="{{c.faces}}" as="f" hint-placeholder-count="6">
+                <div style="position: absolute; inset: 0; border-radius: 10px; transform: {{f.t}}; background: {{f.bg}}; background-size: {{f.size}}; box-shadow: {{f.shadow}}"></div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+        <div class="lb" style="position: absolute; inset: 0; transform-style: preserve-3d">
+          <sc-for list="{{cubeBot}}" as="c" hint-placeholder-count="4">
+            <div style="position: absolute; left: 87px; top: 87px; width: 150px; height: 150px; transform-style: preserve-3d; transform: {{c.t}}">
+              <sc-for list="{{c.faces}}" as="f" hint-placeholder-count="6">
+                <div style="position: absolute; inset: 0; border-radius: 10px; transform: {{f.t}}; background: {{f.bg}}; background-size: {{f.size}}; box-shadow: {{f.shadow}}"></div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div aria-hidden="true" class="sweep" style="position: absolute; left: -10%; top: 46%; width: 120%; height: 260px; background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255,255,255,0.06), rgba(255,255,255,0) 70%); filter: blur(20px)"></div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(90deg, #050505 0%, rgba(5,5,5,0.92) 30%, rgba(5,5,5,0.2) 52%, rgba(5,5,5,0) 70%, rgba(5,5,5,0.85) 92%), linear-gradient(180deg, rgba(5,5,5,0.8) 0%, rgba(5,5,5,0) 22%, rgba(5,5,5,0) 68%, #050505 100%)"></div>
+
+  <div style="position: absolute; inset: 0; display: flex">
+    <div style="flex: 1 1 auto; padding: 56px 72px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between">
+      <div class="rise" style="display: flex; align-items: center; gap: 12px">
+        <svg width="30" height="30" viewBox="0 0 48 48" role="img" aria-label="DCC">
+          <rect width="22" height="22" rx="5" fill="#fafafa"></rect><rect x="26" width="22" height="22" rx="5" fill="#fafafa"></rect><rect y="26" width="22" height="22" rx="5" fill="#fafafa"></rect><rect x="26" y="26" width="22" height="22" rx="5" fill="#fafafa"></rect>
+          <g fill="none" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5L11 5l7 5.5V18H4z"></path><path d="M30 10.5L37 5l7 5.5V18H30z"></path><path d="M3.5 32.5h10v8h-10zM13.5 35.5h4l2.5 3V40.5h-6.5z"></path><path d="M30.5 30.5v12.5M30.5 43h5M32.5 34h4.5l2 4.5v3.5h-6.5z"></path></g>
+        </svg>
+        <span style="font-family: Fraunces, serif; font-size: 24px; font-weight: 500">Staffly</span>
+        <span style="width: 1px; height: 18px; background: rgba(255,255,255,0.18)"></span>
+        <span style="font-size: 14px; color: #8a8a8a">DCC Supply Chain &amp; Distribution</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 26px; max-width: 560px">
+        <span class="rise" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 9px; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); font-size: 13px; color: #b5b5b5; animation-delay: .1s">
+          <span class="live" style="width: 6px; height: 6px; border-radius: 50%; background: #fafafa"></span>Safdarjung · Okhla · Gurgaon
+        </span>
+        <h1 style="margin: 0; font-family: Fraunces, serif; font-weight: 400; font-size: 72px; line-height: 1.02; letter-spacing: -0.035em; color: #f2f2f2">
+          <span class="w" style="animation-delay: .3s">Every</span> <span class="w" style="animation-delay: .42s">punch.</span><br>
+          <span class="w" style="animation-delay: .56s">Every</span> <span class="w" style="animation-delay: .68s">person.</span><br>
+          <span class="w" style="animation-delay: .84s; font-style: italic">on time.</span>
+        </h1>
+        <p class="rise" style="margin: 0; font-size: 18px; line-height: 1.65; color: #8f8f8f; max-width: 470px; animation-delay: 1.1s">Attendance, leave and payroll for the whole DCC team. GPS-verified punches, selfie check-in, one calendar.</p>
+      </div>
+
+      <div class="rise" style="display: flex; gap: 28px; font-size: 13px; color: #5f5f5f; animation-delay: 1.3s">
+        <span>GPS geofence</span><span>Selfie verified</span><span>Leave &amp; payroll</span><span>Installs as an app</span>
+      </div>
+    </div>
+
+    <div style="flex: 0 0 470px; display: flex; align-items: center; justify-content: center; padding: 40px 56px 40px 0">
+      <form class="rise" style="width: 400px; border-radius: 20px; padding: 34px 32px 26px; box-sizing: border-box; background: rgba(12,12,12,0.78); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.09); box-shadow: 0 40px 120px -30px rgba(0,0,0,1), inset 0 1px 0 rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 18px; animation-delay: .5s">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; font-family: Fraunces, serif; font-weight: 400; font-size: 28px; letter-spacing: -0.02em">Welcome back, Augustine</h2>
+          <p style="margin: 0; font-size: 14px; color: #8a8a8a">Enter your 4-digit PIN</p>
+        </div>
+        <label for="pin" style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #6f6f6f">PIN</label>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: -10px">
+          <sc-for list="{{dots}}" as="d" hint-placeholder-count="4">
+            <div style="height: 56px; border-radius: 12px; background: #0f0f0f; border: 1px solid {{d.border}}; display: flex; align-items: center; justify-content: center; transition: border-color .15s">
+              <sc-if value="{{d.filled}}" hint-placeholder-val="{{false}}"><span style="width: 10px; height: 10px; border-radius: 50%; background: #fafafa"></span></sc-if>
+              <sc-if value="{{d.active}}" hint-placeholder-val="{{false}}"><span class="caret" style="width: 2px; height: 24px; background: #fafafa"></span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <input id="pin" inputmode="numeric" maxlength="4" autocomplete="one-time-code" value="{{pin}}" onInput="{{onPin}}" aria-label="4-digit PIN" style="position: absolute; opacity: 0; width: 1px; height: 1px">
+        <button class="cta" type="button" onClick="{{focusPin}}" style="min-height: 48px; border: 0; border-radius: 12px; background: #ededed; color: #0a0a0a; font: 600 15px 'Plus Jakarta Sans', sans-serif; cursor: pointer">{{cta}}</button>
+        <a class="ghost" href="#" style="display: flex; align-items: center; justify-content: center; min-height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); text-decoration: none; font-size: 14px; font-weight: 500; color: #d4d4d4">Sign in with ID &amp; password</a>
+        <p style="margin: 2px 0 0; text-align: center; font-size: 12px; color: #5a5a5a">DCC Supply Chain &amp; Distribution LLP · Authorised staff only</p>
+      </form>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { pin: '' }; }
+  renderVals() {
+    const kinds = [['Okhla · Punch in', '09:42 AM'], ['Today · HO', '19 / 22 in'], ['Gurgaon · Punch out', '07:12 PM'], ['Leave request', 'Approved'], ['This month', '96.4%'], ['Selfie check', 'Verified']];
+    const tiles = Array.from({ length: 30 }, (_, i) => ({ kicker: kinds[i % 6][0], main: kinds[i % 6][1] }));
+
+    // Monochrome block cube: 2 x 2 x 2 graphite blocks. Lighting comes from the top-left.
+    // Materials: matte graphite (fine grain), brushed metal (fine lines), perforated (dot mesh), polished (soft glare).
+    const grain = 'repeating-radial-gradient(circle at 30% 20%, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px)';
+    const MAT = {
+      matte: (a, b) => ({ bg: grain + ', linear-gradient(150deg,' + a + ',' + b + ')', size: 'auto' }),
+      brushed: (a, b) => ({ bg: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 1px, rgba(0,0,0,0.06) 1px 2px), linear-gradient(135deg,' + a + ' 0%, #f2f2f2 38%, ' + b + ' 62%, #cfcfcf 100%)', size: 'auto' }),
+      mesh: (a, b) => ({ bg: 'radial-gradient(circle, rgba(255,255,255,0.18) 1.1px, transparent 1.5px), linear-gradient(150deg,' + a + ',' + b + ')', size: '7px 7px, auto' }),
+      gloss: (a, b) => ({ bg: 'linear-gradient(125deg, rgba(255,255,255,0.0) 30%, rgba(255,255,255,0.35) 46%, rgba(255,255,255,0.0) 60%), linear-gradient(150deg,' + a + ',' + b + ')', size: 'auto' })
+    };
+    const LIGHT = { top: ['#3a3a3a', '#232323'], front: ['#1f1f1f', '#121212'], left: ['#2a2a2a', '#171717'], right: ['#151515', '#0b0b0b'], back: ['#121212', '#090909'], bottom: ['#0b0b0b', '#060606'] };
+    const FACE_T = { front: 'translateZ(75px)', back: 'rotateY(180deg) translateZ(75px)', right: 'rotateY(90deg) translateZ(75px)', left: 'rotateY(-90deg) translateZ(75px)', top: 'rotateX(90deg) translateZ(75px)', bottom: 'rotateX(-90deg) translateZ(75px)' };
+    const special = {
+      '-1,-1,1:front': ['brushed', ['#9a9a9a', '#6e6e6e']],
+      '1,-1,1:top': ['gloss', ['#4a4a4a', '#262626']],
+      '1,1,1:right': ['mesh', ['#1c1c1c', '#0f0f0f']],
+      '-1,-1,-1:left': ['mesh', ['#262626', '#141414']],
+      '1,-1,-1:top': ['brushed', ['#8c8c8c', '#5f5f5f']],
+      '-1,1,1:front': ['gloss', ['#262626', '#121212']]
+    };
+    const cubelet = (x, y, z) => ({
+      t: 'translate3d(' + x * 81 + 'px,' + y * 81 + 'px,' + z * 81 + 'px)',
+      faces: Object.keys(FACE_T).map((name) => {
+        const s = special[x + ',' + y + ',' + z + ':' + name];
+        const m = s ? MAT[s[0]](s[1][0], s[1][1]) : MAT.matte(LIGHT[name][0], LIGHT[name][1]);
+        const rim = name === 'top' ? 'inset 0 1px 0 rgba(255,255,255,0.22), inset 0 0 0 1px rgba(255,255,255,0.06)' : name === 'front' || name === 'left' ? 'inset 1px 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.04), inset 0 -20px 40px rgba(0,0,0,0.35)' : 'inset 0 0 0 1px rgba(255,255,255,0.03), inset 0 -30px 50px rgba(0,0,0,0.5)';
+        return { t: FACE_T[name], bg: m.bg, size: m.size, shadow: rim };
+      })
+    });
+    const cubeTop = [[-1, -1, -1], [1, -1, -1], [-1, -1, 1], [1, -1, 1]].map((p) => cubelet(...p));
+    const cubeBot = [[-1, 1, -1], [1, 1, -1], [-1, 1, 1], [1, 1, 1]].map((p) => cubelet(...p));
+
+    const pin = this.state.pin;
+    const dots = [0, 1, 2, 3].map((i) => ({ filled: i < pin.length, active: i === pin.length, border: i === pin.length ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.08)' }));
+    return {
+      tiles, cubeTop, cubeBot, dots, pin,
+      cta: pin.length === 4 ? 'Opening…' : 'Open Staffly',
+      onPin: (e) => this.setState({ pin: e.target.value.replace(/\D/g, '').slice(0, 4) }),
+      focusPin: () => { const el = document.getElementById('pin'); if (el) el.focus(); }
+    };
+  }
+}
+</script>
+</body>
+</html>
