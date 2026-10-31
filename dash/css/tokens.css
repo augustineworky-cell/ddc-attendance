@@ -1,0 +1,103 @@
+/* =====================================================================
+   tokens.css - Staffly v2 design tokens (Resend-style), dark + light.
+   Learned from a teardown of resend.com's computed styles (31 Oct 2026):
+   pure black, Inter body, tight serif display, 7-step type scale, 4px grid,
+   1px "ring" edges instead of borders, pill controls, 150-200ms hovers,
+   1s fade-and-rise entrances. Our own code and our own (free) fonts.
+   Light mode = html[data-mode="light"] (set by theme.js from the user's choice).
+   Loaded FIRST on both pages; mono.css / theme-mono-mobile.css / approvals.css read these.
+   ===================================================================== */
+:root{
+  --k-sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --k-serif:"Fraunces",Georgia,serif;
+  --k-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --k-r-sm:6px; --k-r-md:8px; --k-r-lg:16px; --k-r-xl:24px; --k-pill:9999px;
+  --k-ease:cubic-bezier(.4,0,.2,1); --k-ease-out:cubic-bezier(0,0,.2,1); --k-spring:cubic-bezier(.36,.66,.6,1);
+  --k-fast:150ms; --k-base:200ms; --k-enter:.8s;
+
+  /* dark (default) */
+  --k-bg:#000; --k-side:#000; --k-card:#0a0a0b; --k-card2:#111113; --k-input:#050506;
+  --k-line:#1d1e21; --k-line2:#2c2e33; --k-hover:rgba(255,255,255,.045);
+  --k-ink:#f0f0f0; --k-ink2:#d4d4d4; --k-mut:#a1a4a5; --k-mut2:#6f7376; --k-faint:#46494d;
+  --k-acc:#fff; --k-acc-ink:#000; --k-acc-hover:#e6e6e6;
+  --k-ring:0 0 0 1px var(--k-line); --k-ring-hi:0 0 0 1px var(--k-line2);
+  --k-pop:0 0 0 1px var(--k-line),0 24px 60px -24px rgba(0,0,0,.9);
+  --k-pr:#43fea4; --k-pr-bg:rgba(34,255,153,.11); --k-pr-b:rgba(67,254,164,.28);
+  --k-ab:#ff8a8b; --k-ab-bg:rgba(255,23,63,.15);  --k-ab-b:rgba(255,100,101,.32);
+  --k-mi:#ffc46b; --k-mi-bg:rgba(250,130,0,.13);  --k-mi-b:rgba(255,196,107,.3);
+  --k-ha:#8cc2ff; --k-ha-bg:rgba(0,119,255,.18);  --k-ha-b:rgba(140,194,255,.3);
+  --k-ex:#c9b6ff; --k-ex-bg:rgba(131,84,254,.19); --k-ex-b:rgba(201,182,255,.3);
+  --k-ip:#d4d4d4; --k-ip-bg:rgba(255,255,255,.06); --k-ip-b:rgba(255,255,255,.14);
+  color-scheme:dark;
+}
+html[data-mode="light"]{
+  --k-bg:#fafafa; --k-side:#fff; --k-card:#fff; --k-card2:#f4f4f5; --k-input:#fff;
+  --k-line:#e5e5e7; --k-line2:#d1d1d6; --k-hover:rgba(0,0,0,.04);
+  --k-ink:#0a0a0a; --k-ink2:#27272a; --k-mut:#5d6166; --k-mut2:#83888f; --k-faint:#b8bcc2;
+  --k-acc:#0a0a0a; --k-acc-ink:#fff; --k-acc-hover:#27272a;
+  --k-pop:0 0 0 1px var(--k-line),0 24px 60px -28px rgba(0,0,0,.25);
+  --k-pr:#15803d; --k-pr-bg:rgba(22,163,74,.10); --k-pr-b:rgba(22,163,74,.30);
+  --k-ab:#b91c1c; --k-ab-bg:rgba(220,38,38,.09); --k-ab-b:rgba(220,38,38,.28);
+  --k-mi:#a16207; --k-mi-bg:rgba(234,179,8,.13); --k-mi-b:rgba(202,138,4,.32);
+  --k-ha:#1d4ed8; --k-ha-bg:rgba(37,99,235,.09); --k-ha-b:rgba(37,99,235,.28);
+  --k-ex:#6d28d9; --k-ex-bg:rgba(124,58,237,.09); --k-ex-b:rgba(124,58,237,.28);
+  --k-ip:#3f3f46; --k-ip-bg:rgba(0,0,0,.05); --k-ip-b:rgba(0,0,0,.12);
+  color-scheme:light;
+}
+
+
+/* login screens stay dark for everyone (night sky + cube are the brand moment) */
+.sitegate,#loginView,.app-loading-splash{
+  --k-bg:#000; --k-side:#000; --k-card:#0a0a0b; --k-card2:#111113; --k-input:#050506;
+  --k-line:#1d1e21; --k-line2:#2c2e33; --k-hover:rgba(255,255,255,.045);
+  --k-ink:#f0f0f0; --k-ink2:#d4d4d4; --k-mut:#a1a4a5; --k-mut2:#6f7376; --k-faint:#46494d;
+  --k-acc:#fff; --k-acc-ink:#000; --k-acc-hover:#e6e6e6;
+  --k-ring:0 0 0 1px var(--k-line); --k-ring-hi:0 0 0 1px var(--k-line2);
+  --k-pop:0 0 0 1px var(--k-line),0 24px 60px -24px rgba(0,0,0,.9);
+  --k-pr:#43fea4; --k-pr-bg:rgba(34,255,153,.11); --k-pr-b:rgba(67,254,164,.28);
+  --k-ab:#ff8a8b; --k-ab-bg:rgba(255,23,63,.15);  --k-ab-b:rgba(255,100,101,.32);
+  --k-mi:#ffc46b; --k-mi-bg:rgba(250,130,0,.13);  --k-mi-b:rgba(255,196,107,.3);
+  --k-ha:#8cc2ff; --k-ha-bg:rgba(0,119,255,.18);  --k-ha-b:rgba(140,194,255,.3);
+  --k-ex:#c9b6ff; --k-ex-bg:rgba(131,84,254,.19); --k-ex-b:rgba(201,182,255,.3);
+  --k-ip:#d4d4d4; --k-ip-bg:rgba(255,255,255,.06); --k-ip-b:rgba(255,255,255,.14);
+  color-scheme:dark;
+}
+
+/* switching dark <-> light fades instead of snapping (added for ~400ms by mode.js) */
+html.k-fading,html.k-fading *{transition:background-color .35s var(--k-ease),color .35s var(--k-ease),border-color .35s var(--k-ease),box-shadow .35s var(--k-ease),fill .35s var(--k-ease)!important}
+
+/* standard animations */
+@keyframes k-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes k-drop{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:none}}
+@keyframes k-pop{from{opacity:0;transform:scale(.98) translateY(5px)}to{opacity:1;transform:none}}
+@keyframes k-fade{from{opacity:0}to{opacity:1}}
+@keyframes k-slide-next{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes k-slide-prev{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+@keyframes k-check{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
+@keyframes k-ping{from{opacity:.55;transform:scale(1)}to{opacity:0;transform:scale(1.9)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* ---- light-mode suggestion pill (mode.js) ---- */
+.k-ask{position:fixed;z-index:120;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:6px 6px 6px 14px;border-radius:9999px;background:var(--k-card);color:var(--k-ink);box-shadow:var(--k-pop);font:400 14px/20px var(--k-sans);max-width:calc(100vw - 24px);animation:k-ask-in .45s var(--k-spring) both}
+.k-ask.out{animation:k-ask-out .25s var(--k-ease) both}
+.k-ask b{font-weight:500;white-space:nowrap}
+.k-ask .k-ask-ic{width:18px;height:18px;flex-shrink:0;color:var(--k-mi)}
+.k-ask button{font:500 13px/18px var(--k-sans);border:0;border-radius:9999px;padding:7px 12px;cursor:pointer;white-space:nowrap;transition:background-color var(--k-fast) var(--k-ease),color var(--k-fast) var(--k-ease)}
+.k-ask .k-yes{background:var(--k-acc);color:var(--k-acc-ink)}.k-ask .k-yes:hover{background:var(--k-acc-hover)}
+.k-ask .k-no{background:transparent;color:var(--k-mut)}.k-ask .k-no:hover{color:var(--k-ink);background:var(--k-hover)}
+.k-ask .k-x{background:transparent;color:var(--k-mut2);padding:7px 9px}.k-ask .k-x:hover{color:var(--k-ink)}
+.k-ask button:focus-visible,.k-seg button:focus-visible{outline:2px solid var(--k-ink);outline-offset:2px}
+.k-ask.on-dash{top:18px;left:auto;right:auto;transform:none}
+@keyframes k-ask-in{from{opacity:0;transform:translate(-50%,-12px) scale(.98)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes k-ask-out{to{opacity:0;transform:translate(-50%,-8px) scale(.98)}}
+.k-ask.on-dash{animation-name:k-ask-in-d}.k-ask.on-dash.out{animation-name:k-ask-out-d}
+@keyframes k-ask-in-d{from{opacity:0;transform:translateY(-12px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes k-ask-out-d{to{opacity:0;transform:translateY(-8px) scale(.98)}}
+.k-undo{position:fixed;z-index:121;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 8px 8px 16px;border-radius:9999px;background:var(--k-card);color:var(--k-ink);box-shadow:var(--k-pop);font:400 14px/20px var(--k-sans);animation:k-pop .3s var(--k-spring) both}
+.k-undo button{font:500 13px/18px var(--k-sans);border:0;border-radius:9999px;padding:6px 12px;background:var(--k-hover);color:var(--k-ink);cursor:pointer}
+@media (max-width:640px){.k-ask{font-size:13px;padding-left:12px}.k-ask .k-no{display:none}}
+/* sidebar Appearance switch (dashboard) */
+.k-look{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 8px 4px;font:400 12px/16px var(--k-sans);color:var(--k-mut2)}
+.k-seg{display:inline-flex;gap:2px;padding:3px;border-radius:9999px;box-shadow:var(--k-ring);background:var(--k-card2)}
+.k-seg button{font:500 12px/16px var(--k-sans);padding:5px 10px;border:0;border-radius:9999px;background:transparent;color:var(--k-mut);cursor:pointer;transition:background-color var(--k-fast) var(--k-ease),color var(--k-fast) var(--k-ease)}
+.k-seg button[aria-pressed="true"]{background:var(--k-acc);color:var(--k-acc-ink)}

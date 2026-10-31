@@ -40,7 +40,7 @@ async function build(D) {
   });
 
   const title = 'Attendance Report - ' + MON[m - 1] + ' ' + y;
-  const ExcelJS = window.ExcelJS;
+  const ExcelJS = await loadExcelJS();
   const wb = new ExcelJS.Workbook();
   wb.creator = 'DCC Attendance'; wb.created = new Date();
   wb.calcProperties = { fullCalcOnLoad: true };
@@ -216,5 +216,18 @@ async function build(D) {
   return { ok: true, name: title, employees: n2, all: nr, blob: new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }) };
 }
 
-window.DashExport = { build };
+/* v93: ExcelJS (~940 KB) is downloaded only when someone exports, not on every visit */
+function loadExcelJS() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if (loadExcelJS.p) return loadExcelJS.p;
+  loadExcelJS.p = new Promise((resolve, reject) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+    sc.onload = () => (window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('Excel library failed to load')));
+    sc.onerror = () => { loadExcelJS.p = null; reject(new Error('Could not load the Excel library. Check the internet and try again.')); };
+    document.head.appendChild(sc);
+  });
+  return loadExcelJS.p;
+}
+window.DashExport = { build, loadExcelJS };
 })();

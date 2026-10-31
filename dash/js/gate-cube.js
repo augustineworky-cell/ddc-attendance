@@ -11,9 +11,9 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const CFG = {
-  size: 1, gap: 0.06, bevel: 0.12,
+  size: 1, gap: 0.045, bevel: 0.1,
   turnTime: 0.85, pauseTime: 1.0, spinSpeed: 0.12,
-  bloom: { strength: 0.32, radius: 0.6, threshold: 0.82 },
+  bloom: { strength: 0.12, radius: 0.5, threshold: 0.9 },
   offsetX: 0.35, scale: 0.82
 };
 
@@ -22,10 +22,11 @@ export function startCube(el) {
   const W = () => el.clientWidth || innerWidth, H = () => el.clientHeight || innerHeight;
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const weak = (navigator.hardwareConcurrency || 4) <= 4 || (navigator.deviceMemory || 8) <= 4;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, weak ? 1.25 : 2));
   renderer.setSize(W(), H());
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.9;
+  renderer.toneMappingExposure = 1.0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   el.appendChild(renderer.domElement);
 
@@ -38,10 +39,11 @@ export function startCube(el) {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envTex = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
   scene.environment = envTex;
-  scene.environmentIntensity = 0.55;
+  scene.environmentIntensity = 0.42;
 
-  const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(-5, 6, 5); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xbfd4ff, 1.6); rim.position.set(6, 2, -6); scene.add(rim);
+  const key = new THREE.DirectionalLight(0xffffff, 1.8); key.position.set(-5, 7, 4); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xe8eaee, 0.9); rim.position.set(6, 2, -6); scene.add(rim);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.35); fill.position.set(0, -4, 6); scene.add(fill);
   scene.add(new THREE.AmbientLight(0xffffff, 0.06));
 
   /* ---------- night sky behind the cube (stars, Milky Way, shooting stars) ---------- */
@@ -209,18 +211,20 @@ export function startCube(el) {
   [[815, 46, 1.3, 12, '#0a0a0a'], [858, 34, 4.1, 10, '#020202']].forEach(([b, a, sd, st, c]) => { const pth = document.createElementNS(NS, 'path'); pth.setAttribute('d', ridge(b, a, sd, st)); pth.setAttribute('fill', c); svg.appendChild(pth); });
   el.appendChild(hz); el.appendChild(svg);
 
-  const tex = (draw, s = 256) => { const c = document.createElement('canvas'); c.width = c.height = s; draw(c.getContext('2d'), s); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
-  const grain = tex((g, s) => { const d = g.createImageData(s, s); for (let i = 0; i < d.data.length; i += 4) { const v = 150 + Math.random() * 90; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; } g.putImageData(d, 0, 0); });
-  const brush = tex((g, s) => { g.fillStyle = '#9a9a9a'; g.fillRect(0, 0, s, s); for (let y = 0; y < s; y++) { g.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.12) + ')'; g.fillRect(0, y, s, 1); } });
-  const mesh = tex((g, s) => { g.fillStyle = '#fff'; g.fillRect(0, 0, s, s); g.fillStyle = '#000'; const st = s / 16; for (let y = st / 2; y < s; y += st) for (let x = st / 2; x < s; x += st) { g.beginPath(); g.arc(x, y, st * 0.28, 0, 7); g.fill(); } });
+  /* v93 matte look: fine sandy grain, perforated mesh, frosted panels - soft, not chrome */
+  const tex = (draw, s = 256) => { const c = document.createElement('canvas'); c.width = c.height = s; draw(c.getContext('2d'), s); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t; };
+  const grain = tex((g, s) => { const d = g.createImageData(s, s); for (let i = 0; i < d.data.length; i += 4) { const v = 120 + Math.random() * 135; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; } g.putImageData(d, 0, 0); });
+  const sand = tex((g, s) => { const d = g.createImageData(s, s); for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() < 0.5 ? 70 + Math.random() * 40 : 150 + Math.random() * 80; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; } g.putImageData(d, 0, 0); });
+  const mesh = tex((g, s) => { g.fillStyle = '#fff'; g.fillRect(0, 0, s, s); g.fillStyle = '#000'; const st = s / 22; for (let y = st / 2; y < s; y += st) for (let x = st / 2; x < s; x += st) { g.beginPath(); g.arc(x, y, st * 0.3, 0, 7); g.fill(); } });
+  const brush = sand; // kept name for dispose()
   const mats = [
-    new THREE.MeshPhysicalMaterial({ color: 0x141414, metalness: 1, roughness: 0.32, roughnessMap: grain, clearcoat: 0.4, clearcoatRoughness: 0.35 }),
-    new THREE.MeshPhysicalMaterial({ color: 0x0c0c0c, metalness: 0.9, roughness: 0.55, roughnessMap: grain }),
-    new THREE.MeshPhysicalMaterial({ color: 0x8c8c8c, metalness: 1, roughness: 0.28, roughnessMap: brush }),
-    new THREE.MeshPhysicalMaterial({ color: 0x1a1a1a, metalness: 1, roughness: 0.45, roughnessMap: mesh, bumpMap: mesh, bumpScale: 0.6 }),
-    new THREE.MeshPhysicalMaterial({ color: 0x0f0f0f, metalness: 1, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05 })
+    new THREE.MeshPhysicalMaterial({ color: 0x1a1a1b, metalness: 0.55, roughness: 0.62, roughnessMap: grain, clearcoat: 0.08, clearcoatRoughness: 0.6 }),   // matte graphite
+    new THREE.MeshPhysicalMaterial({ color: 0x0e0e0f, metalness: 0.35, roughness: 0.78, roughnessMap: grain }),                                              // soft black
+    new THREE.MeshPhysicalMaterial({ color: 0x4a4a4c, metalness: 0.3, roughness: 0.82, roughnessMap: sand, bumpMap: sand, bumpScale: 0.35 }),              // frosted grey (sandy)
+    new THREE.MeshPhysicalMaterial({ color: 0x1c1c1e, metalness: 0.5, roughness: 0.6, roughnessMap: mesh, bumpMap: mesh, bumpScale: 0.8 }),                 // perforated mesh
+    new THREE.MeshPhysicalMaterial({ color: 0x2a2a2c, metalness: 0.45, roughness: 0.5, roughnessMap: grain, sheen: 0.4, sheenRoughness: 0.8, sheenColor: 0x9a9a9a }) // satin
   ];
-  const pick = () => { const r = Math.random(); return r < 0.45 ? mats[0] : r < 0.7 ? mats[1] : r < 0.8 ? mats[2] : r < 0.9 ? mats[3] : mats[4]; };
+  const pick = () => { const r = Math.random(); return r < 0.4 ? mats[0] : r < 0.62 ? mats[1] : r < 0.76 ? mats[2] : r < 0.9 ? mats[3] : mats[4]; };
 
   const STEP = CFG.size + CFG.gap;
   const geo = new RoundedBoxGeometry(CFG.size, CFG.size, CFG.size, 4, CFG.bevel);
@@ -316,7 +320,7 @@ export function startCube(el) {
     removeEventListener('pointermove', onMove);
     document.removeEventListener('visibilitychange', onVis);
     ro.disconnect();
-    geo.dispose(); mats.forEach((m) => m.dispose()); [grain, brush, mesh].forEach((t) => t.dispose());
+    geo.dispose(); mats.forEach((m) => m.dispose()); [grain, sand, mesh].forEach((t) => t.dispose());
     envTex.dispose(); pmrem.dispose(); composer.dispose?.(); renderer.dispose();
     renderer.domElement.remove();
     hz.remove(); svg.remove();

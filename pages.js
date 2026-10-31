@@ -970,7 +970,7 @@ async function toggleUserStatus(employeeId, currentStatus, btn) {
 // play the Staffly jingle unless muted.
 const NOTIF_POLL_MS = 25000;
 const NOTIF_SOUND_KEY = 'STAFFLY_NOTIF_SOUND';
-const STAFFLY_SOUND_FILE = 'sounds/staffly-soft.mp3'; // soft version of the recorded "Staffly" voice line (v52)
+const STAFFLY_SOUND_FILE = ''; // v93: sounds removed (dark redesign). Only a short vibration remains.
 let NOTIF_ITEMS = [];
 let NOTIF_LAST_ID = 0;
 let NOTIF_UNREAD = 0;
@@ -1127,7 +1127,7 @@ async function markAllNotificationsRead() {
 function toggleNotifSound() {
   localStorage.setItem(NOTIF_SOUND_KEY, notifSoundOn() ? 'off' : 'on');
   updateSoundButton();
-  if (notifSoundOn()) { unlockNotifAudio(); playStafflyJingle(); notify('Notification sound on.', 'info'); }
+  if (notifSoundOn()) { stafflyBuzz('note'); }
   else notify('Notification sound muted.', 'info');
 }
 
@@ -1200,18 +1200,29 @@ function playStafflyClip(onEnded) {
 //   recording 12 dB quieter, treble smoothed, gentle fade in/out
 // - No squeaky synthetic "Staffly!" (pitch 1.8) any more
 // - Punch voice: shorter, calmer sentence at a lower volume
-const STAFFLY_USE_CLIP = true;
+const STAFFLY_USE_CLIP = false; // v93: no voice clip
 
 function playStafflyJingle() {
-  if (!notifSoundOn()) return;
-  try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
-  if (playStafflyClip()) return;
-  playStafflyChime();
+  // v93: no sound any more, just a light buzz for new notifications
+  stafflyBuzz('note');
 }
+
+// v93: vibration only (Android Chrome / installed app; iPhone ignores it silently)
+//   ok    = punch saved        -> one short buzz
+//   error = out of range etc.  -> quick double buzz
+//   note  = new notification   -> very light buzz
+function stafflyBuzz(kind) {
+  try {
+    if (!navigator.vibrate) return;
+    navigator.vibrate(kind === 'error' ? [60, 70, 60] : kind === 'note' ? 25 : 40);
+  } catch (e) {}
+}
+window.stafflyBuzz = stafflyBuzz;
 
 // Gentle "ding-dong": C5 then G5, pure sine, soft attack, long quiet fade,
 // high frequencies filtered out so it never sounds sharp.
 function playStafflyChime() {
+  return; // v93: sounds removed
   const ctx = NOTIF_AUDIO_CTX;
   if (!ctx || ctx.state !== 'running') return;
   try {
@@ -1244,9 +1255,8 @@ function playStafflyChime() {
 //   kind: 'in' | 'out'
 //   opts: { name, late (in), shiftComplete (out) }
 function sayPunch(kind, opts = {}) {
-  if (!notifSoundOn()) return;
-  unlockNotifAudio();
-  try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) {}
+  stafflyBuzz('ok'); // v93: vibration only - no chime, no voice
+  return;
 
   const first = String(opts.name || '').trim().split(/\s+/)[0] || '';
   const who = first ? `, ${first}` : '';
@@ -1274,6 +1284,7 @@ function sayPunch(kind, opts = {}) {
 
 // Speaks a sentence in a calm, natural voice (Indian English preferred).
 function speakStaffly(text) {
+  return; // v93: voice removed
   if (!('speechSynthesis' in window)) return;
   try {
     const u = new SpeechSynthesisUtterance(text);
@@ -1293,7 +1304,7 @@ function speakStaffly(text) {
 }
 
 // Chrome loads voices asynchronously.
-if ('speechSynthesis' in window) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); } catch (e) {} }
+// v93: speech voices no longer loaded
 
 
 // --------------------------------------------------------------------------
@@ -1734,7 +1745,7 @@ function v2SetVolume(pct) {
   clearTimeout(V2_VOL_PREVIEW);
   V2_VOL_PREVIEW = setTimeout(() => {
     unlockNotifAudio();
-    if (v > 0 && notifSoundOn() && !playStafflyClip()) playStafflyChime();
+    /* v93: no preview sound */
   }, 350);
 }
 document.addEventListener('DOMContentLoaded', v2SyncVolume);

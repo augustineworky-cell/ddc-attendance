@@ -444,6 +444,7 @@ function formatDistance(m) {
 }
 
 function showPunchRejected(action, reason, distanceM) {
+  try { if (window.stafflyBuzz) window.stafflyBuzz('error'); } catch (e) {}
   const frame = document.querySelector('.selfie-frame');
   const btn = document.getElementById('punchInBtn');
   const card = document.querySelector('.geofence-status-card');

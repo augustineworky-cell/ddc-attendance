@@ -11,6 +11,8 @@
   view.insertBefore(cv, view.firstChild);
   var g = cv.getContext('2d');
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* v93: lighter sky on budget phones (fewer stars, lower resolution) */
+  var lite = (navigator.hardwareConcurrency || 4) <= 4 || (navigator.deviceMemory || 4) <= 3;
   var gauss = function () { return Math.random() + Math.random() + Math.random() - 1.5; };
   var W = 0, H = 0, dpr = 1, mw = null, r1 = [], r2 = [], ridgeY = 0, stars = [], bright = [];
 
@@ -21,19 +23,19 @@
     var m = mw.getContext('2d'); m.scale(dpr, dpr);
     var ax = 0.42, ay = -0.91, L = Math.max(H, 700) * 1.07, x0 = W * 0.2, y0 = H + 60, i, t, o, x, y;
     m.filter = 'blur(18px)';
-    for (i = 0; i < 260; i++) { t = Math.random() * 1.3 - 0.15; o = gauss() * 42; x = x0 + ax * t * L - ay * o; y = y0 + ay * t * L + ax * o; m.globalAlpha = 0.012 + Math.random() * 0.022; m.fillStyle = '#e8ecf5'; m.beginPath(); m.ellipse(x, y, 30 + Math.random() * 45, 14 + Math.random() * 20, -1.14, 0, 6.283); m.fill(); }
+    for (i = 0; i < (lite ? 150 : 260); i++) { t = Math.random() * 1.3 - 0.15; o = gauss() * 42; x = x0 + ax * t * L - ay * o; y = y0 + ay * t * L + ax * o; m.globalAlpha = 0.012 + Math.random() * 0.022; m.fillStyle = '#e8ecf5'; m.beginPath(); m.ellipse(x, y, 30 + Math.random() * 45, 14 + Math.random() * 20, -1.14, 0, 6.283); m.fill(); }
     m.filter = 'blur(6px)';
     for (i = 0; i < 70; i++) { t = Math.random() * 1.2; o = gauss() * 14; x = x0 + ax * t * L - ay * o; y = y0 + ay * t * L + ax * o; m.globalAlpha = 0.10; m.fillStyle = '#000'; m.beginPath(); m.ellipse(x, y, 30 + Math.random() * 40, 6 + Math.random() * 8, -1.14, 0, 6.283); m.fill(); }
     m.filter = 'none';
-    for (i = 0; i < 3400; i++) { t = Math.random() * 1.3 - 0.15; o = gauss() * 40; x = x0 + ax * t * L - ay * o; y = y0 + ay * t * L + ax * o; m.globalAlpha = 0.15 + Math.random() * 0.45; m.fillStyle = '#fff'; var sz = Math.random() < 0.85 ? 0.7 : 1.3; m.fillRect(x, y, sz, sz); }
+    for (i = 0; i < (lite ? 1800 : 3400); i++) { t = Math.random() * 1.3 - 0.15; o = gauss() * 40; x = x0 + ax * t * L - ay * o; y = y0 + ay * t * L + ax * o; m.globalAlpha = 0.15 + Math.random() * 0.45; m.fillStyle = '#fff'; var sz = Math.random() < 0.85 ? 0.7 : 1.3; m.fillRect(x, y, sz, sz); }
   }
 
   function layout() {
     var w = innerWidth, h = innerHeight;
     if (w === W && h === H && mw) return place();
-    W = w; H = h; dpr = Math.min(devicePixelRatio || 1, 2);
+    W = w; H = h; dpr = Math.min(devicePixelRatio || 1, lite ? 1.5 : 2);
     cv.width = W * dpr; cv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    var n = Math.round(420 * (W * H) / (390 * 844));
+    var n = Math.round((lite ? 240 : 420) * (W * H) / (390 * 844));
     stars = []; for (var i = 0; i < n; i++) { var z = Math.random(); stars.push({ x: Math.random() * W, y: Math.random() * H, z: z, r: 0.3 + z * z * 1.4, sp: 2 + z * 12, ph: Math.random() * 6.28, tw: 0.6 + Math.random() * 2.2 }); }
     paintMilky(); place();
   }

@@ -33,7 +33,7 @@ function askSitePassword() {
     let stopCube = null, closed = false;
     const canWebGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
     if (window.innerWidth >= 1100 && canWebGL) {
-      import('/dash/js/gate-cube.js?v=3').then((m) => { if (!closed) stopCube = m.startCube(w.querySelector('.sg-stage')); }).catch(() => { /* no cube: the login still works */ });
+      import('/dash/js/gate-cube.js?v=4').then((m) => { if (!closed) stopCube = m.startCube(w.querySelector('.sg-stage')); }).catch(() => { /* no cube: the login still works */ });
     }
     const logo = '<div class="sg-logo"><img src="/dash/img/staffly-icon.png" alt="Staffly"></div>';
     const foot = '<p class="sg-foot">DCC Supply Chain &amp; Distribution LLP<br>Authorised staff only</p>';
@@ -1224,24 +1224,7 @@ function applyTheme(mode, save) {
 
 boot();
 
-/* ---------- falling petals (purely decorative) ---------- */
-(function () {
-  const PAL = [['#ffd0e6', '#f06aa8'], ['#f8b4d6', '#d63384'], ['#e3d0fa', '#9a6fe0'], ['#cdb4f4', '#7c4dc9'], ['#ffe0ee', '#f29cc4'], ['#ead9fb', '#b48be6']];
-  const box = document.createElement('div'); box.className = 'petals'; box.setAttribute('aria-hidden', 'true'); document.body.appendChild(box);
-  const mk = (i) => {
-    const [a, b] = PAL[i % PAL.length], s = 14 + Math.random() * 18, id = 'pg' + i;
-    const el = document.createElement('span'); el.className = 'petal';
-    el.style.cssText = `--x:${(Math.random() * 100).toFixed(1)}%;--s:${s.toFixed(0)}px;--d:${(16 + Math.random() * 14).toFixed(1)}s;--delay:${(-Math.random() * 30).toFixed(1)}s;--sw:${(2.6 + Math.random() * 2.4).toFixed(1)}s;--dx:${(-80 + Math.random() * 200).toFixed(0)}px;--rot:${(180 + Math.random() * 360).toFixed(0)}deg`;
-    el.innerHTML = `<svg viewBox="0 0 24 32"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><path d="M12 1C19 8 22 16 12 31 2 16 5 8 12 1Z" fill="url(#${id})" opacity=".92"/><path d="M12 5C12 14 12 22 12 29" stroke="#fff" stroke-opacity=".45" stroke-width=".8" fill="none"/></svg>`;
-    return el;
-  };
-  for (let i = 0; i < 44; i++) box.appendChild(mk(i));
-  const btn = document.getElementById('petalBtn');
-  let on = true; try { on = localStorage.getItem('dccPetals') !== 'off'; } catch (e) {}
-  const apply = () => { box.classList.toggle('off', !on); btn.setAttribute('aria-pressed', String(on)); try { localStorage.setItem('dccPetals', on ? 'on' : 'off'); } catch (e) {} };
-  btn.addEventListener('click', () => { on = !on; apply(); });
-  apply();
-})();
+/* v93: falling petals removed (old festive theme; 44 animated elements were running even when hidden) */
 
 /* ---------- view-only day details (everyone) ---------- */
 const driveId = (u) => { const m = String(u || '').match(/[?&]id=([\w-]+)|\/d\/([\w-]+)/); return m ? (m[1] || m[2]) : ''; };

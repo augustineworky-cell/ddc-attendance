@@ -1,77 +1,103 @@
 /* =====================================================================
-   theme-mono-mobile.css - Staffly design-v1 for the PHONE app: black & white.
-   Loaded LAST in index.html (after theme-door-mobile.css). One dark palette for both
-   theme modes; switches off the door picture, boy, garlands, petals and wall photo.
-   To go back: remove the <link> to this file.
+   theme-mono-mobile.css - Staffly v2 PHONE app (Resend-style), dark + light.
+   Loaded LAST in index.html, after dash/css/tokens.css. Colours come from the
+   --k-* tokens, so light mode (html[data-mode="light"]) swaps them. The login
+   screen and splash stay dark on purpose (night sky = brand moment).
    ===================================================================== */
-html[data-theme]{color-scheme:dark;
-  --m-bg:#050505;--m-surface:#0f0f0f;--m-surface2:#151515;--m-line:#1f1f1f;--m-ink:#f2f2f2;--m-muted:#8a8a8a;
-  --m-acc:#fafafa;--m-acc2:#a3a3a3;--m-hi:#fafafa;--m-deep1:#1c1c1c;--m-deep2:#0b0b0b;--m-on-acc:#0a0a0a;--m-tint:#151515;
-  --m-ok:#86efac;--m-ok-bg:rgba(74,222,128,.10);--m-bad:#fca5a5;--m-bad-bg:rgba(248,113,113,.11);--m-warn:#fde68a;--m-warn-bg:rgba(250,204,21,.10);
-  --m-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 14px 30px -18px #000;
-  --m-orb:linear-gradient(160deg,#ffffff 0%,#e5e5e5 60%,#bdbdbd 100%);--m-orb-glow:255,255,255;
-  --bg-cream:#050505;--coral-primary:#fafafa;--coral-light:#a3a3a3;--navy-dark:#f2f2f2;--navy-text:#e5e5e5;--mint-green:#86efac;
-  --purple-accent:#fafafa;--gold-yellow:#d4d4d4;--white-card:#0f0f0f;--text-muted:#8a8a8a;
-  --glass-bg:#0f0f0f;--glass-bg-strong:#0f0f0f;--glass-border:#1f1f1f;
-  --v2-cream:#050505;--v2-ink:#f2f2f2;--v2-ink-2:#8a8a8a;--v2-line:#1f1f1f;
-  --pro-bg:#050505;--pro-surface:#0f0f0f;--pro-border:#1f1f1f;--pro-navy:#f2f2f2;--pro-navy-2:#d4d4d4;--pro-tint:#151515;
-  --pro-shadow:0 14px 30px -18px #000;--pro-shadow-lg:0 18px 40px -18px #000;
+html[data-theme]{
+  --m-bg:var(--k-bg);--m-surface:var(--k-card);--m-surface2:var(--k-card2);--m-line:var(--k-line);--m-ink:var(--k-ink);--m-muted:var(--k-mut);
+  --m-acc:var(--k-acc);--m-acc2:var(--k-mut);--m-hi:var(--k-ink);--m-deep1:var(--k-card2);--m-deep2:var(--k-card);--m-on-acc:var(--k-acc-ink);--m-tint:var(--k-card2);
+  --m-ok:var(--k-pr);--m-ok-bg:var(--k-pr-bg);--m-bad:var(--k-ab);--m-bad-bg:var(--k-ab-bg);--m-warn:var(--k-mi);--m-warn-bg:var(--k-mi-bg);
+  --m-shadow:var(--k-ring);
+  --m-orb:var(--k-acc);--m-orb-glow:255,255,255;
+  --bg-cream:var(--k-bg);--coral-primary:var(--k-acc);--coral-light:var(--k-mut);--navy-dark:var(--k-ink);--navy-text:var(--k-ink2);--mint-green:var(--k-pr);
+  --purple-accent:var(--k-ink);--gold-yellow:var(--k-ink2);--white-card:var(--k-card);--text-muted:var(--k-mut);
+  --glass-bg:var(--k-card);--glass-bg-strong:var(--k-card);--glass-border:var(--k-line);
+  --v2-cream:var(--k-bg);--v2-ink:var(--k-ink);--v2-ink-2:var(--k-mut);--v2-line:var(--k-line);--v2-display:var(--k-serif);
+  --pro-bg:var(--k-bg);--pro-surface:var(--k-card);--pro-border:var(--k-line);--pro-navy:var(--k-ink);--pro-navy-2:var(--k-ink2);--pro-tint:var(--k-card2);
+  --pro-shadow:var(--k-ring);--pro-shadow-lg:var(--k-pop);
   --m-map-filter:invert(.92) grayscale(1) brightness(.8) contrast(1.05);
-  --serif:"Fraunces",Georgia,serif}
+  --serif:var(--k-serif)}
+html[data-mode="light"][data-theme]{--m-map-filter:grayscale(1) contrast(1.02);--m-orb-glow:0,0,0}
 
-/* page */
-html[data-theme][data-vt] body,html[data-theme] body{background:#050505!important;background-image:none!important;color:#f2f2f2}
-html[data-theme][data-vt] h1,html[data-theme][data-vt] h2,html[data-theme][data-vt] h3,html[data-theme][data-vt] .card-title{font-family:var(--serif);font-weight:400;letter-spacing:-.015em}
+/* page + type */
+html[data-theme][data-vt] body,html[data-theme] body{background:var(--k-bg)!important;background-image:none!important;color:var(--k-ink);font-family:var(--k-sans)!important;-webkit-font-smoothing:antialiased}
+html[data-theme] button,html[data-theme] input,html[data-theme] select,html[data-theme] textarea{font-family:var(--k-sans)}
+html[data-theme][data-vt] h1,html[data-theme][data-vt] h2,html[data-theme][data-vt] h3,html[data-theme][data-vt] .card-title{font-family:var(--k-serif);font-weight:400;letter-spacing:-.03em}
 
-/* cards */
-html[data-theme][data-vt] .kpi,html[data-theme][data-vt] .card,html[data-theme][data-vt] .v2-card,html[data-theme][data-vt] #homeView .v2-card,html[data-theme][data-vt] #homeView .card,html[data-theme][data-vt] .modal-content{background:#0f0f0f!important;background-image:none!important;border:1px solid #1f1f1f!important;box-shadow:var(--m-shadow)!important;color:#f2f2f2}
-html[data-theme][data-vt] #homeView .v2-tile .v2-tile-ic,html[data-theme][data-vt] #profileView .v2-row-ic{background:#1a1a1a!important;color:#e5e5e5!important}
+/* cards: 1px ring */
+html[data-theme][data-vt] .kpi,html[data-theme][data-vt] .card,html[data-theme][data-vt] .v2-card,html[data-theme][data-vt] #homeView .v2-card,html[data-theme][data-vt] #homeView .card,html[data-theme][data-vt] .modal-content{background:var(--k-card)!important;background-image:none!important;border:0!important;box-shadow:var(--k-ring)!important;border-radius:var(--k-r-lg)!important;color:var(--k-ink)}
+html[data-theme][data-vt] .modal-content{box-shadow:var(--k-pop)!important;animation:k-pop .28s var(--k-spring) both}
+html[data-theme][data-vt] #homeView .v2-tile .v2-tile-ic,html[data-theme][data-vt] #profileView .v2-row-ic{background:var(--k-card2)!important;color:var(--k-ink2)!important}
 
-/* hero (geofence + punch) and profile card: graphite, no garland */
+/* old paper texture (door theme) off everywhere: lists, tiles, cards */
+html[data-theme][data-vt] #profileView .v2-list,html[data-theme][data-vt] #homeView .v2-tile,html[data-theme][data-vt] .person-card,html[data-theme][data-vt] #homeView .v2-stat.stat-card,html[data-theme][data-vt] #homeView .v2-today-tile,html[data-theme][data-vt] #homeView .v2-chip-refresh{background:var(--k-card)!important;background-image:none!important;border:0!important;box-shadow:var(--k-ring)!important;border-radius:var(--k-r-lg)!important;color:var(--k-ink)}
+html[data-theme][data-vt] #profileView .v2-row{border-color:var(--k-line)!important;color:var(--k-ink)}
+html[data-theme][data-vt] #profileView .v2-row-text b,html[data-theme][data-vt] #homeView .v2-tile-title{color:var(--k-ink)!important}
+html[data-theme][data-vt] #profileView .v2-row-text small,html[data-theme][data-vt] #homeView .v2-tile-sub,html[data-theme][data-vt] .v2-group-title,html[data-theme][data-vt] .v2-section-title{color:var(--k-mut)!important}
+html[data-theme][data-vt] #profileView .v2-chev{color:var(--k-mut2)!important;border-color:var(--k-mut2)!important}
+
+/* hero (geofence + punch) and profile card */
 html[data-theme][data-vt] #homeView .v2-hero.geofence-status-card,html[data-theme][data-vt] #homeView #v2Hero,html[data-theme][data-vt] #profileView .v2-profile-card,html[data-theme][data-vt] #sidebar .sidebar-coral-header{
-  background:radial-gradient(ellipse at 50% 0%,#262626,#0b0b0b 72%)!important;background-image:radial-gradient(ellipse at 50% 0%,#262626,#0b0b0b 72%)!important;border:1px solid #1f1f1f!important;box-shadow:0 22px 40px -20px #000!important;color:#fafafa!important}
-html[data-theme][data-vt] #homeView .v2-hero::before,html[data-theme][data-vt] #homeView .v2-hero::after{background:radial-gradient(closest-side,rgba(255,255,255,.08),rgba(255,255,255,0))!important}
+  background:var(--k-card)!important;background-image:none!important;border:0!important;box-shadow:var(--k-ring)!important;color:var(--k-ink)!important}
+html[data-theme][data-vt] #homeView .v2-hero::before,html[data-theme][data-vt] #homeView .v2-hero::after{background:radial-gradient(closest-side,var(--k-hover),transparent)!important}
 html[data-theme][data-vt] .ds-rose{display:none!important}
+html[data-theme][data-vt] #homeView .v2-hero :is(h1,h2,h3,h4,b,strong,.v2-greet):not(button):not(button *),html[data-theme][data-vt] #profileView .v2-profile-card :is(h1,h2,h3,b,.v2-profile-name){color:var(--k-ink)!important}
+html[data-theme][data-vt] #homeView .v2-hero :is(p,small):not(button *),html[data-theme][data-vt] #profileView .v2-profile-card :is(p,small,.v2-profile-meta){color:var(--k-mut)!important}
+html[data-theme][data-vt] #homeView .v2-hero .geofence-icon-badge{background:var(--k-card2)!important;color:var(--k-ink)!important;border-color:var(--k-line)!important}
 
-/* punch orb: white, dark text; light grey while punched in */
-html[data-theme][data-vt] #homeView #punchInBtn.v2-orb{background:#fafafa!important;color:#0a0a0a!important;box-shadow:0 18px 40px -14px rgba(255,255,255,.25),inset 0 1px 0 #fff!important}
-html[data-theme][data-vt] #v2Hero[data-punch="out"] #punchInBtn.v2-orb{background:#d4d4d4!important;color:#0a0a0a!important}
+/* punch orb: solid accent with soft pulsing rings; grey while punched in */
+html[data-theme][data-vt] #homeView #punchInBtn.v2-orb{background:var(--k-acc)!important;color:var(--k-acc-ink)!important;box-shadow:inset 0 1px 1px rgba(255,255,255,.5),0 18px 40px -16px rgba(var(--m-orb-glow),.3)!important;transition:transform var(--k-base) var(--k-ease)!important}
+html[data-theme][data-vt] #homeView #punchInBtn.v2-orb:active{transform:scale(.97)}
+html[data-theme][data-vt] #v2Hero[data-punch="out"] #punchInBtn.v2-orb{background:var(--k-ink2)!important;color:var(--k-acc-ink)!important}
 
 /* buttons, chips, avatars */
-html[data-theme][data-vt] .btn-primary,html[data-theme][data-vt] .btn-primary-mobile,html[data-theme][data-vt] .loc-check-primary{background:#ededed!important;color:#0a0a0a!important;box-shadow:none!important;border:0!important}
-html[data-theme][data-vt] .chip.on,html[data-theme][data-vt] .chip.active,html[data-theme][data-vt] .seg-btn.on{background:#fafafa!important;border-color:#fafafa!important;color:#0a0a0a!important}
-html[data-theme][data-vt] .user-avatar,html[data-theme][data-vt] .mobile-user-avatar,html[data-theme][data-vt] .selfie-frame,html[data-theme][data-vt] #profileView .v2-avatar-ring{background:linear-gradient(135deg,#3a3a3a,#141414)!important}
-html[data-theme][data-vt] .stat-card:nth-child(1),html[data-theme][data-vt] .stat-card:nth-child(2),html[data-theme][data-vt] .stat-card:nth-child(3){background:#151515!important;border:1px solid #262626!important}
-html[data-theme][data-vt] .hq-pin,html[data-theme][data-vt] .toast{background:#1a1a1a!important;color:#fafafa!important;border:1px solid #2a2a2a}
-html[data-theme][data-vt] input,html[data-theme][data-vt] select,html[data-theme][data-vt] textarea{background:#0f0f0f!important;border-color:#262626!important;color:#f2f2f2!important}
-html[data-theme][data-vt] input::placeholder,html[data-theme][data-vt] textarea::placeholder{color:#555!important}
+html[data-theme][data-vt] .btn-primary,html[data-theme][data-vt] .btn-primary-mobile,html[data-theme][data-vt] .loc-check-primary{background:var(--k-acc)!important;color:var(--k-acc-ink)!important;box-shadow:none!important;border:0!important;border-radius:var(--k-pill)!important}
+html[data-theme][data-vt] .chip.on,html[data-theme][data-vt] .chip.active,html[data-theme][data-vt] .seg-btn.on{background:var(--k-acc)!important;border-color:var(--k-acc)!important;color:var(--k-acc-ink)!important}
+html[data-theme][data-vt] .chip,html[data-theme][data-vt] .seg-btn{border-radius:var(--k-pill)!important}
+html[data-theme][data-vt] .user-avatar,html[data-theme][data-vt] .mobile-user-avatar,html[data-theme][data-vt] .selfie-frame,html[data-theme][data-vt] #profileView .v2-avatar-ring{background:var(--k-card2)!important;box-shadow:var(--k-ring)}
+html[data-theme][data-vt] .stat-card:nth-child(1),html[data-theme][data-vt] .stat-card:nth-child(2),html[data-theme][data-vt] .stat-card:nth-child(3){background:var(--k-card)!important;border:0!important;box-shadow:var(--k-ring)!important;border-radius:var(--k-r-lg)!important}
+html[data-theme][data-vt] .hq-pin,html[data-theme][data-vt] .toast{background:var(--k-card)!important;color:var(--k-ink)!important;border:0!important;box-shadow:var(--k-pop)!important}
+html[data-theme][data-vt] input,html[data-theme][data-vt] select,html[data-theme][data-vt] textarea{background:var(--k-input)!important;border-color:var(--k-line)!important;color:var(--k-ink)!important}
+html[data-theme][data-vt] input::placeholder,html[data-theme][data-vt] textarea::placeholder{color:var(--k-faint)!important}
 
 /* selfie card */
-html[data-theme][data-vt] #homeView .v2-selfie.camera-verification-card{background:rgba(255,255,255,.04)!important;border:1px solid #1f1f1f}
-html[data-theme][data-vt] #homeView .v2-selfie .btn-action-outline{background:rgba(255,255,255,.06)!important;border-color:rgba(255,255,255,.35)!important;color:#fafafa!important}
-html[data-theme][data-vt] #homeView .v2-selfie:has(#webcam[style*="block"]) .btn-action-outline{background:#fafafa!important;border-color:#fafafa!important;color:#0a0a0a!important;box-shadow:none!important}
+html[data-theme][data-vt] #homeView .v2-selfie.camera-verification-card{background:var(--k-card2)!important;border:0;box-shadow:var(--k-ring)}
+html[data-theme][data-vt] #homeView .v2-selfie .btn-action-outline{background:transparent!important;box-shadow:var(--k-ring-hi);border-color:transparent!important;color:var(--k-ink)!important;border-radius:var(--k-pill)!important}
+html[data-theme][data-vt] #homeView .v2-selfie:has(#webcam[style*="block"]) .btn-action-outline{background:var(--k-acc)!important;color:var(--k-acc-ink)!important;box-shadow:none!important}
 
 /* bottom nav */
-html[data-theme][data-vt] #bottomNav,html[data-theme][data-vt] #bottomNav.v2-nav{background:rgba(8,8,8,.94)!important;border-top:1px solid #1a1a1a!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+html[data-theme][data-vt] #bottomNav,html[data-theme][data-vt] #bottomNav.v2-nav{background:color-mix(in srgb,var(--k-bg) 88%,transparent)!important;border-top:0!important;box-shadow:0 -1px 0 var(--k-line)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 
-/* ---- login: black, drifting light, glass card (no door, no boy) ---- */
+/* profile: Appearance segmented switch */
+.s-seg{display:inline-flex;gap:2px;padding:3px;border-radius:9999px;box-shadow:var(--k-ring);background:var(--k-card2);flex-shrink:0}
+.s-seg button{font:500 13px/18px var(--k-sans);padding:6px 12px;border:0;border-radius:9999px;background:transparent;color:var(--k-mut);cursor:pointer;transition:background-color var(--k-fast) var(--k-ease),color var(--k-fast) var(--k-ease)}
+.s-seg button[aria-pressed="true"]{background:var(--k-acc);color:var(--k-acc-ink)}
+
+/* motion: tab switches slide in the direction you move (direction set by mode.js) */
+html[data-theme][data-vt] .app-view.fade-in-up{animation:k-rise .4s var(--k-ease) both!important}
+html[data-slide="next"] .app-view.fade-in-up{animation:k-slide-next .34s var(--k-ease) both!important}
+html[data-slide="prev"] .app-view.fade-in-up{animation:k-slide-prev .34s var(--k-ease) both!important}
+html[data-theme][data-vt] #homeView .v2-card,html[data-theme][data-vt] #homeView .card{animation:k-rise .7s var(--k-ease) backwards}
+html[data-theme][data-vt] #homeView .v2-card:nth-child(2),html[data-theme][data-vt] #homeView .card:nth-child(2){animation-delay:.07s}
+html[data-theme][data-vt] #homeView .v2-card:nth-child(3),html[data-theme][data-vt] #homeView .card:nth-child(3){animation-delay:.14s}
+
+/* ---- login: always dark (night sky behind it) ---- */
+html[data-theme][data-vt] #loginView{background:#000}
 html[data-theme][data-vt] #loginView .mobile-login-wrapper{background:transparent!important;background-image:none!important;position:relative;z-index:1}
-/* night sky canvas (login-stars.js) sits behind the login content */
 #loginView .login-sky{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;z-index:0;pointer-events:none;display:block}
-html[data-theme][data-vt] #loginView{background:#050505}
 html[data-theme][data-vt] #loginView .login-boy{display:none!important}
-html[data-theme][data-vt] #loginView .login-header-banner,html[data-theme][data-vt] #loginView .login-header-banner.v2-welcome{background:rgba(255,255,255,.04)!important;border:1px solid rgba(255,255,255,.08)!important;box-shadow:none!important;color:#fafafa!important}
-html[data-theme][data-vt] #loginView .login-card{background:rgba(14,14,14,.86)!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:0 30px 70px -30px #000,inset 0 1px 0 rgba(255,255,255,.06)!important;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);animation:monoUp .8s cubic-bezier(.16,1,.3,1) both}
-html[data-theme][data-vt] #loginView a{color:#d4d4d4!important}
-html[data-theme][data-vt] #loginView .portal-legal-footer{color:#5a5a5a!important;text-shadow:none!important}
+html[data-theme][data-vt] #loginView .login-header-banner,html[data-theme][data-vt] #loginView .login-header-banner.v2-welcome{background:rgba(255,255,255,.04)!important;border:0!important;box-shadow:0 0 0 1px rgba(255,255,255,.08)!important;color:#f0f0f0!important}
+html[data-theme][data-vt] #loginView .login-card{background:rgba(10,10,11,.86)!important;border:0!important;box-shadow:0 0 0 1px #1d1e21,0 30px 70px -30px #000!important;border-radius:24px!important;color:#f0f0f0!important;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);animation:k-pop .8s var(--k-spring) .2s both}
+html[data-theme][data-vt] #loginView .login-card input{background:#000!important;border-color:#1d1e21!important;color:#f0f0f0!important}
+html[data-theme][data-vt] #loginView .login-card .btn-primary,html[data-theme][data-vt] #loginView .login-card .btn-primary-mobile{background:#fff!important;color:#000!important}
+html[data-theme][data-vt] #loginView a{color:#a1a4a5!important}
+html[data-theme][data-vt] #loginView .portal-legal-footer{color:#46494d!important;text-shadow:none!important}
 
-/* ---- loading splash: black, logo breathing, no petals ---- */
-html[data-theme][data-vt] .app-loading-splash,html[data-theme] .app-loading-splash{background:#050505!important;background-image:none!important}
+/* ---- loading splash: black, logo breathing ---- */
+html[data-theme][data-vt] .app-loading-splash,html[data-theme] .app-loading-splash{background:#000!important;background-image:none!important}
 html[data-theme] .petal-rain,html[data-theme] .food-rain{display:none!important}
-html[data-theme][data-vt] .loading-splash-logo{border-radius:22px;box-shadow:0 0 0 1px #262626,0 18px 50px -12px rgba(255,255,255,.15)!important;animation:monoBreathe 2.4s ease-in-out infinite}
-html[data-theme][data-vt] .loading-splash-word{color:#fafafa!important;letter-spacing:.32em}
-html[data-theme][data-vt] .loading-splash-sub{color:#7a7a7a!important}
-
-@keyframes monoUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+html[data-theme][data-vt] .loading-splash-logo{border-radius:22px;box-shadow:0 0 0 1px #2c2e33,0 18px 50px -12px rgba(255,255,255,.15)!important;animation:monoBreathe 2.4s ease-in-out infinite}
+html[data-theme][data-vt] .loading-splash-word{color:#f0f0f0!important;letter-spacing:.32em}
+html[data-theme][data-vt] .loading-splash-sub{color:#6f7376!important}
 @keyframes monoBreathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.04);opacity:1}}
-@media (prefers-reduced-motion:reduce){html[data-theme][data-vt] #loginView .login-card,html[data-theme][data-vt] .loading-splash-logo{animation:none!important}}
