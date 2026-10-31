@@ -118,3 +118,9 @@ html[data-theme][data-vt] .enter .card:nth-child(2){animation-delay:.08s}html[da
 /* one look: theme switcher replaced by the Appearance setting */
 #themeBtn{display:none!important}
 html[data-theme][data-vt] .eav,html[data-theme][data-vt] .av,html[data-theme][data-vt] .dbav{background:var(--k-card2)!important;color:var(--k-ink)!important;box-shadow:var(--k-ring)!important}
+
+/* v96 branch admins (view-only, own branch): staff list + search come back */
+body.emp-mode.branch-mode .grid,body.emp-mode.branch-mode .grid.wide,body.emp-mode.branch-mode.focus .grid{grid-template-columns:232px minmax(0,1fr) 232px!important}
+body.emp-mode.branch-mode .grid>.listcard{display:block!important}
+body.emp-mode.branch-mode .searchwrap{display:block!important}
+@media (max-width:1180px){body.emp-mode.branch-mode .grid,body.emp-mode.branch-mode .grid.wide,body.emp-mode.branch-mode.focus .grid{grid-template-columns:minmax(0,1fr)!important}body.emp-mode.branch-mode .grid>.listcard{display:none!important}}

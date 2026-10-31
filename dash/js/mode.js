@@ -10,7 +10,7 @@
    ===================================================================== */
 (function () {
   'use strict';
-  var ASKED = 'staffly_mode_asked';
+  var ASKED = 'staffly_mode_asked'; // (old key, no longer used)
   var T = window.DCC_THEME;
   if (!T || !T.getLook) return;
   var isDash = !!document.querySelector('.app .side') || /dashboard\.html$/.test(location.pathname);
@@ -45,8 +45,7 @@
     T.setLook(l);
     syncButtons();
     setTimeout(function () { h.classList.remove('k-fading'); }, 450);
-    store(ASKED, '1');
-    if (opts.undo !== false) showUndo(before, l);
+    if (opts.offerBack !== false) setTimeout(function () { showAsk(true); }, 1400);   // same pill, now offering the way back
     try { window.dispatchEvent(new CustomEvent('staffly-look', { detail: l })); } catch (e) {}
   }
   window.stafflySetLook = setLook;
@@ -82,15 +81,19 @@
     syncButtons();
   }
 
-  /* the one-time suggestion pill */
-  var askEl = null;
-  function closeAsk(answer) {
-    store(ASKED, '1');
-    if (!askEl) return;
-    var el = askEl; askEl = null;
-    el.classList.add('out');
-    setTimeout(function () { el.remove(); }, 260);
-    if (answer === 'light') setLook('light');
+  /* the suggestion pill: offers the OTHER look.
+     - once a day after login (so everyone sees it and knows they can switch)
+     - and again right after any switch, so the way back is always one tap away */
+  var DAY = 'staffly_mode_ask_day';
+  var today = function () { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+  var askEl = null, askT = 0;
+  var SUN_IC = '<svg class="k-ask-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  var MOON_IC = '<svg class="k-ask-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>';
+  function closeAsk(switchTo) {
+    store(DAY, today());
+    clearTimeout(askT);
+    if (askEl) { var el = askEl; askEl = null; el.classList.add('out'); setTimeout(function () { el.remove(); }, 260); }
+    if (switchTo) setLook(switchTo);
   }
   function placeOnDash(el) {
     var s = document.querySelector('.searchwrap');
@@ -101,33 +104,35 @@
     el.style.top = (r.bottom + 10) + 'px';
     el.style.left = Math.max(16, Math.min(r.left, innerWidth - el.offsetWidth - 16)) + 'px';
   }
-  function showAsk() {
-    if (askEl || store(ASKED) || T.getLook() === 'light') return;
+  function showAsk(force) {
+    if (!force && store(DAY) === today()) return;
     if (document.querySelector('.sitegate')) return;           // still on the PC login
     var lv = document.getElementById('loginView');
     if (lv && lv.classList.contains('active')) return;         // still on the phone login
+    if (askEl) { askEl.remove(); askEl = null; }
+    var nowLight = T.getLook() === 'light', other = nowLight ? 'dark' : 'light';
     askEl = document.createElement('div');
-    askEl.className = 'k-ask'; askEl.setAttribute('role', 'dialog'); askEl.setAttribute('aria-label', 'Appearance suggestion');
-    askEl.innerHTML = '<svg class="k-ask-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
-      + '<b>Prefer a lighter look?</b>'
-      + '<button type="button" class="k-yes">Switch to light</button>'
-      + '<button type="button" class="k-no">Keep dark</button>'
+    askEl.className = 'k-ask'; askEl.setAttribute('role', 'dialog'); askEl.setAttribute('aria-label', 'Appearance');
+    askEl.innerHTML = (nowLight ? MOON_IC : SUN_IC)
+      + '<b>' + (nowLight ? 'Prefer the dark look?' : 'Prefer a lighter look?') + '</b>'
+      + '<button type="button" class="k-yes">' + (nowLight ? 'Switch to dark' : 'Switch to light') + '</button>'
+      + '<button type="button" class="k-no">' + (nowLight ? 'Keep light' : 'Keep dark') + '</button>'
       + '<button type="button" class="k-x" aria-label="Close">✕</button>';
-    askEl.querySelector('.k-yes').addEventListener('click', function () { closeAsk('light'); });
-    askEl.querySelector('.k-no').addEventListener('click', function () { closeAsk('dark'); });
-    askEl.querySelector('.k-x').addEventListener('click', function () { closeAsk('dark'); });
+    askEl.querySelector('.k-yes').addEventListener('click', function () { closeAsk(other); });
+    askEl.querySelector('.k-no').addEventListener('click', function () { closeAsk(null); });
+    askEl.querySelector('.k-x').addEventListener('click', function () { closeAsk(null); });
     document.body.appendChild(askEl);
     if (isDash) placeOnDash(askEl);
+    if (force) askT = setTimeout(function () { if (askEl) closeAsk(null); }, 12000);   // after a switch it tidies itself away
   }
   function scheduleAsk() {
-    if (store(ASKED) || T.getLook() === 'light') return;
-    var light = false; try { light = matchMedia('(prefers-color-scheme: light)').matches; } catch (e) {}
+    if (store(DAY) === today()) return;
     var tries = 0;
     (function wait() {
       tries++;
       var ready = isDash ? (typeof S !== 'undefined' && S.today && !document.querySelector('.sitegate'))
                          : (document.getElementById('loginView') && !document.getElementById('loginView').classList.contains('active'));
-      if (ready) setTimeout(showAsk, light ? 1800 : 3500);
+      if (ready) setTimeout(function () { showAsk(false); }, 3000);
       else if (tries < 400) setTimeout(wait, 700);
     })();
   }
@@ -146,7 +151,7 @@
     }, true);
   }
 
-  function start() { addSidebarSwitch(); addTopButton(); syncButtons(); scheduleAsk(); tabSlide(); }
+  function start() { addSidebarSwitch(); syncButtons(); scheduleAsk(); tabSlide(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
   addEventListener('storage', function (e) { if (e.key === 'staffly_mode') syncButtons(); });
 })();

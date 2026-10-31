@@ -132,15 +132,22 @@ async function boot() {
   $('#list').innerHTML = listSkeleton();
   try {
     const d = await gas('webEmployees');
-    S.emps = d.employees; S.locsAll = d.locations || []; S.today = d.today; S.dataStart = d.data_start; S.latest = d.latest_punch;
+    S.emps = d.employees; S.locsAll = d.locations || []; S.today = d.today; S.dataStart = d.data_start; S.latest = d.latest_punch; S.branch = (d.branch || []).filter(Boolean);
   } catch (e) { $('#fresh').textContent = 'Could not load: ' + e.message; return; }
   const isEmp = !StafflyAPI.isAdmin();
   buildMonths(); buildLocations(); freshText();
   $('#month').value = S.month;
+  const branch = S.branch || [];   // v96: branch admin (e.g. Avinash = Okhla, Aashu = Gurgaon)
   if (isEmp) {
     document.body.classList.add('emp-mode');
-    TITLES.profile = ['My attendance', 'Your month calendar and day-by-day detail'];
-    NAV = [['profile', 'My attendance']]; buildNav();
+    if (branch.length) {
+      document.body.classList.add('branch-mode');
+      TITLES.profile = [branch.join(' & ') + ' staff', 'View-only: calendars and day details for your branch'];
+      NAV = [['profile', branch.join(' & ') + ' staff']]; buildNav();
+    } else {
+      TITLES.profile = ['My attendance', 'Your month calendar and day-by-day detail'];
+      NAV = [['profile', 'My attendance']]; buildNav();
+    }
   }
   setRange('month');
   renderList();
