@@ -101,3 +101,5 @@ html.k-fading,html.k-fading *{transition:background-color .35s var(--k-ease),col
 .k-seg{display:inline-flex;gap:2px;padding:3px;border-radius:9999px;box-shadow:var(--k-ring);background:var(--k-card2)}
 .k-seg button{font:500 12px/16px var(--k-sans);padding:5px 10px;border:0;border-radius:9999px;background:transparent;color:var(--k-mut);cursor:pointer;transition:background-color var(--k-fast) var(--k-ease),color var(--k-fast) var(--k-ease)}
 .k-seg button[aria-pressed="true"]{background:var(--k-acc);color:var(--k-acc-ink)}
+
+#kLookBtn.k-lookbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;padding-left:0!important;padding-right:0!important}
