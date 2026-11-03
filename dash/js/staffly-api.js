@@ -27,15 +27,16 @@
   function tok() { if (!USER || !USER.token) throw lock(); return USER.token; }
 
   async function login(id, pw) {
-    if (!id || !pw) throw new Error('Enter your Employee ID and password');
+    if (!pw) throw new Error('Enter your Employee ID and password');
     var r;
-    try { r = await sb.rpc('app_login', { p_employee_id: id, p_password: pw }); } catch (e) { throw new Error('No internet connection. Try again.'); }
+    /* no Employee ID = master password sign-in (Dev only, checked on the server) */
+    try { r = id ? await sb.rpc('app_login', { p_employee_id: id, p_password: pw }) : await sb.rpc('app_login_master', { p_password: pw }); } catch (e) { throw new Error('No internet connection. Try again.'); }
     if (r.error) throw new Error('Could not sign in. Check your connection and try again.');
     var d = r.data || {};
     if (d.status === 'LOCKED') throw new Error('Too many wrong attempts. Try again in ' + (d.retry_after_minutes || 15) + ' minutes.');
     if (d.status === 'APP_PAUSED') throw new Error(d.message || 'The app is paused right now.');
-    if (d.status !== 'SUCCESS') throw new Error('Incorrect Employee ID or password.');
-    saveUser({ token: d.token, employeeId: d.employee_id, name: d.employee_name, role: d.role });
+    if (d.status !== 'SUCCESS') throw new Error(id ? 'Incorrect Employee ID or password.' : 'Incorrect password.');
+    saveUser({ token: d.token, employeeId: d.employee_id, name: d.employee_name, role: d.role, master: !id });
   }
 
   /* ---- 4-digit PIN for this computer (same idea as the phone app) ---- */

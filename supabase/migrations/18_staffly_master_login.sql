@@ -1,0 +1,6 @@
+-- 18: Password-only sign-in for the Dev account on the PC dashboard (applied 3 Nov 2026 as migration staffly_master_login).
+-- Leave Employee ID empty on the dashboard login and type the master password -> signs in as the Dev account, no PIN step.
+-- The password lives ONLY as a bcrypt hash in private.master_login. To change it, run in the SQL editor:
+--   update private.master_login set pw_hash = extensions.crypt('<new password>', extensions.gen_salt('bf', 10)), updated_at = now() where employee_id = 'EMP101';
+-- 5 wrong tries = 15 min lock (private.login_attempts key '__master__'). Every success is written to audit_log as 'master_login' with the IP.
+-- Function body: see public.app_login_master in Supabase.

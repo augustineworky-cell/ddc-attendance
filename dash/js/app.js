@@ -50,9 +50,9 @@ function askSitePassword() {
       const f = w.querySelector('form'), i = w.querySelector('input[name=id]'), p = w.querySelector('input[name=pw]'), er = w.querySelector('.err'), b = w.querySelector('.sg-go'), eye = w.querySelector('.sg-eye');
       eye.addEventListener('click', () => { const s = p.type === 'password'; p.type = s ? 'text' : 'password'; p.focus(); });
       f.addEventListener('submit', async (ev) => {
-        ev.preventDefault(); er.textContent = ''; if (!i.value.trim() || !p.value) { er.textContent = 'Enter your Employee ID and password.'; (i.value.trim() ? p : i).focus(); return; }
+        ev.preventDefault(); er.textContent = ''; if (!p.value) { er.textContent = 'Enter your Employee ID and password.'; (i.value.trim() ? p : i).focus(); return; }
         b.disabled = true; b.innerHTML = '<span class="sp"></span>Signing in…';
-        try { await StafflyAPI.login(i.value.trim(), p.value); showSetPin(); }
+        try { await StafflyAPI.login(i.value.trim(), p.value); if (i.value.trim()) showSetPin(); else finish(); }
         catch (e) { er.textContent = e.message; b.disabled = false; b.textContent = 'Sign in'; p.select(); }
       });
       setTimeout(() => i.focus(), 50);
