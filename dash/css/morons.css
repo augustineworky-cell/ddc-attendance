@@ -1,0 +1,17 @@
+/* Morons page (dash/js/morons.js). Reuses the approvals (ap-*) styles. */
+.mo-two{grid-template-columns:minmax(0,1fr) minmax(0,340px)}
+.mo-count{background:var(--k-card2);color:var(--k-ink2);border-color:var(--k-line2)}
+.mo-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--k-line);border-radius:14px;background:var(--k-card2)}
+.mo-row+.mo-row{margin-top:10px}
+.mo-main{min-width:0;color:var(--k-ink)}
+.mo-main small,.mo-last small{display:block;margin-top:3px;color:var(--k-mut);font-size:12px}
+.mo-warn{color:var(--k-mi)}
+.mo-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.mo-head h3{margin:0}
+.mo-sel{font:500 13px var(--k-sans);color:var(--k-ink);background:var(--k-input);border:1px solid var(--k-line2);border-radius:var(--k-pill);padding:7px 12px}
+.mo-k{display:inline-block;font:700 11px var(--k-sans);padding:2px 8px;border-radius:99px;border:1px solid}
+.mo-in{color:var(--k-pr);background:var(--k-pr-bg);border-color:var(--k-pr-b)}
+.mo-out{color:var(--k-ink);background:var(--k-ip-bg);border-color:var(--k-ip-b)}
+.mo-pin{display:flex;gap:8px}
+.mo-pin input{flex:1;min-width:0;letter-spacing:.3em!important;font-weight:600!important}
+@media (max-width:1100px){.mo-two{grid-template-columns:1fr}}

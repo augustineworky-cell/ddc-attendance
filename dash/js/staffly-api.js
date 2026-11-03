@@ -83,6 +83,10 @@
     webApprRequest: function (a) { return rpc('dash_appr_request', { p_token: tok(), p_emp: +a[0], p_date: a[1], p_kind: a[2], p_reason: a[3] }); },
     webApprDecide: function (a) { return rpc('dash_appr_decide', { p_token: tok(), p_id: +a[0], p_decision: a[1], p_note: a[2] || null }); },
     webApprCancel: function (a) { return rpc('dash_appr_cancel', { p_token: tok(), p_id: +a[0] }); },
+    webMoronData: function () { return rpc('dash_moron_data', { p_token: tok() }); },
+    webMoronSetGuard: function (a) { return rpc('dash_moron_set_guard', { p_token: tok(), p_emp: a[0], p_pin: a[1] }); },
+    webMoronRemoveGuard: function (a) { return rpc('dash_moron_remove_guard', { p_token: tok(), p_emp: a[0] }); },
+    webMoronSetWorker: function (a) { return rpc('dash_moron_set_worker', { p_token: tok(), p_emp: a[0], p_on: !!a[1] }); },
     webAdminLogin: async function (a) {
       var d = await rpc('dash_admin_login', { p_token: tok(), p_password: a[0] || '' });
       if (d && d.error) throw new Error(d.error);
