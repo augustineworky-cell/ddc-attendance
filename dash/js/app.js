@@ -102,7 +102,36 @@ function askSitePassword() {
       setTimeout(() => p.focus(), 50);
     }
 
-    if (StafflyAPI.device()) showPin(); else showPassword();
+    /* v99: "Chief, are you back?" - password-only sign-in for the Dev account (server: app_login_master) */
+    const crown = '<div class="sg-crown" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 18h18M4 18 3 7l5 4 4-7 4 7 5-4-1 11"/><circle cx="3" cy="7" r="1"/><circle cx="12" cy="4" r="1"/><circle cx="21" cy="7" r="1"/></svg></div>';
+    function showChiefAsk() {
+      slot.innerHTML = '<div class="sg-card sg-chief">' + crown + '<h3>Chief Robin, are you back?</h3>'
+        + '<p class="sg-sub">The dashboard missed its Chief.<br>Prove your worthiness, or sign in as staff.</p>'
+        + '<button class="sg-go" type="button" id="sgChief">Log in with Chief ID</button>'
+        + '<div class="sg-or">or</div><a href="#" class="sg-mob" id="sgStaff">I\'m staff &mdash; sign in with my ID</a>' + foot + '</div>';
+      w.querySelector('#sgChief').addEventListener('click', showChief);
+      w.querySelector('#sgStaff').addEventListener('click', (ev) => { ev.preventDefault(); showPassword(); });
+      setTimeout(() => { const b = w.querySelector('#sgChief'); if (b) b.focus(); }, 50);
+    }
+    function showChief() {
+      slot.innerHTML = '<form class="sg-card sg-chief" novalidate>' + crown + '<h3>Prove your worthiness</h3>'
+        + '<p class="sg-sub">Only the Chief knows this password.</p>'
+        + '<label class="sg-field"><span>Chief password</span><div class="sg-in"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input name="pw" type="password" autocomplete="current-password" placeholder="Enter the Chief password"><button type="button" class="sg-eye" tabindex="-1" aria-label="Show password">' + eyeSvg + '</button></div></label>'
+        + '<button class="sg-go" type="submit">Enter</button><div class="err" role="alert"></div>'
+        + '<div class="sg-or">not the Chief?</div><a href="#" class="sg-mob" id="sgStaff2">Sign in with ID &amp; password</a>' + foot + '</form>';
+      const f = w.querySelector('form'), p = w.querySelector('input[name=pw]'), er = w.querySelector('.err'), b = w.querySelector('.sg-go');
+      w.querySelector('.sg-eye').addEventListener('click', () => { p.type = p.type === 'password' ? 'text' : 'password'; p.focus(); });
+      w.querySelector('#sgStaff2').addEventListener('click', (ev) => { ev.preventDefault(); showPassword(); });
+      f.addEventListener('submit', async (ev) => {
+        ev.preventDefault(); er.textContent = ''; if (!p.value) { er.textContent = 'Enter the Chief password.'; p.focus(); return; }
+        b.disabled = true; b.innerHTML = '<span class="sp"></span>Checking…';
+        try { await StafflyAPI.login('', p.value); finish(); }
+        catch (e) { er.textContent = e.message === 'Incorrect password.' ? 'Not worthy. Wrong password.' : e.message; b.disabled = false; b.textContent = 'Enter'; p.select(); }
+      });
+      setTimeout(() => p.focus(), 50);
+    }
+
+    if (StafflyAPI.device()) showPin(); else showChiefAsk();
   });
 }
 const callApi = (fn, args) => StafflyAPI.call(fn, args);

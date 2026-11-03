@@ -124,3 +124,8 @@ body.emp-mode.branch-mode .grid,body.emp-mode.branch-mode .grid.wide,body.emp-mo
 body.emp-mode.branch-mode .grid>.listcard{display:block!important}
 body.emp-mode.branch-mode .searchwrap{display:block!important}
 @media (max-width:1180px){body.emp-mode.branch-mode .grid,body.emp-mode.branch-mode .grid.wide,body.emp-mode.branch-mode.focus .grid{grid-template-columns:minmax(0,1fr)!important}body.emp-mode.branch-mode .grid>.listcard{display:none!important}}
+
+/* v99 "Chief, are you back?" login card */
+.sitegate .sg-crown{width:64px;height:64px;margin:0 auto 14px;border-radius:9999px;display:flex;align-items:center;justify-content:center;background:rgba(255,196,107,.1);box-shadow:0 0 0 1px rgba(255,196,107,.35),0 0 40px rgba(255,196,107,.18);animation:k-pop .5s var(--k-spring) both}
+.sitegate .sg-crown svg{width:32px;height:32px;fill:none;stroke:#ffc46b;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sitegate .sg-chief h3{animation:k-rise .6s var(--k-ease) both}
