@@ -101,3 +101,7 @@ html[data-theme][data-vt] .loading-splash-logo{border-radius:22px;box-shadow:0 0
 html[data-theme][data-vt] .loading-splash-word{color:#f0f0f0!important;letter-spacing:.32em}
 html[data-theme][data-vt] .loading-splash-sub{color:#6f7376!important}
 @keyframes monoBreathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.04);opacity:1}}
+
+/* v100: light graphics on phones (login-stars.js adds html.lite-gfx) - glass blur over the moving sky is what froze the Samsung A31 */
+html.lite-gfx #loginView *,html.lite-gfx .app-loading-splash *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.lite-gfx[data-theme][data-vt] #loginView .login-card,html.lite-gfx #loginView .login-card{background:rgba(10,10,11,.92)!important}
