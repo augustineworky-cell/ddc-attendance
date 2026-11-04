@@ -15,7 +15,7 @@
   /* ---------------- fireworks engine (used by login-stars.js and the punch-out greeting) ---------------- */
   const COLORS = [[255, 214, 150], [255, 236, 200], [255, 190, 110], [255, 244, 228], [255, 170, 120], [220, 230, 255]];
   function fireworks(opts) {
-    const o = Object.assign({ gap: [1.4, 3.6], top: [110, 260] }, opts || {});
+    const o = Object.assign({ gap: [0.5, 1.4], top: [100, 270] }, opts || {});   // v102: more crackers
     const rockets = [], parts = []; let wait = 0.6;
     function launch(W, base) { rockets.push({ x: 50 + R() * (W - 100), y: base + 10, vx: (R() - .5) * 18, vy: -(330 + R() * 140), ty: o.top[0] + R() * (o.top[1] - o.top[0]), trail: [] }); }
     function burst(x, y) {
@@ -26,7 +26,10 @@
     }
     return function step(g, dt, W, base) {
       const L = lite();
-      if ((wait -= dt) <= 0) { launch(W, base); wait = (o.gap[0] + R() * (o.gap[1] - o.gap[0])) * (L ? 1.5 : 1); }
+      if ((wait -= dt) <= 0) {
+        launch(W, base); if (R() < .35) launch(W, base); if (!L && R() < .15) launch(W, base);   // sometimes 2-3 go up together
+        wait = (o.gap[0] + R() * (o.gap[1] - o.gap[0])) * (L ? 1.25 : 1);
+      }
       const prev = g.globalCompositeOperation; g.globalCompositeOperation = 'lighter'; g.lineWidth = 1;
       for (let i = rockets.length - 1; i >= 0; i--) {
         const r = rockets[i]; r.trail.push([r.x, r.y]); if (r.trail.length > 8) r.trail.shift();
@@ -115,7 +118,7 @@
     let W = 0, H = 0;
     const size = () => { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); };
     size(); addEventListener('resize', size);
-    const fw = fireworks({ gap: [.6, 1.4], top: [60, Math.max(140, H * .4)] });
+    const fw = fireworks({ gap: [.3, .8], top: [60, Math.max(140, H * .45)] });
     let last = performance.now(), on = true;
     const minGap = lite() ? 1000 / 30 : 0;
     function frame(now) {
