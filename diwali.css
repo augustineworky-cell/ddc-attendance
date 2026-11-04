@@ -1,0 +1,41 @@
+/* diwali.css - temporary Diwali look for the phone app (v101). Everything is scoped to html.diwali,
+   which the <head> script in index.html sets only from 4 Nov to 10 Nov 2026. */
+
+/* ---- opening screen: logo with diya flame + embers ---- */
+html.diwali .app-loading-splash .loading-splash-brand{position:relative}
+html.diwali .loading-splash-logo{box-shadow:0 0 0 1px rgba(201,164,92,.5),0 0 60px rgba(255,190,110,.25)!important}
+html.diwali .dw-splash-flame{position:absolute;left:50%;top:0;width:30px;height:48px;transform:translate(-50%,-44px);pointer-events:none}
+html.diwali .dw-splash-halo{position:absolute;left:50%;top:0;width:220px;height:220px;transform:translate(-50%,-55px);border-radius:50%;background:radial-gradient(circle,rgba(255,190,110,.26) 0%,rgba(255,190,110,.07) 45%,rgba(255,190,110,0) 70%);animation:dwHalo 3.2s ease-in-out infinite;pointer-events:none;z-index:-1}
+html.diwali .dw-splash-sub{display:block;margin-top:10px;font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.32em;color:#c9a45c}
+html.diwali .dw-ember{position:absolute;left:50%;top:-40px;width:3px;height:3px;border-radius:50%;background:#ffc77a;box-shadow:0 0 6px #ffb050;opacity:0;animation:dwEmber 3s ease-out infinite;pointer-events:none}
+@keyframes dwEmber{0%{opacity:0;transform:translate(0,0)}15%{opacity:.9}100%{opacity:0;transform:translate(var(--dx,0px),-130px)}}
+@keyframes dwHalo{0%,100%{opacity:.6;transform:translate(-50%,-55px) scale(1)}50%{opacity:.9;transform:translate(-50%,-55px) scale(1.05)}}
+
+/* ---- flame shape (splash + login logo) ---- */
+.dw-flame{overflow:visible}
+.dw-flame .dw-fo{fill:#ffb648;filter:drop-shadow(0 0 6px rgba(255,150,60,.75))}
+.dw-flame .dw-fi{fill:#fff6dc}
+.dw-flame path{transform-origin:50% 92%;animation:dwFlick 1.8s ease-in-out infinite}
+@keyframes dwFlick{0%,100%{transform:scale(1,1) skewX(0)}25%{transform:scale(.94,1.06) skewX(-2deg)}50%{transform:scale(1.04,.96) skewX(1.5deg)}75%{transform:scale(.97,1.03) skewX(-1deg)}}
+
+/* ---- login ---- */
+html.diwali #loginView .dw-logo{position:relative;overflow:visible!important}
+html.diwali #loginView .dw-logo img{box-shadow:0 0 0 1px rgba(201,164,92,.5),0 0 24px rgba(255,190,110,.22)}
+html.diwali #loginView .dw-logo .dw-flame{position:absolute;left:50%;top:0;width:12px;height:18px;transform:translate(-50%,-15px);pointer-events:none}
+html.diwali #loginView .dw-greet{position:fixed;left:0;right:0;top:30%;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;z-index:1;pointer-events:none;animation:k-rise .9s var(--k-ease,ease) both}
+.dw-kicker{font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.32em;color:#c9a45c}
+.dw-title{font-family:Fraunces,Georgia,serif;font-size:32px;font-weight:400;letter-spacing:-.01em;color:#f3e3bd;line-height:1.1}
+.dw-rule{display:block;width:40px;height:1px;background:#6b5630}
+
+/* ---- after Punch Out greeting ---- */
+.dw-po{position:fixed;inset:0;z-index:3000;background:#000;color:#f0f0f0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 24px calc(28px + env(safe-area-inset-bottom,0px));box-sizing:border-box;animation:k-fade .35s ease both}
+.dw-po.out{animation:dwOut .35s ease both}
+@keyframes dwOut{to{opacity:0}}
+.dw-po-sky{position:absolute;inset:0;width:100%;height:100%}
+.dw-po-body{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;margin-bottom:auto;margin-top:52vh;max-width:340px}
+.dw-po-k{font-size:12px;font-weight:600;letter-spacing:.12em;color:#43fea4}
+.dw-po-h{margin:2px 0 0;font-family:Fraunces,Georgia,serif;font-size:34px;font-weight:400;letter-spacing:-.01em;color:#f3e3bd;line-height:1.15}
+.dw-po-p{margin:0;font-size:15px;line-height:23px;color:#c9c9c9}
+.dw-po-chip{font-size:12px;color:#a1a4a5;border:1px solid #2c2e33;border-radius:9999px;padding:6px 12px}
+.dw-po-done{position:relative;width:100%;max-width:420px;height:54px;border-radius:9999px;border:0;background:#fff;color:#000;font:600 16px Inter,system-ui,sans-serif;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.dw-flame path,.dw-ember,.dw-splash-halo{animation:none}}

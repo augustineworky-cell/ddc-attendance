@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>/* v101 Diwali look: on from 4 Nov to end of 10 Nov 2026 (India time), then off by itself */(function(){var n=Date.now();if(n>=Date.parse('2026-11-04T00:00:00+05:30')&&n<Date.parse('2026-11-11T00:00:00+05:30'))document.documentElement.classList.add('diwali');})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script>
   /* v61: Staffly is employee-only. Admin screens live in the dashboard.
@@ -80,6 +81,7 @@
   <link rel="stylesheet" href="/dash/css/tokens.css?v=2">
   <link rel="stylesheet" href="theme-mono-mobile.css?v=4">
   <link rel="stylesheet" href="morons-app.css?v=1">
+  <link rel="stylesheet" href="diwali.css?v=1">
 </head>
 <body>
 
@@ -121,6 +123,12 @@
       <span class="loading-splash-word">STAFFLY</span>
       <span class="loading-splash-sub">Loading your workspace...</span>
     </div>
+    <script>
+    (function(){if(!document.documentElement.classList.contains('diwali'))return;var b=document.querySelector('#appLoadingSplash .loading-splash-brand');if(!b)return;
+      var h='<span class="dw-splash-halo" aria-hidden="true"></span><svg class="dw-flame dw-splash-flame" viewBox="0 0 34 54" aria-hidden="true"><path class="dw-fo" d="M17 4 C24 16 27 28 17 50 C7 28 10 16 17 4 Z"/><path class="dw-fi" d="M17 24 C20 31 21 38 17 49 C13 38 14 31 17 24 Z"/></svg>';
+      for(var i=0;i<9;i++){h+='<i class="dw-ember" style="--dx:'+((Math.random()-.5)*60).toFixed(0)+'px;animation-delay:'+(i*.33).toFixed(2)+'s"></i>';}
+      b.insertAdjacentHTML('afterbegin',h);var w=b.querySelector('.loading-splash-word');if(w)w.insertAdjacentHTML('afterend','<span class="dw-splash-sub">SHUBH DEEPAVALI</span>');})();
+    </script>
   </div>
 
   <!-- Hides the loading splash - deliberately standalone and NOT dependent
@@ -977,8 +985,9 @@
   </script>
 
 
-  <script src="app.js?v=93" defer></script>
-  <script src="login-stars.js?v=2" defer></script>
+  <script src="app.js?v=101" defer></script>
+  <script src="diwali.js?v=1" defer></script>
+  <script src="login-stars.js?v=3" defer></script>
   <script src="pages.js?v=93" defer></script>
   <script src="/dash/js/mode.js?v=3" defer></script>
   <script src="morons-app.js?v=1" defer></script>

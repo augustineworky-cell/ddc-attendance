@@ -49,10 +49,11 @@
     if (y === ridgeY && bright.length) return;
     ridgeY = y;
     r1 = ridge(ridgeY - 28, 26, 1.2); r2 = ridge(ridgeY, 20, 3.9);
+    dwLamps = window.DW ? window.DW.lamps(r2, lite ? 14 : 26) : null;   // v101 Diwali (diwali.js)
     bright = []; for (var i = 0; i < (lite ? 7 : 14); i++) bright.push({ x: Math.random() * W, y: Math.random() * (ridgeY - 40), ph: Math.random() * 6.28, tw: 0.5 + Math.random() });
   }
 
-  var shots = [], next = 0.5, t = 0, last = 0, on = false;
+  var shots = [], next = 0.5, t = 0, last = 0, on = false, dwFw = null, dwLamps = null;
   function burst() {
     var ang = (198 + Math.random() * 14) * Math.PI / 180, vx = Math.cos(ang), vy = -Math.sin(ang);
     var n = Math.random() < 0.45 ? 2 + (Math.random() < 0.35 ? 1 : 0) : 1;
@@ -91,9 +92,11 @@
       g.globalAlpha = 1; g.lineWidth = 2.2; g.beginPath(); g.moveTo(sh.x, sh.y); g.lineTo(tx, ty); g.stroke();
       glow(sh.x, sh.y, 12, f);
     }
-    var hz = g.createRadialGradient(W / 2, ridgeY, 0, W / 2, ridgeY, 300); hz.addColorStop(0, 'rgba(255,255,255,.10)'); hz.addColorStop(1, 'rgba(255,255,255,0)');
+    if (window.DW) { if (!dwFw) dwFw = window.DW.fireworks(); dwFw(g, dt, W, ridgeY); }   // v101 Diwali fireworks
+    var hz = g.createRadialGradient(W / 2, ridgeY, 0, W / 2, ridgeY, 300); hz.addColorStop(0, window.DW ? 'rgba(255,190,120,.10)' : 'rgba(255,255,255,.10)'); hz.addColorStop(1, window.DW ? 'rgba(255,190,120,0)' : 'rgba(255,255,255,0)');
     g.fillStyle = hz; g.fillRect(0, 0, W, H);
     [[r1, '#0b0b0b'], [r2, '#030303']].forEach(function (p) { g.fillStyle = p[1]; g.beginPath(); g.moveTo(0, H); p[0].forEach(function (q) { g.lineTo(q[0], q[1]); }); g.lineTo(W, H); g.closePath(); g.fill(); });
+    if (dwLamps) dwLamps(g, t);
     requestAnimationFrame(frame);
   }
 
