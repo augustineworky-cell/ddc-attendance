@@ -2114,6 +2114,9 @@ async function handleClockIn() {
     return;
   }
 
+  // v103 guardian: ask about the people this person punches for (Raj via Ignatius) before their own punch
+  if (typeof window.guardianAsk === 'function') { try { await window.guardianAsk('in'); } catch (e) {} }
+
   const btn = document.getElementById('punchInBtn');
   if (!btn) return;
 
@@ -2283,6 +2286,9 @@ async function handleClockOut() {
     highlightSelfieCaptureCard();
     return;
   }
+
+  // v103 guardian: ask about the people this person punches for (Raj via Ignatius) before their own punch
+  if (typeof window.guardianAsk === 'function') { try { await window.guardianAsk('out'); } catch (e) {} }
 
   // Early-departure guard: each employee's shift is 9 hours measured from
   // their OWN clock-in time, not a fixed company-wide clock time - someone
