@@ -1,0 +1,27 @@
+/* collection-app.css - Collection visit screen (collection-app.js). Builds on the Morons screen styles (morons-app.css). */
+.cv-kpis{margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px}
+.cv-kpis div{padding:12px;border-radius:16px;background:var(--k-card2);border:1px solid var(--k-line)}
+.cv-kpis b{display:block;font:600 18px var(--k-sans);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv-kpis small{color:var(--k-mut2);font-size:12px}
+.cv-list{margin-top:16px;display:grid;gap:8px}
+.cv-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--k-card);border:1px solid var(--k-line)}
+.cv-rt{flex:1;min-width:0}.cv-rt b{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cv-rt small{display:block;color:var(--k-mut);font-size:12.5px;margin-top:2px;line-height:1.4}
+.cv-amt{font:600 15px var(--k-sans);white-space:nowrap}
+.cv-form{margin-top:8px;display:grid;gap:16px}
+.cv-l{display:grid;gap:8px;font:600 11px var(--k-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--k-mut2)}
+.cv-in{font:500 16px var(--k-sans);letter-spacing:0;text-transform:none;color:var(--k-ink);background:var(--k-card2);border:1px solid var(--k-line2);border-radius:14px;padding:13px 14px;width:100%;box-sizing:border-box}
+.cv-in:focus{outline:none;border-color:var(--k-faint);box-shadow:0 0 0 3px var(--k-hover,rgba(255,255,255,.08))}
+textarea.cv-in{resize:vertical;min-height:64px}
+.cv-big{font-size:22px;font-weight:600}
+.cv-seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px}
+.cv-seg button{font:600 14px var(--k-sans);letter-spacing:0;text-transform:none;min-height:48px;padding:8px 6px;border-radius:14px;border:1px solid var(--k-line2);background:transparent;color:var(--k-mut);cursor:pointer}
+.cv-seg button.on{background:var(--k-acc);color:var(--k-acc-ink);border-color:var(--k-acc)}
+.cv-quick{margin-top:-8px}
+.cv-photo{margin-top:-8px;min-height:200px;flex:none;max-height:300px}
+.cv-photo>svg{width:80px;height:80px}
+.cv-form .mo-two{margin-top:-6px}
+.cv-form .mo-go{margin-top:4px}
+.cv-app .mo-go-in{margin-top:16px}
+.cv-row .mo-tag{font-size:11px;padding:6px 10px}
+.cv-no{border:1px solid var(--k-ab-b,#5a2a2a);color:var(--k-ab,#ff7a7a)}

@@ -2,7 +2,7 @@
 // Caches only the static app shell. Updates install, activate and reload
 // the page automatically — no "Update Now" prompt is ever shown.
 
-const CACHE_NAME = 'staffly-shell-v103';
+const CACHE_NAME = 'staffly-shell-v105';
 
 const SHELL_ASSETS = [
   '/',
@@ -24,6 +24,8 @@ const SHELL_ASSETS = [
   '/pages.js',
   '/morons-app.js',
   '/guardian.js',
+  '/collection-app.js',
+  '/collection-app.css',
   '/morons-app.css',
   '/manifest.json',
   '/favicon.ico',

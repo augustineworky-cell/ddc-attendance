@@ -86,6 +86,8 @@
     webApprCancel: function (a) { return rpc('dash_appr_cancel', { p_token: tok(), p_id: +a[0] }); },
     webGuardianDue: function () { return rpc('guardian_backup_due', { p_token: tok() }); },
     webGuardianPunch: function (a) { return rpc('guardian_punch', { p_token: tok(), p_ward: a[0], p_kind: a[1], p_lat: a[2], p_lng: a[3], p_accuracy: a[4] }); },
+    webCollMe: function () { return rpc('dash_coll_me', { p_token: tok() }); },
+    webCollData: function (a) { return rpc('dash_coll_data', { p_token: tok(), p_from: a[0], p_to: a[1] }); },
     webMoronData: function () { return rpc('dash_moron_data', { p_token: tok() }); },
     webMoronSetGuard: function (a) { return rpc('dash_moron_set_guard', { p_token: tok(), p_emp: a[0], p_pin: a[1] }); },
     webMoronRemoveGuard: function (a) { return rpc('dash_moron_remove_guard', { p_token: tok(), p_emp: a[0] }); },
