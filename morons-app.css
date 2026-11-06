@@ -78,3 +78,5 @@ html.mo-lock,html.mo-lock body{overflow:hidden}
 .mo-toast{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;max-width:calc(100% - 32px);padding:11px 16px;border-radius:14px;background:var(--k-card2);box-shadow:var(--k-pop);color:var(--k-ink);font-size:14px;transition:opacity .2s,transform .2s;text-align:center}
 .mo-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .mo-toast.err{color:var(--k-ab)}.mo-toast.ok{color:var(--k-pr)}
+/* v106: the red permission banner sat on top of these full-screen pages and hid the Back button */
+html.mo-lock .permission-banner{display:none!important}

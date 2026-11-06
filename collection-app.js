@@ -140,6 +140,7 @@
         <div class="cv-l">Photo of the shop / office</div>
         <div class="mo-photo cv-photo${f.photo ? ' has' : ''}">${f.photo ? `<img src="${f.photo}" alt="Shop photo"><span class="mo-chip ${f.source === 'gallery' ? 'warn' : ''}">${f.source === 'gallery' ? 'From gallery' : 'Camera'}</span>` : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9M3 9h18v11H3zM9 20v-6h6v6"/></svg><span>Take a photo of the shop</span>'}</div>
         <div class="mo-two"><button type="button" class="mo-btn" data-c="cam">Camera</button><button type="button" class="mo-btn" data-c="gal">Gallery</button></div>
+        <p class="mo-note cv-gps" id="cvGpsNote"${ST.gpsErr ? '' : ' hidden'}>Location is off. Turn on location so this visit saves where you are. <button type="button" class="mo-pill" data-c="gps">Turn on</button></p>
         <button type="button" class="mo-go mo-go-out" data-c="save">Save visit</button>
       </div>`);
   }
@@ -148,7 +149,10 @@
     if (!navigator.geolocation) { ST.gpsErr = true; return; }
     navigator.geolocation.getCurrentPosition((p) => { ST.gps = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }; upd(); },
       () => { ST.gpsErr = true; upd(); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
-    function upd() { const s = root && $('.cv-form', root) && $('.mo-who small', root); if (s) s.textContent = ST.gps ? 'Location ready' : 'Location off'; }
+    function upd() {
+      const s = root && $('.cv-form', root) && $('.mo-who small', root); if (s) s.textContent = ST.gps ? 'Location ready' : 'Location off';
+      const n = root && $('#cvGpsNote', root); if (n) n.hidden = !ST.gpsErr;
+    }
   }
   function pick(ev, source) {
     const file = ev.target.files && ev.target.files[0]; ev.target.value = '';
@@ -261,6 +265,7 @@
     else if (a === 'cam') $('#cvCam', root).click();
     else if (a === 'gal') $('#cvGal', root).click();
     else if (a === 'save') save();
+    else if (a === 'gps') { try { if (typeof retryEssentialPermissions === 'function') retryEssentialPermissions(); } catch (e) {} getGps(); }
   }
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && root && root.classList.contains('on')) { if (ST.f) { ST.f = null; drawHome(); } else close(); } });
 })();

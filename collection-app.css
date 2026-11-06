@@ -25,3 +25,4 @@ textarea.cv-in{resize:vertical;min-height:64px}
 .cv-app .mo-go-in{margin-top:16px}
 .cv-row .mo-tag{font-size:11px;padding:6px 10px}
 .cv-no{border:1px solid var(--k-ab-b,#5a2a2a);color:var(--k-ab,#ff7a7a)}
+.cv-gps .mo-pill{margin-left:6px;padding:6px 12px}
