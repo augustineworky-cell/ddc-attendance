@@ -1,5 +1,5 @@
 /* chhath.js - Staffly phone app: temporary Chhath Puja look (v107).
- * ON from 10 Nov 2026 until the end of 16 Nov 2026 (India time), then switches itself off. No push needed to remove it.
+ * ON from 9 Nov 2026 until the end of 16 Nov 2026 (India time), then switches itself off. No push needed to remove it.
  * Login: the night sky becomes a Chhath sunset over a river ghat - the sun sinking into the water, its reflection,
  *   floating diyas, devotees offering arghya with a soop, sugarcane, the far shore and the first stars of the evening.
  *   Drawn by login-stars.js through window.CH.draw (one canvas, same light/30 fps mode on phones).
