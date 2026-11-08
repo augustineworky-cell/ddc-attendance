@@ -2380,6 +2380,7 @@ async function handleClockOut() {
       // card state and calls updateHomeUI(false) itself.
       renderPunchOutSuccessCard(res.hours_worked);
       if (typeof window.stafflyDiwaliPunchOut === 'function') window.stafflyDiwaliPunchOut({ name: CURRENT_USER && (CURRENT_USER.fullName || CURRENT_USER.name), hours: res.hours_worked });   // v101 Diwali greeting
+      if (typeof window.stafflyChhathPunchOut === 'function') window.stafflyChhathPunchOut({ name: CURRENT_USER && (CURRENT_USER.fullName || CURRENT_USER.name), hours: res.hours_worked });   // v107 Chhath greeting
       if (typeof sayPunch === 'function') {
         sayPunch('out', { name: CURRENT_USER && (CURRENT_USER.fullName || CURRENT_USER.name), shiftComplete: res.shift_complete });
       }

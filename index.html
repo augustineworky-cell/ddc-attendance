@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>/* v101 Diwali look: on from 4 Nov to end of 10 Nov 2026 (India time), then off by itself */(function(){var n=Date.now();if(n>=Date.parse('2026-11-04T00:00:00+05:30')&&n<Date.parse('2026-11-11T00:00:00+05:30'))document.documentElement.classList.add('diwali');})();</script>
+  <script>/* v107 festival looks (India time), each switches itself off: Diwali until end of 8 Nov, Chhath 12-16 Nov. Preview: ?theme=diwali|chhath */(function(){var n=Date.now(),c=document.documentElement.classList,q=(location.search.match(/[?&]theme=(\w+)/)||[])[1];if(q==='diwali'||q==='chhath'){c.add(q);return;}if(n>=Date.parse('2026-11-04T00:00:00+05:30')&&n<Date.parse('2026-11-09T00:00:00+05:30'))c.add('diwali');else if(n>=Date.parse('2026-11-12T00:00:00+05:30')&&n<Date.parse('2026-11-17T00:00:00+05:30'))c.add('chhath');})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script>
   /* v61: Staffly is employee-only. Admin screens live in the dashboard.
@@ -83,6 +83,8 @@
   <link rel="stylesheet" href="morons-app.css?v=2">
   <link rel="stylesheet" href="collection-app.css?v=2">
   <link rel="stylesheet" href="diwali.css?v=1">
+  <link rel="stylesheet" href="chhath.css?v=1">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&display=swap&text=%E0%A4%9B%E0%A4%A0%E0%A4%AA%E0%A5%82%E0%A4%9C%E0%A4%BE%E0%A4%95%E0%A5%80%E0%A4%B6%E0%A5%81%E0%A4%AD%E0%A4%95%E0%A4%BE%E0%A4%AE%E0%A4%A8%E0%A4%8F%E0%A4%81%20">
 </head>
 <body>
 
@@ -986,14 +988,15 @@
   </script>
 
 
-  <script src="app.js?v=103" defer></script>
+  <script src="app.js?v=107" defer></script>
   <script src="diwali.js?v=2" defer></script>
-  <script src="login-stars.js?v=3" defer></script>
+  <script src="chhath.js?v=1" defer></script>
+  <script src="login-stars.js?v=4" defer></script>
   <script src="pages.js?v=93" defer></script>
   <script src="/dash/js/mode.js?v=3" defer></script>
-  <script src="morons-app.js?v=1" defer></script>
+  <script src="morons-app.js?v=107" defer></script>
   <script src="guardian.js?v=1" defer></script>
-  <script src="collection-app.js?v=2" defer></script>
+  <script src="collection-app.js?v=107" defer></script>
 
   <!-- PWA: service worker registration + install prompt + update detection -->
   <script>

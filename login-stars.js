@@ -53,7 +53,7 @@
     bright = []; for (var i = 0; i < (lite ? 7 : 14); i++) bright.push({ x: Math.random() * W, y: Math.random() * (ridgeY - 40), ph: Math.random() * 6.28, tw: 0.5 + Math.random() });
   }
 
-  var shots = [], next = 0.5, t = 0, last = 0, on = false, dwFw = null, dwLamps = null;
+  var shots = [], next = 0.5, t = 0, last = 0, on = false, dwFw = null, dwLamps = null, chSky = null;
   function burst() {
     var ang = (198 + Math.random() * 14) * Math.PI / 180, vx = Math.cos(ang), vy = -Math.sin(ang);
     var n = Math.random() < 0.45 ? 2 + (Math.random() < 0.35 ? 1 : 0) : 1;
@@ -67,6 +67,7 @@
     if (minGap && now - last < minGap) { requestAnimationFrame(frame); return; }
     var dt = Math.min((now - last) / 1000, 0.05); last = now; t += dt;
     g.globalAlpha = 1; g.clearRect(0, 0, W, H);
+    if (window.CH) { if (!chSky) chSky = window.CH.scene(); chSky(g, dt, t, W, H, ridgeY); requestAnimationFrame(frame); return; }   // v107 Chhath sunset (chhath.js)
     g.drawImage(mw, 0, -100 - Math.sin(t * 0.05) * 20, W, H + 200);
     g.fillStyle = '#fff';
     for (var i = 0; i < stars.length; i++) {
