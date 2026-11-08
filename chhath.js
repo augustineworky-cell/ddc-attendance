@@ -118,7 +118,7 @@
     function rings(g, t) {
       g.save(); g.lineWidth = 1;
       RINGS.forEach(([px, dy, s], i) => {
-        const cx = px < 1 ? W * px : W + px, cy = hY + dy;
+        const cx = px > 0 && px < 1 ? W * px : W + px, cy = hY + dy;
         for (let k = 0; k < 2; k++) {
           const p = (t * .35 + i * .37 + k * .5) % 1, r = (12 + p * 16) * s;
           g.strokeStyle = 'rgba(255,170,110,' + (.38 * (1 - p)) + ')';
