@@ -1,4 +1,4 @@
-/* chhath.css - temporary Chhath Puja look for the phone app (v107). Scoped to html.chhath (set 12-16 Nov 2026 by index.html). */
+/* chhath.css - temporary Chhath Puja look for the phone app (v107). Scoped to html.chhath (set 10-16 Nov 2026 by index.html). */
 html.chhath #loginView .ch-logo img{box-shadow:0 0 0 1px rgba(255,180,100,.45),0 0 26px rgba(255,150,80,.28)}
 html.chhath #loginView .ch-greet{position:fixed;left:0;right:0;top:22%;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;z-index:1;pointer-events:none;animation:k-rise .9s var(--k-ease,ease) both}
 .ch-kicker{font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.32em;color:#e9a46a}

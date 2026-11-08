@@ -1,5 +1,5 @@
 /* chhath.js - Staffly phone app: temporary Chhath Puja look (v107).
- * ON from 12 Nov 2026 until the end of 16 Nov 2026 (India time), then switches itself off. No push needed to remove it.
+ * ON from 10 Nov 2026 until the end of 16 Nov 2026 (India time), then switches itself off. No push needed to remove it.
  * Login: the night sky becomes a Chhath sunset over a river ghat - the sun sinking into the water, its reflection,
  *   floating diyas, devotees offering arghya with a soop, sugarcane, the far shore and the first stars of the evening.
  *   Drawn by login-stars.js through window.CH.draw (one canvas, same light/30 fps mode on phones).
@@ -72,18 +72,6 @@
       x.beginPath(); x.moveTo(0, y0 - 30);
       for (let i = 0; i < 5; i++) { const sx = 26 + i * 15, sy = y0 - 30 + i * 8; x.lineTo(sx, sy); x.lineTo(sx, sy + 8); }
       x.lineTo(108, y0 + 14); x.lineTo(0, y0 + 14); x.closePath(); x.fill();
-      /* sugarcane: tall segmented stalks with long drooping leaves (the Chhath kosi) */
-      x.strokeStyle = '#07050a'; x.lineCap = 'round';
-      [[14, -.10, 104], [27, .04, 118], [40, .16, 96]].forEach(([bx, lean, hgt]) => {
-        const by = y0 - 30, tx = bx + lean * hgt, ty = by - hgt;
-        x.lineWidth = 2.6; x.beginPath(); x.moveTo(bx, by); x.lineTo(tx, ty); x.stroke();
-        x.lineWidth = 3.6; for (let n = 1; n < 7; n++) { const k = n / 7, nx = bx + (tx - bx) * k, ny = by + (ty - by) * k; x.beginPath(); x.moveTo(nx - 1.6, ny); x.lineTo(nx + 1.6, ny); x.stroke(); }
-        x.lineWidth = 1.2;
-        for (let l = 0; l < 7; l++) {
-          const k = .62 + l * .055, lx = bx + (tx - bx) * k, ly = by + (ty - by) * k, side = l % 2 ? 1 : -1, len = 26 + (l % 3) * 9;
-          x.beginPath(); x.moveTo(lx, ly); x.quadraticCurveTo(lx + side * len * .55, ly - len * .55, lx + side * len, ly + len * .25); x.stroke();
-        }
-      });
       /* small diya on the top step */
       x.fillStyle = '#07050a'; x.beginPath(); x.ellipse(52, y0 - 18, 5, 2.2, 0, 0, TAU); x.fill();
       /* devotees standing in the river, soop raised to the sun */
@@ -107,9 +95,37 @@
         x.lineWidth = 2.6; x.beginPath(); x.moveTo(-4, -28); x.lineTo(-1.5, -20); x.lineTo(0, -24); x.stroke(); x.beginPath(); x.moveTo(4, -28); x.lineTo(1.5, -20); x.stroke();   // hands folded
       }
       x.restore();
-      /* water around the waist */
-      x.save(); x.strokeStyle = 'rgba(255,170,110,.35)'; x.lineWidth = 1; x.beginPath(); x.ellipse(cx, wy, 13 * s, 2.2 * s, 0, 0, TAU); x.stroke();
-      x.strokeStyle = 'rgba(255,170,110,.15)'; x.beginPath(); x.ellipse(cx, wy + 1, 20 * s, 3.4 * s, 0, 0, TAU); x.stroke(); x.restore();
+    }
+    /* sugarcane swaying in the evening breeze (drawn every frame, a few strokes only) */
+    function cane(g, t) {
+      const y0 = hY; g.save(); g.strokeStyle = '#07050a'; g.lineCap = 'round';
+      [[14, -.10, 104, 0], [27, .04, 118, 1.7], [40, .16, 96, 3.1]].forEach(([bx, lean, hgt, ph]) => {
+        const by = y0 - 30, sway = Math.sin(t * .9 + ph) * .035 + Math.sin(t * 2.3 + ph) * .008;
+        const tx = bx + (lean + sway) * hgt, ty = by - hgt, mx = bx + (lean + sway * .3) * hgt * .5, my = by - hgt * .5;
+        g.lineWidth = 2.6; g.beginPath(); g.moveTo(bx, by); g.quadraticCurveTo(mx, my, tx, ty); g.stroke();
+        const at = (k) => { const u = 1 - k; return [u * u * bx + 2 * u * k * mx + k * k * tx, u * u * by + 2 * u * k * my + k * k * ty]; };
+        g.lineWidth = 3.6; for (let n = 1; n < 7; n++) { const [nx, ny] = at(n / 7); g.beginPath(); g.moveTo(nx - 1.6, ny); g.lineTo(nx + 1.6, ny); g.stroke(); }
+        g.lineWidth = 1.2;
+        for (let l = 0; l < 7; l++) {
+          const [lx, ly] = at(.62 + l * .055), side = l % 2 ? 1 : -1, len = 26 + (l % 3) * 9, fl = Math.sin(t * 1.8 + l * 1.3 + ph) * 3.5;
+          g.beginPath(); g.moveTo(lx, ly); g.quadraticCurveTo(lx + side * len * .55 + sway * 40, ly - len * .55 + fl * .4, lx + side * len + sway * 60, ly + len * .25 + fl); g.stroke();
+        }
+      });
+      g.restore();
+    }
+    /* slow rings spreading out around the devotees standing in the water */
+    const RINGS = [[.64, 16, .78], [-74, 34, 1.02], [-34, 30, .9]];
+    function rings(g, t) {
+      g.save(); g.lineWidth = 1;
+      RINGS.forEach(([px, dy, s], i) => {
+        const cx = px < 1 ? W * px : W + px, cy = hY + dy;
+        for (let k = 0; k < 2; k++) {
+          const p = (t * .35 + i * .37 + k * .5) % 1, r = (12 + p * 16) * s;
+          g.strokeStyle = 'rgba(255,170,110,' + (.38 * (1 - p)) + ')';
+          g.beginPath(); g.ellipse(cx, cy + p * 2 * s, r, r * .17, 0, 0, TAU); g.stroke();
+        }
+      });
+      g.restore();
     }
     function newDiya(first) {
       const lane = R();
@@ -147,7 +163,7 @@
       g.save(); g.globalCompositeOperation = 'lighter';
       for (let i = 0; i < diyas.length; i++) {
         const d = diyas[i]; d.x += d.v * dt * d.s; if (d.x > W + 20) diyas[i] = newDiya(false);
-        const y = d.y + Math.sin(t * 1.3 + d.ph) * 1.2 * d.s, s = d.s, fl = .75 + .25 * Math.sin(t * 9 + d.fl) * Math.sin(t * 5.3 + d.fl);
+        const y = d.y + Math.sin(t * 1.3 + d.ph) * 1.8 * d.s, s = d.s, fl = .75 + .25 * Math.sin(t * 9 + d.fl) * Math.sin(t * 5.3 + d.fl);
         const gl = g.createRadialGradient(d.x, y - 3 * s, 0, d.x, y - 3 * s, 16 * s); gl.addColorStop(0, 'rgba(255,190,100,' + .5 * fl + ')'); gl.addColorStop(1, 'rgba(255,170,90,0)');
         g.fillStyle = gl; g.fillRect(d.x - 16 * s, y - 19 * s, 32 * s, 32 * s);
         g.globalAlpha = .35 * fl; g.fillStyle = '#ffb45a'; g.fillRect(d.x - 1.2 * s, y + 2 * s, 2.4 * s, 10 * s);   // reflection
@@ -162,8 +178,8 @@
       g.save(); g.strokeStyle = 'rgba(20,10,20,.85)'; g.lineWidth = 1.3; g.lineCap = 'round';
       for (const b of birds) {
         b.x += 9 * dt; if (b.x > W + 30) b.x = -40 - R() * 60;
-        const f = Math.sin(t * 6 * b.s + b.ph) * 3, w = 6 * b.s;
-        g.beginPath(); g.moveTo(b.x - w, b.y - f); g.quadraticCurveTo(b.x - w / 2, b.y - 2, b.x, b.y); g.quadraticCurveTo(b.x + w / 2, b.y - 2, b.x + w, b.y - f); g.stroke();
+        const f = Math.sin(t * 6 * b.s + b.ph) * 3, w = 6 * b.s, by = b.y + Math.sin(t * .7 + b.ph) * 4;
+        g.beginPath(); g.moveTo(b.x - w, by - f); g.quadraticCurveTo(b.x - w / 2, by - 2, b.x, by); g.quadraticCurveTo(b.x + w / 2, by - 2, b.x + w, by - f); g.stroke();
       }
       g.restore();
     }
@@ -179,6 +195,7 @@
       drawDiyas(g, t, dt);
       drawBirds(g, t, dt);
       g.drawImage(ghat, 0, hY - 160, W, H - hY + 160);
+      cane(g, t); rings(g, t);
     };
   }
   window.CH = { scene };
